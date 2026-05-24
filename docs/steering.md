@@ -541,15 +541,27 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 ---
 
-現在の状態
+現在の状態（2026-05-24時点）
 -----
 
-* **ブランチ**: `main`
+* **ブランチ**: `worktree-figma-plugins`
+* **PR**: https://github.com/lovaizu/telldes/pull/1
 * **次タスク**: S-1（プロジェクト初期化）
-* **完了済み**: 設計書作成完了（`docs/telldes-design.md`）
+* **完了済み**:
+  - 設計書作成完了（`docs/telldes-design.md`）
+  - ステアリング作成完了（`docs/steering.md`）
+  - 技術スタック確定: Bun + Vite + Solid v2 (beta) + Vitest + JSZip
 
 ### 再開手順
 
-1. `git status` でブランチとクリーン状態を確認
-2. このステアリングの「次タスク」を確認し、該当タスクの作業内容に着手する
-3. 完了したらセルフチェック → ユーザーレビュー依頼の順で進める
+1. `git checkout worktree-figma-plugins` でブランチに切り替え、`git pull` で最新を取得
+2. `git status` でクリーン状態を確認
+3. このステアリングの「次タスク」を確認し、該当タスクの作業内容に着手する
+4. 完了したらセルフチェック → ユーザーレビュー依頼の順で進める
+
+### 技術スタック決定経緯
+
+* UI フレームワーク: Preact → Solid v2 に変更。signals ベースのリアクティビティを採用
+* バンドラー: esbuild → Vite に変更。Solid の JSX 変換に vite-plugin-solid が必要なため
+* テスト: `bun test` → Vitest に変更。Vite config 共有で Solid JSX がテストでもそのまま動く
+* Bun の役割: パッケージマネージャ + スクリプトランナーに限定（ビルドは Vite に委譲）
