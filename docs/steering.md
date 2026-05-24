@@ -110,13 +110,47 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 技術スタック
 ------
 
-| 項目 | 選定 | 理由 |
+| 項目 | 選定 | 根拠 |
 |---|---|---|
-| 言語 | TypeScript | Figma Plugin API の型定義が充実 |
-| バンドラー | esbuild | 高速。Figma プラグインは単一ファイル出力が必要 |
-| UI フレームワーク | Preact + htm | 軽量。Figma プラグイン UI のバンドルサイズ制約に適合 |
-| zip 生成 | JSZip | 設計書 4.7.4 節で指定済み |
-| テスト | Vitest | esbuild ベースで高速 |
+| パッケージマネージャ / ランタイム | Bun | install 高速、lock ファイル軽量、スクリプトランナーとしても使用 |
+| 言語 | TypeScript | Figma Plugin API の型定義が充実。Bun がネイティブ実行 |
+| バンドラー / dev server | Vite | Solid の JSX 変換に vite-plugin-solid が必要。Figma プラグイン向け Vite 利用の実績多数 |
+| UI フレームワーク | Solid v2 (beta) | signals ベースのリアクティビティ。fine-grained updates でリスト描画が効率的。~7KB gzip |
+| 単一ファイル化 | vite-plugin-singlefile | Figma プラグイン UI は単一 HTML 必須。Vite 出力をインライン化 |
+| zip 生成 | JSZip | 設計書 4.7.4 節で指定。ブラウザ環境で動く zip ライブラリとして実績あり |
+| テスト | Vitest | Vite config 共有で Solid JSX がそのまま動く。Solid v2 のテストに最適 |
+| 型定義 | @figma/plugin-typings | Figma 公式。Plugin API の全型が手に入る |
+
+### 依存パッケージ
+
+```json
+{
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.x",
+    "solid-js": "next",
+    "@solidjs/web": "next",
+    "vite": "^6.x",
+    "vite-plugin-solid": "next",
+    "vite-plugin-singlefile": "^2.x",
+    "vitest": "^3.x"
+  },
+  "dependencies": {
+    "jszip": "^3.x"
+  }
+}
+```
+
+### Bun の役割
+
+* パッケージマネージャ（`bun install`, `bun add`）
+* スクリプトランナー（`bun run dev`, `bun run build`, `bun run test`）
+* ビルド・バンドルは Vite に委譲（Solid の JSX 変換が必要なため）
+
+### Solid v2 Beta 利用に関する注意
+
+* `solid-js`, `@solidjs/web`, `vite-plugin-solid` は全て `next` タグで揃えること
+* 破壊的変更のリスクあり。`bun.lock` でバージョン固定し、安定版リリース時にアップデート
+* Figma プラグイン UI は iframe 内の標準ブラウザ環境。Solid が動作しない技術的制約はない
 
 ---
 
