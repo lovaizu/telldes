@@ -541,16 +541,17 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 ---
 
-現在の状態（2026-05-24時点）
+現在の状態（2026-05-25時点）
 -----
 
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **次タスク**: S-1（プロジェクト初期化）
+* **次タスク**: S-1 ユーザーレビュー待ち → C-1（ノード走査＋構造チェック実装）
 * **完了済み**:
   - 設計書作成完了（`docs/telldes-design.md`）
   - ステアリング作成完了（`docs/steering.md`）
   - 技術スタック確定: Bun + Vite + Solid v2 (beta) + Vitest + JSZip
+  - S-1: プロジェクト初期化（セルフチェック完了、Figma 実機確認待ち）
 
 ### 再開手順
 
