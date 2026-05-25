@@ -546,19 +546,42 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **次タスク**: S-1 ユーザーレビュー待ち → C-1（ノード走査＋構造チェック実装）
+* **次タスク**: S-1 ユーザーレビュー（Figma 実機確認）→ プッシュ → C-1 着手
 * **完了済み**:
   - 設計書作成完了（`docs/telldes-design.md`）
   - ステアリング作成完了（`docs/steering.md`）
   - 技術スタック確定: Bun + Vite + Solid v2 (beta) + Vitest + JSZip
-  - S-1: プロジェクト初期化（セルフチェック完了、Figma 実機確認待ち）
+  - S-1: プロジェクト初期化（セルフチェック完了 `docs/checks/S-1.md`）
+* **ブロッカー**:
+  - GitHub 認証未設定（`gh auth login` が必要）。認証後に `git push` する
+  - Figma 実機確認未実施（プラグイン読み込み → UI パネル表示の確認）
+
+### S-1 実装済みファイル
+
+```
+package.json          — Bun + Vite + Solid v2 + Vitest + JSZip
+bun.lock              — 依存バージョン固定
+tsconfig.json         — TypeScript 設定（jsx: preserve, jsxImportSource: solid-js）
+vite.config.ts        — UI ビルド（Solid + vite-plugin-singlefile → dist/ui.html）
+vite.config.code.ts   — プラグインコード（IIFE → dist/code.js）
+manifest.json         — Figma プラグインマニフェスト（main: dist/code.js, ui: dist/ui.html）
+src/code.ts           — figma.showUI(__html__, { width: 360, height: 480 })
+src/ui.html           — UI HTML エントリ
+src/ui.tsx            — Solid render エントリ
+src/App.tsx           — 3タブ UI（チェック / note / 書き出し）
+docs/checks/S-1.md    — セルフチェック結果
+```
 
 ### 再開手順
 
-1. `git checkout worktree-figma-plugins` でブランチに切り替え、`git pull` で最新を取得
-2. `git status` でクリーン状態を確認
-3. このステアリングの「次タスク」を確認し、該当タスクの作業内容に着手する
-4. 完了したらセルフチェック → ユーザーレビュー依頼の順で進める
+1. `git status` でクリーン状態を確認（コミット済みだがプッシュ未済の可能性あり）
+2. GitHub 認証が未済なら `gh auth login` → `git push`
+3. ユーザーが Figma 実機確認を完了していれば S-1 完了 → C-1 着手
+4. 未確認なら Figma でプラグイン読み込みをユーザーに依頼:
+   - Figma → Plugins → Development → Import plugin from manifest
+   - このリポジトリの `manifest.json` を選択
+   - プラグイン実行 → 3タブ UI が表示されれば OK
+5. C-1 以降は各タスクの作業内容に従い、完了後セルフチェック → ユーザーレビュー
 
 ### 技術スタック決定経緯
 
@@ -566,3 +589,4 @@ Ph-6: レスポンシブ対応＋統合テスト
 * バンドラー: esbuild → Vite に変更。Solid の JSX 変換に vite-plugin-solid が必要なため
 * テスト: `bun test` → Vitest に変更。Vite config 共有で Solid JSX がテストでもそのまま動く
 * Bun の役割: パッケージマネージャ + スクリプトランナーに限定（ビルドは Vite に委譲）
+* Bun はこのセッションでインストール済み（`~/.bun/bin/bun`）。PATH に `$HOME/.bun/bin` が必要
