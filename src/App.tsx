@@ -11,11 +11,20 @@ interface CheckResult {
   suggestion: string;
 }
 
+interface SelectionNote {
+  nodeId: string;
+  nodeName: string;
+  note: string;
+}
+
 const App: Component = () => {
   const [activeTab, setActiveTab] = createSignal<Tab>("check");
   const [results, setResults] = createSignal<CheckResult[]>([]);
   const [hasRun, setHasRun] = createSignal(false);
   const [running, setRunning] = createSignal(false);
+  const [selectionNote, setSelectionNote] = createSignal<SelectionNote | null>(null);
+  const [noteText, setNoteText] = createSignal("");
+  const [noteSaved, setNoteSaved] = createSignal(false);
 
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
@@ -24,6 +33,14 @@ const App: Component = () => {
       setResults(msg.results);
       setHasRun(true);
       setRunning(false);
+    }
+    if (msg.type === "selection-note") {
+      setSelectionNote(msg.data);
+      setNoteText(msg.data?.note ?? "");
+      setNoteSaved(false);
+    }
+    if (msg.type === "note-saved") {
+      setNoteSaved(true);
     }
   };
 
@@ -38,6 +55,15 @@ const App: Component = () => {
 
   const errors = () => results().filter((r) => r.level === "error");
   const suggestions = () => results().filter((r) => r.level === "suggestion");
+
+  const saveNote = () => {
+    const sel = selectionNote();
+    if (!sel) return;
+    parent.postMessage(
+      { pluginMessage: { type: "save-note", nodeId: sel.nodeId, note: noteText() } },
+      "*",
+    );
+  };
 
   return (
     <div class="container">
@@ -122,7 +148,35 @@ const App: Component = () => {
         )}
         {activeTab() === "note" && (
           <div class="panel">
-            <p class="placeholder">Notes (not implemented)</p>
+            <Show
+              when={selectionNote()}
+              fallback={
+                <p class="placeholder">Select a single layer to edit its note</p>
+              }
+            >
+              {(sel) => (
+                <>
+                  <div class="note-header">{sel().nodeName}</div>
+                  <textarea
+                    class="note-textarea"
+                    value={noteText()}
+                    onInput={(e) => {
+                      setNoteText(e.currentTarget.value);
+                      setNoteSaved(false);
+                    }}
+                    placeholder="Add a note for this layer..."
+                  />
+                  <div class="note-actions">
+                    <button class="run-btn" onClick={saveNote}>
+                      Save
+                    </button>
+                    <Show when={noteSaved()}>
+                      <span class="note-saved">Saved</span>
+                    </Show>
+                  </div>
+                </>
+              )}
+            </Show>
           </div>
         )}
         {activeTab() === "export" && (
@@ -257,6 +311,43 @@ const App: Component = () => {
           font-size: 11px;
           color: #999;
           margin-top: 2px;
+        }
+        .note-header {
+          font-weight: 600;
+          font-size: 12px;
+          margin-bottom: 8px;
+          color: #333;
+        }
+        .note-textarea {
+          width: 100%;
+          min-height: 120px;
+          padding: 8px;
+          border: 1px solid #e5e5e5;
+          border-radius: 4px;
+          font-family: inherit;
+          font-size: 12px;
+          color: #333;
+          resize: vertical;
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .note-textarea:focus {
+          border-color: #18a0fb;
+        }
+        .note-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          margin-top: 8px;
+        }
+        .note-actions .run-btn {
+          width: auto;
+          padding: 6px 20px;
+        }
+        .note-saved {
+          color: #1bc47d;
+          font-size: 11px;
+          font-weight: 600;
         }
       `}</style>
     </div>
