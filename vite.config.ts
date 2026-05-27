@@ -13,4 +13,8 @@ export default defineConfig({
       input: "src/ui.html",
     },
   },
+  test: {
+    environment: "node",
+    root: ".",
+  },
 });
