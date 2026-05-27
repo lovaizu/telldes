@@ -56,36 +56,62 @@ const App: Component = () => {
     }
   };
 
+  const generateSectionTasks = (sections: { name: string }[]) =>
+    sections
+      .map((s) => `- [ ] Code section: **${s.name}**\n  - [ ] Layout and structure\n  - [ ] Visual styles\n  - [ ] Assets and images\n  - [ ] Notes and interactions\n  - [ ] Compare with screenshot`)
+      .join("\n") || "- [ ] (no sections found)";
+
+  const addFilesToFolder = (folder: any, screenshots: any[], assets: any[]) => {
+    for (const ss of screenshots) {
+      folder.file(ss.path, new Uint8Array(ss.data));
+    }
+    for (const asset of assets) {
+      folder.file(asset.path, new Uint8Array(asset.data));
+    }
+  };
+
   const handleExportData = async (msg: any) => {
     try {
       const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
       const root = zip.folder("telldes-export")!;
 
-      const viewportWidth = msg.spec?.viewport?.width ?? 1440;
-      const sections = (msg.spec?.children ?? []) as { name: string }[];
-      const sectionTasks = sections
-        .map((s: { name: string }) => `- [ ] Code section: **${s.name}**\n  - [ ] Layout and structure\n  - [ ] Visual styles\n  - [ ] Assets and images\n  - [ ] Notes and interactions\n  - [ ] Compare with screenshot`)
-        .join("\n");
-
-      const prompt = promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth));
-      const steering = steeringTemplate
-        .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth))
-        .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks || "- [ ] (no sections found)");
-
-      root.file("prompt.md", prompt);
-      root.file("steering.md", steering);
-      root.file("spec.json", JSON.stringify(msg.spec, null, 2));
-
       if (msg.tokens) {
         root.file("tokens.json", JSON.stringify(msg.tokens, null, 2));
       }
 
-      for (const ss of msg.screenshots) {
-        root.file(ss.path, new Uint8Array(ss.data));
-      }
-      for (const asset of msg.assets) {
-        root.file(asset.path, new Uint8Array(asset.data));
+      if (!msg.responsive) {
+        const viewportWidth = msg.spec?.viewport?.width ?? 1440;
+        const sections = (msg.spec?.children ?? []) as { name: string }[];
+        const sectionTasks = generateSectionTasks(sections);
+
+        root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth)));
+        root.file("steering.md", steeringTemplate
+          .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth))
+          .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
+        root.file("spec.json", JSON.stringify(msg.spec, null, 2));
+        addFilesToFolder(root, msg.screenshots, msg.assets);
+      } else {
+        const allSections: { name: string }[] = [];
+        let primaryWidth = 1440;
+
+        for (const variant of msg.variants) {
+          const folder = root.folder(variant.role)!;
+          folder.file("spec.json", JSON.stringify(variant.spec, null, 2));
+          addFilesToFolder(folder, variant.screenshots, variant.assets);
+
+          const sections = (variant.spec?.children ?? []) as { name: string }[];
+          if (variant.role === "desktop") {
+            primaryWidth = variant.spec?.viewport?.width ?? 1440;
+            allSections.push(...sections);
+          }
+        }
+
+        const sectionTasks = generateSectionTasks(allSections);
+        root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth)));
+        root.file("steering.md", steeringTemplate
+          .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
+          .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
       }
 
       const blob = await zip.generateAsync({ type: "blob" });
