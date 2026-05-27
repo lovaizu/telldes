@@ -1,4 +1,6 @@
 import { createSignal, For, Show, type Component } from "solid-js";
+import promptTemplate from "./templates/prompt.md?raw";
+import steeringTemplate from "./templates/steering.md?raw";
 
 type Tab = "check" | "note" | "export";
 type CheckLevel = "error" | "suggestion";
@@ -60,8 +62,19 @@ const App: Component = () => {
       const zip = new JSZip();
       const root = zip.folder("telldes-export")!;
 
-      root.file("prompt.md", "# Prompt\n\n(template placeholder)");
-      root.file("steering.md", "# Steering\n\n(template placeholder)");
+      const viewportWidth = msg.spec?.viewport?.width ?? 1440;
+      const sections = (msg.spec?.children ?? []) as { name: string }[];
+      const sectionTasks = sections
+        .map((s: { name: string }) => `- [ ] Code section: **${s.name}**\n  - [ ] Layout and structure\n  - [ ] Visual styles\n  - [ ] Assets and images\n  - [ ] Notes and interactions\n  - [ ] Compare with screenshot`)
+        .join("\n");
+
+      const prompt = promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth));
+      const steering = steeringTemplate
+        .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth))
+        .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks || "- [ ] (no sections found)");
+
+      root.file("prompt.md", prompt);
+      root.file("steering.md", steering);
       root.file("spec.json", JSON.stringify(msg.spec, null, 2));
 
       if (msg.tokens) {
