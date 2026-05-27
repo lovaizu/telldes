@@ -25,6 +25,9 @@ const App: Component = () => {
   const [selectionNote, setSelectionNote] = createSignal<SelectionNote | null>(null);
   const [noteText, setNoteText] = createSignal("");
   const [noteSaved, setNoteSaved] = createSignal(false);
+  const [exporting, setExporting] = createSignal(false);
+  const [exportError, setExportError] = createSignal("");
+  const [exportDone, setExportDone] = createSignal(false);
 
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
@@ -42,6 +45,50 @@ const App: Component = () => {
     if (msg.type === "note-saved") {
       setNoteSaved(true);
     }
+    if (msg.type === "export-error") {
+      setExportError(msg.message);
+      setExporting(false);
+    }
+    if (msg.type === "export-data") {
+      handleExportData(msg);
+    }
+  };
+
+  const handleExportData = async (msg: any) => {
+    try {
+      const { default: JSZip } = await import("jszip");
+      const zip = new JSZip();
+      const root = zip.folder("telldes-export")!;
+
+      root.file("prompt.md", "# Prompt\n\n(template placeholder)");
+      root.file("steering.md", "# Steering\n\n(template placeholder)");
+      root.file("spec.json", JSON.stringify(msg.spec, null, 2));
+
+      if (msg.tokens) {
+        root.file("tokens.json", JSON.stringify(msg.tokens, null, 2));
+      }
+
+      for (const ss of msg.screenshots) {
+        root.file(ss.path, new Uint8Array(ss.data));
+      }
+      for (const asset of msg.assets) {
+        root.file(asset.path, new Uint8Array(asset.data));
+      }
+
+      const blob = await zip.generateAsync({ type: "blob" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "telldes-export.zip";
+      a.click();
+      URL.revokeObjectURL(url);
+
+      setExportDone(true);
+      setExporting(false);
+    } catch (err) {
+      setExportError(`Zip generation failed: ${err}`);
+      setExporting(false);
+    }
   };
 
   const runChecks = () => {
@@ -55,6 +102,13 @@ const App: Component = () => {
 
   const errors = () => results().filter((r) => r.level === "error");
   const suggestions = () => results().filter((r) => r.level === "suggestion");
+
+  const runExport = () => {
+    setExporting(true);
+    setExportError("");
+    setExportDone(false);
+    parent.postMessage({ pluginMessage: { type: "run-export" } }, "*");
+  };
 
   const saveNote = () => {
     const sel = selectionNote();
@@ -181,7 +235,15 @@ const App: Component = () => {
         )}
         {activeTab() === "export" && (
           <div class="panel">
-            <p class="placeholder">Export (not implemented)</p>
+            <button class="run-btn" onClick={runExport} disabled={exporting()}>
+              {exporting() ? "Exporting..." : "Export Zip"}
+            </button>
+            <Show when={exportError()}>
+              <div class="export-error">{exportError()}</div>
+            </Show>
+            <Show when={exportDone()}>
+              <div class="pass">Export complete — zip downloaded</div>
+            </Show>
           </div>
         )}
       </main>
@@ -348,6 +410,14 @@ const App: Component = () => {
           color: #1bc47d;
           font-size: 11px;
           font-weight: 600;
+        }
+        .export-error {
+          margin-top: 12px;
+          padding: 8px 10px;
+          border-radius: 4px;
+          background: #fef2f2;
+          color: #f24822;
+          font-size: 11px;
         }
       `}</style>
     </div>

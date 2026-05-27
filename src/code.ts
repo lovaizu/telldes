@@ -3,6 +3,10 @@ import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
 import { runVariableChecks } from "./checks/variableChecks";
 import type { CheckResult } from "./checks/types";
+import { buildSpec } from "./export/specBuilder";
+import { buildTokens } from "./export/tokensBuilder";
+import { exportScreenshots } from "./export/screenshotExporter";
+import { exportAssets } from "./export/assetExporter";
 
 figma.showUI(__html__, { width: 360, height: 480 });
 
@@ -22,21 +26,25 @@ function sendSelectionNote() {
   figma.ui.postMessage({ type: "selection-note", data });
 }
 
+function runAllChecks(): CheckResult[] {
+  const page = figma.currentPage;
+  const nodes = collectAllNodes(page);
+  return [
+    ...runStructureChecks(nodes),
+    ...checkSizing(nodes),
+    ...runVariableChecks(nodes),
+  ];
+}
+
 sendSelectionNote();
 
 figma.on("selectionchange", () => {
   sendSelectionNote();
 });
 
-figma.ui.onmessage = (msg: { type: string; nodeId?: string; note?: string }) => {
+figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string }) => {
   if (msg.type === "run-checks") {
-    const page = figma.currentPage;
-    const nodes = collectAllNodes(page);
-    const results: CheckResult[] = [
-      ...runStructureChecks(nodes),
-      ...checkSizing(nodes),
-      ...runVariableChecks(nodes),
-    ];
+    const results = runAllChecks();
     figma.ui.postMessage({ type: "check-results", results });
   }
 
@@ -65,5 +73,56 @@ figma.ui.onmessage = (msg: { type: string; nodeId?: string; note?: string }) => 
 
   if (msg.type === "get-note") {
     sendSelectionNote();
+  }
+
+  if (msg.type === "run-export") {
+    const checks = runAllChecks();
+    const errors = checks.filter((c) => c.level === "error");
+    if (errors.length > 0) {
+      figma.ui.postMessage({
+        type: "export-error",
+        message: `${errors.length} error(s) must be fixed before export`,
+      });
+      return;
+    }
+
+    try {
+      const page = figma.currentPage;
+      const spec = buildSpec(page);
+
+      let tokens = null;
+      try {
+        const vars = figma.variables.getLocalVariables();
+        tokens = buildTokens(vars);
+      } catch {
+        // Variables API may not be available
+      }
+
+      const topFrames = page.children.filter(
+        (n) => n.type === "FRAME" || n.type === "SECTION",
+      );
+      const rootFrame = topFrames[0];
+
+      let screenshots: Awaited<ReturnType<typeof exportScreenshots>> = [];
+      let assets: Awaited<ReturnType<typeof exportAssets>> = [];
+
+      if (rootFrame) {
+        screenshots = await exportScreenshots(rootFrame);
+        assets = await exportAssets(rootFrame);
+      }
+
+      figma.ui.postMessage({
+        type: "export-data",
+        spec,
+        tokens,
+        screenshots: screenshots.map((s) => ({ path: s.path, data: Array.from(s.data) })),
+        assets: assets.map((a) => ({ path: a.path, data: Array.from(a.data) })),
+      });
+    } catch (err) {
+      figma.ui.postMessage({
+        type: "export-error",
+        message: `Export failed: ${err}`,
+      });
+    }
   }
 };
