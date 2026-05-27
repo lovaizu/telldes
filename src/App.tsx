@@ -13,38 +13,38 @@ const App: Component = () => {
           classList={{ active: activeTab() === "check" }}
           onClick={() => setActiveTab("check")}
         >
-          チェック
+          Review
         </button>
         <button
           class="tab"
           classList={{ active: activeTab() === "note" }}
           onClick={() => setActiveTab("note")}
         >
-          note
+          Notes
         </button>
         <button
           class="tab"
           classList={{ active: activeTab() === "export" }}
           onClick={() => setActiveTab("export")}
         >
-          書き出し
+          Export
         </button>
       </nav>
 
       <main class="content">
         {activeTab() === "check" && (
           <div class="panel">
-            <p class="placeholder">チェック機能（未実装）</p>
+            <p class="placeholder">Review (not implemented)</p>
           </div>
         )}
         {activeTab() === "note" && (
           <div class="panel">
-            <p class="placeholder">note 入力（未実装）</p>
+            <p class="placeholder">Notes (not implemented)</p>
           </div>
         )}
         {activeTab() === "export" && (
           <div class="panel">
-            <p class="placeholder">書き出し（未実装）</p>
+            <p class="placeholder">Export (not implemented)</p>
           </div>
         )}
       </main>
