@@ -12,6 +12,7 @@ function isVectorNode(node: SceneNode): boolean {
     node.type === "VECTOR" ||
     node.type === "STAR" ||
     node.type === "POLYGON" ||
+    node.type === "ELLIPSE" ||
     node.type === "LINE" ||
     node.type === "BOOLEAN_OPERATION"
   );

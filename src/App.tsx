@@ -99,6 +99,21 @@ const App: Component = () => {
         .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
         .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
 
+      const frameNames = (msg.frames as { name: string }[]).map((f) => f.name);
+      const readmeContent = [
+        "# Telldes Export",
+        "",
+        "This zip was exported by the Telldes Figma plugin.",
+        "",
+        "## Contents",
+        "",
+        "- `prompt.md` — Coding instructions for Claude Code",
+        "- `steering.md` — Pre-coding checklist, tasks, and rules",
+        msg.tokens ? "- `tokens.json` — Design tokens (W3C DTCG format)" : null,
+        ...frameNames.map((n: string) => `- \`${n}/\` — spec.json, screenshots, and assets for frame "${n}"`),
+      ].filter(Boolean).join("\n");
+      root.file("README.md", readmeContent);
+
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");

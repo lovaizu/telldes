@@ -81,6 +81,9 @@ function buildLayout(node: FrameNode): SpecLayout | undefined {
 
   if (node.layoutWrap === "WRAP") {
     layout.wrap = "WRAP";
+    if ((node as any).counterAxisAlignContent && (node as any).counterAxisAlignContent !== "AUTO") {
+      layout.counterAxisAlignContent = (node as any).counterAxisAlignContent;
+    }
   }
 
   if (node.primaryAxisAlignItems) {
@@ -236,6 +239,13 @@ function buildNode(
   if (node.type !== "TEXT") {
     const fills = buildFills(node);
     if (fills) spec.fills = fills;
+  }
+
+  if ("layoutAlign" in node && (node as any).layoutAlign === "STRETCH") {
+    spec.layoutAlign = "STRETCH";
+  }
+  if ("layoutGrow" in node && (node as any).layoutGrow === 1) {
+    spec.layoutGrow = 1;
   }
 
   if ("cornerRadius" in node) {

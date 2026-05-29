@@ -113,6 +113,14 @@ describe("checkDuplicateNames", () => {
     const results = checkDuplicateNames([a, b]);
     expect(results).toHaveLength(0);
   });
+
+  it("ignores same-name component instances under same parent", () => {
+    const parent = { id: "parent" };
+    const a = makeRect({ id: "a", name: "item", type: "INSTANCE", parent });
+    const b = makeRect({ id: "b", name: "item", type: "INSTANCE", parent });
+    const results = checkDuplicateNames([a, b]);
+    expect(results).toHaveLength(0);
+  });
 });
 
 describe("checkBackgroundAsChild", () => {

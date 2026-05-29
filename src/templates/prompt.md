@@ -101,6 +101,9 @@ Default: `<div>` for blocks, `<p>` for text without a special name.
 | `sizing.height: "FILL"` | `height: 100%` |
 | `sizing.height: "HUG"` | `height: auto` |
 | `sizing.height: "FIXED"` | `height: {value}px` |
+| `layoutAlign: "STRETCH"` (child) | `align-self: stretch` |
+| `layoutGrow: 1` (child) | `flex-grow: 1` |
+| `counterAxisAlignContent: "SPACE_BETWEEN"` (wrap) | `align-content: space-between` |
 
 ## 7. Completion
 

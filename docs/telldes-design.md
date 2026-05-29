@@ -253,6 +253,7 @@ telldes-export/
 ├── prompt.md          ← CCプロンプト（自動生成）
 ├── steering.md        ← 確認・タスク・ルール（テンプレート）
 ├── tokens.json        ← デザイントークン（Variablesが定義されている場合のみ）
+├── README.md          ← zip内容の説明
 ├── {フレーム名}/       ← トップレベルフレームごとにフォルダ
 │   ├── spec.json      ← デザインスペック
 │   ├── screenshots/   ← セクション＋ブロック画像

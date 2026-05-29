@@ -240,4 +240,40 @@ describe("buildSpec", () => {
     const spec = buildSpec(makePage([root]));
     expect(spec.children[0].children![0].nodeType).toBe("TEXT");
   });
+
+  it("includes layoutAlign STRETCH on child nodes", () => {
+    const child = makeTextNode({ layoutAlign: "STRETCH" });
+    const section = makeFrame({ name: "hero", children: [child] });
+    const root = makeFrame({ children: [section] });
+    const spec = buildSpec(makePage([root]));
+    expect((spec.children[0].children![0] as any).layoutAlign).toBe("STRETCH");
+  });
+
+  it("includes layoutGrow 1 on child nodes", () => {
+    const child = makeTextNode({ layoutGrow: 1 });
+    const section = makeFrame({ name: "hero", children: [child] });
+    const root = makeFrame({ children: [section] });
+    const spec = buildSpec(makePage([root]));
+    expect((spec.children[0].children![0] as any).layoutGrow).toBe(1);
+  });
+
+  it("omits layoutAlign when not STRETCH", () => {
+    const child = makeTextNode({ layoutAlign: "INHERIT" });
+    const section = makeFrame({ name: "hero", children: [child] });
+    const root = makeFrame({ children: [section] });
+    const spec = buildSpec(makePage([root]));
+    expect((spec.children[0].children![0] as any).layoutAlign).toBeUndefined();
+  });
+
+  it("includes counterAxisAlignContent on wrap layouts", () => {
+    const section = makeFrame({
+      name: "grid",
+      layoutWrap: "WRAP",
+      counterAxisAlignContent: "SPACE_BETWEEN",
+      children: [],
+    });
+    const root = makeFrame({ children: [section] });
+    const spec = buildSpec(makePage([root]));
+    expect(spec.children[0].layout!.counterAxisAlignContent).toBe("SPACE_BETWEEN");
+  });
 });

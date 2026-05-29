@@ -10,9 +10,16 @@ function colorToHex(r: number, g: number, b: number, a: number): string {
     : `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 }
 
+function hasBoundVariable(node: SceneNode, field: string): boolean {
+  if (!("boundVariables" in node)) return false;
+  const bound = (node as any).boundVariables;
+  return bound && bound[field];
+}
+
 function extractColors(node: SceneNode): { color: string; nodeId: string; nodeName: string }[] {
   const entries: { color: string; nodeId: string; nodeName: string }[] = [];
   if (!("fills" in node)) return entries;
+  if (hasBoundVariable(node, "fills")) return entries;
 
   const fills = node.fills;
   if (!Array.isArray(fills)) return entries;
@@ -57,6 +64,7 @@ export function checkRepeatedColors(nodes: SceneNode[]): CheckResult[] {
 
 function extractSpacing(node: SceneNode): number[] {
   if (!("paddingTop" in node)) return [];
+  if (hasBoundVariable(node, "paddingTop") || hasBoundVariable(node, "itemSpacing")) return [];
   const n = node as FrameNode;
   const values: number[] = [];
   if (n.paddingTop > 0) values.push(n.paddingTop);
@@ -105,6 +113,7 @@ export function checkRepeatedFontSize(nodes: SceneNode[]): CheckResult[] {
 
   for (const node of nodes) {
     if (node.type !== "TEXT") continue;
+    if (hasBoundVariable(node, "fontSize")) continue;
     const textNode = node as TextNode;
     const fontSize = textNode.fontSize;
     if (typeof fontSize !== "number") continue;

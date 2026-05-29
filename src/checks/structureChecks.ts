@@ -68,6 +68,8 @@ export function checkDuplicateNames(nodes: SceneNode[]): CheckResult[] {
     }
     for (const [, dupes] of seen) {
       if (dupes.length > 1) {
+        const allInstances = dupes.every((n) => n.type === "INSTANCE");
+        if (allInstances) continue;
         for (const node of dupes) {
           results.push(
             result(node, "同一親内での重複レイヤー名", "名前を変更して区別してください"),
