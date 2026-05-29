@@ -542,19 +542,22 @@ Ph-6: レスポンシブ対応＋統合テスト
   - P-2: steering.md テンプレート ✅
   - R-1: 全フレーム個別出力（LP/HP 両対応） ✅
   - 設計書 vs 実装の整合性監査＋9件修正 ✅
-  - マルチエージェント・エキスパートレビュー（6観点）＋確定33件中の準拠修正 ✅（2026-05-29）
-* **テスト**: 83テスト全パス
+  - マルチエージェント・エキスパートレビュー 6ラウンド（収束まで反復）＋確定指摘の準拠修正 ✅（2026-05-29）
+* **テスト**: 101テスト全パス
 * **UI ラベル**: Review / Notes / Export（英語、デザイナー向け）
 * **出力構造**: フレーム名ごとにフォルダ分け（LP 1フレームでも HP 複数フレームでも同じ構造）
 * **設計書との整合**: 確認済み（2026-05-29）
 
-### エキスパートレビューで反映した主な修正（2026-05-29）
+### エキスパートレビュー（6ラウンド、収束まで反復）の成果（2026-05-29）
 
-* **チェック偽陰性の解消**: 背景チェックを名前駆動化（`bg-image`/`overlay` を検出）、Auto Layout チェックで手動配置 COMPONENT/COMPONENT_SET を検出、デフォルト名 `Vector`/`Image` を検出、サイジングチェックの INHERIT 誤検知を解消、色繰り返しのノード単位重複排除
-* **出力精度の修正**: tokens.json の Variable エイリアス解決（循環ガード）、cornerRadiusToken を topLeftRadius バインドから取得、複数 fill のトークン index 整合、背景画像コンテナのラスター誤書き出し回避、ベクターを SVG_STRING で書き出し
-* **設計書 4.5.1/4.5.2/4.3.3 を拡張し実装**（4.5.2.1 節を追加）: fill の opacity・IMAGE/GRADIENT 種別、text.fillOpacity、min/max サイジング、per-corner cornerRadius オブジェクト形式、tokens の #RRGGBBAA（alpha<1）。prompt.md にも新フィールドの読み方を追記
-* **品質**: `src/util/color.ts`・`src/export/layerPath.ts` で重複ロジックを共有化、`as any` 除去・デッドコード削除、manifest に `relaunchButtons.editNote` 宣言
-* **保留なし**: レビュー確定分はすべて反映済み（設計書改訂が必要だった項目も合意の上で実装済み）
+各ラウンドで6観点を並列レビュー→敵対的検証→確定指摘のみ設計書準拠で修正。本質的指摘数の推移: **33 → 18 → 7 → 3 → 1 → 0**（ラウンド6で本質的FBゼロ＝収束）。
+
+* **チェック偽陰性/誤検知の解消**: 背景チェック名前駆動化（`bg-image`/`overlay`）、手動配置 COMPONENT/COMPONENT_SET 検出、`Vector`/`Image` 検出、INHERIT 誤検知除去、インスタンス内部ノードの除外、色のノード単位重複排除、fill の per-index 束縛・padding 各辺の per-field 束縛を尊重、mixed fontSize の解決
+* **出力精度（spec.json/tokens.json）**: Variable エイリアス解決（循環ガード）、STRING/BOOLEAN 除外、`$base`（leaf/group 名衝突保持）、#RRGGBBAA、IMAGE/GRADIENT fills・gradientTransform・per-stop alpha・opacity・fillOpacity、min/max サイジング・FIXED の widthPx/heightPx・非コンテナ AL 子のサイジング、per-corner cornerRadius、cornerRadiusToken（topLeftRadius 束縛）、ページ background、parseFontWeight（ExtraBold→800）、mixed fontName 解決
+* **エクスポート/整合**: フレーム名フォルダの重複解消＋サニタイズ、同名兄弟の `-N` 一意化（spec パス↔ファイル名一致）、背景画像を getImageByHash でソース書き出し（拡張子判定）、Uint8Array 転送、ノード単位エクスポートエラー報告、prompt.md をフレームフォルダ構造に整合
+* **設計書改訂**: 4.5.2.1 節新設＋4.5.1/4.3.3 拡張（出力フィールドの権威記述を実装に先行して更新）
+* **品質**: `src/util/color.ts`・`src/export/layerPath.ts` で共有化、`as any` 除去・デッドコード削除、manifest `relaunchButtons.editNote`
+* **保留なし**: 確定分はすべて反映済み（[[doc-first-accuracy]] 方針で設計書改訂が必要な項目も実装）
 
 ### 再開手順
 
