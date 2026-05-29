@@ -81,6 +81,18 @@ describe("buildTokens", () => {
     expect(xl.$value).toBe(36);
   });
 
+  it("preserves both a leaf and a group sharing a name (no silent loss)", () => {
+    const vars = [
+      makeVariable("color", "COLOR", { r: 1, g: 0, b: 0, a: 1 }),
+      makeVariable("color/primary", "COLOR", { r: 0, g: 0, b: 1, a: 1 }),
+    ];
+    const tokens = buildTokens(vars)!;
+    const colorGroup = tokens.color as Record<string, unknown>;
+    // leaf "color" demoted to $base, "primary" kept as a child
+    expect((colorGroup.$base as Record<string, unknown>).$value).toBe("#FF0000");
+    expect((colorGroup.primary as Record<string, unknown>).$value).toBe("#0000FF");
+  });
+
   it("drops STRING/BOOLEAN variables (only color & number are documented)", () => {
     const vars = [
       makeVariable("color/brand", "COLOR", { r: 1, g: 0, b: 0, a: 1 }),

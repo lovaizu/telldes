@@ -90,6 +90,25 @@ describe("checkRepeatedColors", () => {
     expect(checkRepeatedColors(nodes)).toHaveLength(0);
   });
 
+  it("counts an unbound fill even when a sibling fill on the same node is bound", () => {
+    const red = { r: 1, g: 0, b: 0 };
+    // index 0 bound to a variable, index 1 hardcoded — the hardcoded one must count
+    const make = (id: string) => ({
+      id,
+      name: `node-${id}`,
+      type: "RECTANGLE",
+      boundVariables: { fills: [{ id: "var-x" }] },
+      fills: [
+        { type: "SOLID", color: { r: 0, g: 0, b: 1 }, opacity: 1, visible: true },
+        { type: "SOLID", color: red, opacity: 1, visible: true },
+      ],
+    }) as unknown as SceneNode;
+    const results = checkRepeatedColors([make("1"), make("2"), make("3")]);
+    // 3 nodes contribute the hardcoded red → threshold reached (the bound blue is excluded)
+    expect(results).toHaveLength(3);
+    expect(results.every((r) => r.message.includes("#ff0000"))).toBe(true);
+  });
+
   it("does not inflate the count from repeated identical fills on one node", () => {
     const red = { r: 1, g: 0, b: 0 };
     // a single node with the same color in three fill layers must not reach the
@@ -137,6 +156,38 @@ describe("checkRepeatedSpacing", () => {
     const results = checkRepeatedSpacing(nodes);
     const spacing12 = results.filter((r) => r.message.includes("12px"));
     expect(spacing12).toHaveLength(2);
+  });
+
+  it("counts unbound padding sides and excludes individually bound ones", () => {
+    // node A: paddingTop bound, paddingRight=16 hardcoded
+    const a = {
+      id: "a",
+      name: "a",
+      type: "FRAME",
+      boundVariables: { paddingTop: { id: "v1" } },
+      paddingTop: 32,
+      paddingRight: 16,
+      paddingBottom: 0,
+      paddingLeft: 0,
+      itemSpacing: 0,
+    } as unknown as SceneNode;
+    // node B: paddingLeft=16 hardcoded (paddingTop NOT bound)
+    const b = {
+      id: "b",
+      name: "b",
+      type: "FRAME",
+      boundVariables: {},
+      paddingTop: 0,
+      paddingRight: 0,
+      paddingBottom: 0,
+      paddingLeft: 16,
+      itemSpacing: 0,
+    } as unknown as SceneNode;
+    const results = checkRepeatedSpacing([a, b]);
+    const s16 = results.filter((r) => r.message.includes("16px"));
+    // both hardcoded 16s counted (false negative fixed); bound 32 never suggested
+    expect(s16).toHaveLength(2);
+    expect(results.some((r) => r.message.includes("32px"))).toBe(false);
   });
 });
 

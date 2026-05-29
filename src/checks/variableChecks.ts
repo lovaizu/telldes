@@ -1,23 +1,36 @@
 import type { CheckResult } from "./types";
 import { colorToHex } from "../util/color";
 
-function hasBoundVariable(node: SceneNode, field: string): boolean {
-  if (!("boundVariables" in node)) return false;
-  const bound = (node as SceneNodeMixin).boundVariables as
+function boundVariablesOf(node: SceneNode): Record<string, unknown> | undefined {
+  if (!("boundVariables" in node)) return undefined;
+  return (node as SceneNodeMixin).boundVariables as
     | Record<string, unknown>
     | undefined;
+}
+
+function hasBoundVariable(node: SceneNode, field: string): boolean {
+  const bound = boundVariablesOf(node);
   return Boolean(bound && bound[field]);
+}
+
+// boundVariables.fills is an array aligned by paint index — a fill is bound
+// only if ITS index has a binding (not if any sibling fill is bound).
+function isFillBound(node: SceneNode, index: number): boolean {
+  const raw = boundVariablesOf(node)?.["fills"];
+  if (!raw) return false;
+  const binding = Array.isArray(raw) ? raw[index] : raw;
+  return Boolean(binding && (binding as { id?: string }).id);
 }
 
 function extractColors(node: SceneNode): { color: string; nodeId: string; nodeName: string }[] {
   const entries: { color: string; nodeId: string; nodeName: string }[] = [];
   if (!("fills" in node)) return entries;
-  if (hasBoundVariable(node, "fills")) return entries;
 
   const fills = node.fills;
   if (!Array.isArray(fills)) return entries;
 
-  for (const fill of fills) {
+  fills.forEach((fill, i) => {
+    if (isFillBound(node, i)) return; // already a Variable — don't suggest it
     if (fill.type === "SOLID" && fill.visible !== false) {
       const hex = colorToHex(
         { ...fill.color, a: fill.opacity ?? 1 },
@@ -25,7 +38,7 @@ function extractColors(node: SceneNode): { color: string; nodeId: string; nodeNa
       );
       entries.push({ color: hex, nodeId: node.id, nodeName: node.name });
     }
-  }
+  });
   return entries;
 }
 
@@ -63,14 +76,17 @@ export function checkRepeatedColors(nodes: SceneNode[]): CheckResult[] {
 
 function extractSpacing(node: SceneNode): number[] {
   if (!("paddingTop" in node)) return [];
-  if (hasBoundVariable(node, "paddingTop") || hasBoundVariable(node, "itemSpacing")) return [];
   const n = node as FrameNode;
   const values: number[] = [];
-  if (n.paddingTop > 0) values.push(n.paddingTop);
-  if (n.paddingRight > 0) values.push(n.paddingRight);
-  if (n.paddingBottom > 0) values.push(n.paddingBottom);
-  if (n.paddingLeft > 0) values.push(n.paddingLeft);
-  if ("itemSpacing" in n && n.itemSpacing > 0) values.push(n.itemSpacing);
+  // Each padding side and itemSpacing binds independently — count a value only
+  // if its own field is NOT already bound to a variable.
+  if (n.paddingTop > 0 && !hasBoundVariable(node, "paddingTop")) values.push(n.paddingTop);
+  if (n.paddingRight > 0 && !hasBoundVariable(node, "paddingRight")) values.push(n.paddingRight);
+  if (n.paddingBottom > 0 && !hasBoundVariable(node, "paddingBottom")) values.push(n.paddingBottom);
+  if (n.paddingLeft > 0 && !hasBoundVariable(node, "paddingLeft")) values.push(n.paddingLeft);
+  if ("itemSpacing" in n && n.itemSpacing > 0 && !hasBoundVariable(node, "itemSpacing")) {
+    values.push(n.itemSpacing);
+  }
   return values;
 }
 

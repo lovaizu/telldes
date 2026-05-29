@@ -20,6 +20,20 @@ function isContainer(node: SceneNode): boolean {
   return "children" in node && (node as ChildrenMixin).children.length > 0;
 }
 
+// Source image bytes (from getImageByHash) keep their original codec; pick the
+// extension from the magic number so a JPEG/GIF/WEBP isn't mislabeled .png.
+function imageExtension(bytes: Uint8Array): string {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpg";
+  if (bytes[0] === 0x47 && bytes[1] === 0x49 && bytes[2] === 0x46) return "gif";
+  if (
+    bytes[0] === 0x52 && bytes[1] === 0x49 && bytes[2] === 0x46 && bytes[3] === 0x46 &&
+    bytes[8] === 0x57 && bytes[9] === 0x45 && bytes[10] === 0x42 && bytes[11] === 0x50
+  ) {
+    return "webp";
+  }
+  return "png";
+}
+
 function firstVisibleImageFill(node: SceneNode): ImagePaint | undefined {
   if (!("fills" in node)) return undefined;
   const fills = (node as GeometryMixin).fills;
@@ -53,7 +67,10 @@ async function processNode(
       const image = figma.getImageByHash(imageFill.imageHash);
       if (image) {
         const data = await image.getBytesAsync();
-        results.push({ path: `assets/images/${fileName}.png`, data });
+        results.push({
+          path: `assets/images/${fileName}.${imageExtension(data)}`,
+          data,
+        });
       }
     } else if (isVectorNode(node)) {
       const svg = await (node as ExportMixin).exportAsync({ format: "SVG_STRING" });

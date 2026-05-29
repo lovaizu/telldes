@@ -19,12 +19,21 @@ export function uniqueChildName(
   siblings: readonly { name: string }[],
   index: number,
 ): string {
-  const name = siblings[index].name;
-  let priorWithSameName = 0;
-  for (let i = 0; i < index; i++) {
-    if (siblings[i].name === name) priorWithSameName++;
+  // Replay the assignment from index 0, tracking already-emitted names, so a
+  // generated `name-N` can never collide with a sibling literally named that
+  // (e.g. siblings ["item","item","item-2"] → "item","item-2","item-2-2").
+  // Deterministic and stateless → all exporters agree on the same tree.
+  const used = new Set<string>();
+  let result = "";
+  for (let i = 0; i <= index; i++) {
+    const base = siblings[i].name;
+    let name = base;
+    let n = 2;
+    while (used.has(name)) name = `${base}-${n++}`;
+    used.add(name);
+    result = name;
   }
-  return priorWithSameName === 0 ? name : `${name}-${priorWithSameName + 1}`;
+  return result;
 }
 
 /**

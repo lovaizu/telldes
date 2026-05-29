@@ -53,7 +53,8 @@ const App: Component = () => {
       setNoteText(msg.data?.note ?? "");
       setNoteSaved(false);
     }
-    if (msg.type === "note-saved") {
+    if (msg.type === "note-saved" && msg.nodeId === selectionNote()?.nodeId) {
+      // Ignore a late ack for a node the user has already navigated away from.
       setNoteSaved(true);
     }
     if (msg.type === "export-error") {
@@ -144,8 +145,11 @@ const App: Component = () => {
       const a = document.createElement("a");
       a.href = url;
       a.download = "telldes-export.zip";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      a.remove();
+      // Defer revocation so the async download isn't cancelled (Chromium race).
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       setExportDone(true);
       setExporting(false);

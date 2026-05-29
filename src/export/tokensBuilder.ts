@@ -47,15 +47,33 @@ function resolveValue(variable: Variable): string | number {
   return resolveModeValue(variable.valuesByMode[modeIds[0]], new Set([variable.id]));
 }
 
+function isLeaf(node: TokenGroup | TokenValue | undefined): node is TokenValue {
+  return !!node && "$type" in node;
+}
+
+// A variable name can be both a leaf and a group prefix (e.g. "color" and
+// "color/primary"). Preserve BOTH (zero omission) by storing a leaf that
+// collides with a group under the reserved "$base" key.
 function setNested(obj: TokenGroup, path: string[], value: TokenValue): void {
   let current = obj;
   for (let i = 0; i < path.length - 1; i++) {
-    if (!current[path[i]] || "$type" in (current[path[i]] as TokenValue)) {
+    const existing = current[path[i]];
+    if (!existing) {
       current[path[i]] = {};
+    } else if (isLeaf(existing)) {
+      // existing leaf must become a group: demote it to "$base"
+      current[path[i]] = { $base: existing } as unknown as TokenGroup;
     }
     current = current[path[i]] as TokenGroup;
   }
-  current[path[path.length - 1]] = value;
+  const last = path[path.length - 1];
+  const existing = current[last];
+  if (existing && !isLeaf(existing)) {
+    // a group already occupies this name: keep the leaf under "$base"
+    (existing as TokenGroup).$base = value;
+  } else {
+    current[last] = value;
+  }
 }
 
 export function buildTokens(variables: Variable[]): TokenGroup | null {
