@@ -253,13 +253,15 @@ telldes-export/
 ├── prompt.md          ← CCプロンプト（自動生成）
 ├── steering.md        ← 確認・タスク・ルール（テンプレート）
 ├── tokens.json        ← デザイントークン（Variablesが定義されている場合のみ）
-├── spec.json          ← デザインスペック
-├── screenshots/       ← セクション＋ブロック画像
-├── assets/
-│   ├── images/        ← ラスター画像
-│   └── icons/         ← ベクターアセット
-└── README.md          ← zip内容の説明
+├── {フレーム名}/       ← トップレベルフレームごとにフォルダ
+│   ├── spec.json      ← デザインスペック
+│   ├── screenshots/   ← セクション＋ブロック画像
+│   └── assets/
+│       ├── images/    ← ラスター画像
+│       └── icons/     ← ベクターアセット
 ```
+
+LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごとにフレームを作成し、それぞれがフォルダとして出力される（例: `top/`, `about/`, `contact/`）。
 
 #### 4.5.1 tokens.json
 
@@ -540,24 +542,24 @@ CCはspec.jsonやnoteから埋められる項目を自動で埋め、不明点�
 
 ### 4.9 レスポンシブ対応
 
-Figma上でデスクトップ（1440px）とモバイル（375px）の2フレームを作成する。それぞれについてspec.jsonを書き出す。
+レスポンシブが必要な場合は、デスクトップ（1440px）とモバイル（375px）をそれぞれ別フレームとして作成する。他のフレームと同様にフレーム名でフォルダ分けされて出力される。
 
 ```
 telldes-export/
 ├── prompt.md
 ├── steering.md
 ├── tokens.json          ← 共通（ある場合）
-├── desktop/
+├── top-desktop/
 │   ├── spec.json
 │   ├── screenshots/
 │   └── assets/
-└── mobile/
-    ├── spec.json
-    ├── screenshots/
-    └── assets/
+├── top-mobile/
+│   ├── spec.json
+│   ├── screenshots/
+│   └── assets/
 ```
 
-tokens.jsonは共通。差異はレイアウト構造（spec.json）のみ。
+tokens.jsonは共通。差異はレイアウト構造（spec.json）のみ。デスクトップとモバイルの対応はフレーム名で表現する（命名はデザイナーに委ねる）。
 
 グリッドレイアウトが必要な場合は、Auto LayoutのWRAP + 子要素のminWidth/maxWidthで表現する。
 
