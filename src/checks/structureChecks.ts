@@ -1,4 +1,5 @@
 import type { CheckResult } from "./types";
+import { isInsideInstance } from "./traversal";
 
 const DEFAULT_NAME_PATTERN =
   /^(?:(?:Frame|Group|Rectangle|Ellipse|Line|Polygon|Star|Vector|Text|Section|Component|Instance|Slice|Stamp|Highlight|Sticky|Connector|Shape with text|Widget)\s+\d+|Vector|Image)$/;
@@ -25,6 +26,7 @@ function result(
 export function checkAutoLayout(nodes: SceneNode[]): CheckResult[] {
   const results: CheckResult[] = [];
   for (const node of nodes) {
+    if (isInsideInstance(node)) continue;
     // FRAME-derived containers carry a real layoutMode. INSTANCE is excluded:
     // its layout is inherited from the main component (would be a false positive).
     const isFrameLikeContainer =
@@ -47,6 +49,7 @@ export function checkAutoLayout(nodes: SceneNode[]): CheckResult[] {
 export function checkDefaultNames(nodes: SceneNode[]): CheckResult[] {
   const results: CheckResult[] = [];
   for (const node of nodes) {
+    if (isInsideInstance(node)) continue;
     if (DEFAULT_NAME_PATTERN.test(node.name)) {
       results.push(
         result(node, "Figmaデフォルト名のレイヤー", "意味のある名前を付けてください"),
@@ -62,6 +65,7 @@ export function checkDuplicateNames(nodes: SceneNode[]): CheckResult[] {
 
   for (const node of nodes) {
     if (!node.parent) continue;
+    if (isInsideInstance(node)) continue;
     const parentId = node.parent.id;
     if (!parentGroups.has(parentId)) {
       parentGroups.set(parentId, []);
@@ -95,6 +99,7 @@ export function checkDuplicateNames(nodes: SceneNode[]): CheckResult[] {
 export function checkBackgroundAsChild(nodes: SceneNode[]): CheckResult[] {
   const results: CheckResult[] = [];
   for (const node of nodes) {
+    if (isInsideInstance(node)) continue;
     if (!("children" in node)) continue;
     const children = (node as ChildrenMixin).children;
     if (children.length === 0) continue;

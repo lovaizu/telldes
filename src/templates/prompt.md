@@ -101,13 +101,20 @@ Default: `<div>` for blocks, `<p>` for text without a special name.
 | `counterAxisAlign: "MAX"` | `align-items: flex-end` |
 | `sizing.width: "FILL"` | `width: 100%` |
 | `sizing.width: "HUG"` | `width: fit-content` |
-| `sizing.width: "FIXED"` | `width: {value}px` |
+| `sizing.width: "FIXED"` | `width: {sizing.widthPx}px` |
 | `sizing.height: "FILL"` | `height: 100%` |
 | `sizing.height: "HUG"` | `height: auto` |
-| `sizing.height: "FIXED"` | `height: {value}px` |
-| `layoutAlign: "STRETCH"` (child) | `align-self: stretch` |
-| `layoutGrow: 1` (child) | `flex-grow: 1` |
+| `sizing.height: "FIXED"` | `height: {sizing.heightPx}px` |
+| `sizing.minWidth/maxWidth/minHeight/maxHeight` | `min-width`/`max-width`/`min-height`/`max-height` |
+| node `layoutAlign: "STRETCH"` | `align-self: stretch` |
+| node `layoutGrow: 1` | `flex-grow: 1` |
 | `counterAxisAlignContent: "SPACE_BETWEEN"` (wrap) | `align-content: space-between` |
+
+Notes:
+- For a `FIXED` axis, the pixel value is in `sizing.widthPx` / `sizing.heightPx`. A non-container element that is an Auto Layout child carries its `sizing` under `layout` with no `direction`.
+- `layoutAlign` and `layoutGrow` appear at the node root (not inside `layout`).
+- For a `GRADIENT_*` fill, build the CSS gradient from `gradientStops` (each `{ position, color }`) and derive direction from `gradientTransform` (a 2x3 matrix; for `GRADIENT_LINEAR` the angle comes from the transformed gradient axis).
+- Asset filenames are the node's layer path with ` > ` replaced by `--` (e.g. `header > logo > icon` → `assets/icons/header--logo--icon.svg`); `IMAGE` fills map to `assets/images/{that path}.png`.
 
 ## 7. Completion
 

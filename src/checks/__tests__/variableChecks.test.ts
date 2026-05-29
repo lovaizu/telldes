@@ -163,13 +163,17 @@ describe("checkRepeatedFontSize", () => {
     expect(checkRepeatedFontSize([rect])).toHaveLength(0);
   });
 
-  it("ignores mixed fontSize (symbol)", () => {
-    const node = {
-      id: "t1",
-      name: "text",
+  it("resolves mixed fontSize via the first character (not dropped)", () => {
+    const makeMixed = (id: string) => ({
+      id,
+      name: `text-${id}`,
       type: "TEXT",
+      characters: "Hi",
       fontSize: Symbol("mixed"),
-    } as unknown as SceneNode;
-    expect(checkRepeatedFontSize([node])).toHaveLength(0);
+      getRangeFontSize: () => 18,
+    }) as unknown as SceneNode;
+    const results = checkRepeatedFontSize([makeMixed("1"), makeMixed("2")]);
+    expect(results).toHaveLength(2);
+    expect(results[0].message).toContain("18px");
   });
 });

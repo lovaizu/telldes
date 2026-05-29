@@ -97,7 +97,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         (n) => n.type === "FRAME" || n.type === "SECTION",
       );
 
-      type ExportFile = { path: string; data: number[] };
+      type ExportFile = { path: string; data: Uint8Array };
       const frames: {
         name: string;
         spec: object;
@@ -111,14 +111,16 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
           children: [frame],
         } as unknown as PageNode;
         const spec = buildSpec(mockPage);
+        // Figma's postMessage structured-clones typed arrays; send the raw
+        // Uint8Array rather than an 8x-larger number[].
         const screenshots = await exportScreenshots(frame);
         const assets = await exportAssets(frame);
 
         frames.push({
           name: frame.name,
           spec,
-          screenshots: screenshots.map((s) => ({ path: s.path, data: Array.from(s.data) })),
-          assets: assets.map((a) => ({ path: a.path, data: Array.from(a.data) })),
+          screenshots,
+          assets,
         });
       }
 

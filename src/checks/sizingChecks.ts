@@ -1,4 +1,5 @@
 import type { CheckResult } from "./types";
+import { isInsideInstance } from "./traversal";
 
 function isValidSizing(mode: string): boolean {
   return mode === "HUG" || mode === "FILL" || mode === "FIXED";
@@ -7,6 +8,7 @@ function isValidSizing(mode: string): boolean {
 export function checkSizing(nodes: SceneNode[]): CheckResult[] {
   const results: CheckResult[] = [];
   for (const node of nodes) {
+    if (isInsideInstance(node)) continue;
     if (!("layoutSizingHorizontal" in node)) continue;
     const n = node as FrameNode;
 

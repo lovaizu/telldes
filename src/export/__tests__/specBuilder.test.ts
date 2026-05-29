@@ -247,9 +247,13 @@ describe("buildSpec", () => {
         {
           type: "GRADIENT_LINEAR",
           visible: true,
+          gradientTransform: [
+            [1, 0, 0],
+            [0, 1, 0],
+          ],
           gradientStops: [
-            { position: 0, color: { r: 1, g: 0, b: 0, a: 1 } },
-            { position: 1, color: { r: 0, g: 0, b: 1, a: 1 } },
+            { position: 0, color: { r: 0, g: 0, b: 0, a: 0 } },
+            { position: 1, color: { r: 0, g: 0, b: 0, a: 0.6 } },
           ],
         },
       ],
@@ -262,9 +266,14 @@ describe("buildSpec", () => {
     expect(fills).toHaveLength(2);
     expect(fills[0]).toMatchObject({ type: "IMAGE", scaleMode: "FILL" });
     expect(fills[1].type).toBe("GRADIENT_LINEAR");
+    // per-stop alpha preserved as #RRGGBBAA (fade-to-transparent overlay)
     expect(fills[1].gradientStops).toEqual([
-      { position: 0, color: "#FF0000" },
-      { position: 1, color: "#0000FF" },
+      { position: 0, color: "#00000000" },
+      { position: 1, color: "#00000099" },
+    ]);
+    expect(fills[1].gradientTransform).toEqual([
+      [1, 0, 0],
+      [0, 1, 0],
     ]);
   });
 
@@ -283,6 +292,61 @@ describe("buildSpec", () => {
     expect(sizing.minWidth).toBe(320);
     expect(sizing.maxWidth).toBe(1200);
     expect(sizing).not.toHaveProperty("minHeight");
+  });
+
+  it("emits widthPx/heightPx for FIXED sizing", () => {
+    const frame = makeFrame({
+      name: "box",
+      children: [],
+      layoutSizingHorizontal: "FIXED",
+      layoutSizingVertical: "FIXED",
+      width: 200,
+      height: 120,
+    });
+    const section = makeFrame({ name: "hero", children: [frame] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    const sizing = spec.children[0].children![0].layout!.sizing!;
+    expect(sizing.width).toBe("FIXED");
+    expect(sizing.widthPx).toBe(200);
+    expect(sizing.heightPx).toBe(120);
+  });
+
+  it("carries sizing on a non-auto-layout leaf that is an AL child", () => {
+    const leaf = {
+      id: "lf",
+      name: "divider",
+      type: "RECTANGLE",
+      layoutSizingHorizontal: "FIXED",
+      layoutSizingVertical: "FIXED",
+      width: 300,
+      height: 1,
+      fills: [],
+      boundVariables: {},
+      getPluginData: () => "",
+    } as unknown as SceneNode;
+    const section = makeFrame({ name: "hero", children: [leaf] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    const layout = spec.children[0].children![0].layout!;
+    expect(layout.direction).toBeUndefined();
+    expect(layout.sizing).toEqual({
+      width: "FIXED",
+      height: "FIXED",
+      widthPx: 300,
+      heightPx: 1,
+    });
+  });
+
+  it("disambiguates same-named sibling blocks in path and screenshot", () => {
+    const grandchild = makeFrame({ name: "label", children: [] });
+    const itemA = makeFrame({ name: "item", children: [grandchild] });
+    const itemB = makeFrame({ name: "item", children: [grandchild] });
+    const section = makeFrame({ name: "plans", children: [itemA, itemB] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    const items = spec.children[0].children!;
+    expect(items[0].path).toBe("plans > item");
+    expect(items[1].path).toBe("plans > item-2");
+    expect(items[0].screenshot).toBe("screenshots/plans--item.png");
+    expect(items[1].screenshot).toBe("screenshots/plans--item-2.png");
   });
 
   it("includes cornerRadius when set", () => {

@@ -114,8 +114,18 @@ export function checkRepeatedFontSize(nodes: SceneNode[]): CheckResult[] {
     if (node.type !== "TEXT") continue;
     if (hasBoundVariable(node, "fontSize")) continue;
     const textNode = node as TextNode;
-    const fontSize = textNode.fontSize;
-    if (typeof fontSize !== "number") continue;
+    // Resolve a mixed font size to the first character's size, mirroring
+    // specBuilder, so multi-size text is still counted (not silently dropped).
+    let fontSize: number;
+    if (typeof textNode.fontSize === "number") {
+      fontSize = textNode.fontSize;
+    } else if (textNode.characters.length > 0) {
+      const ranged = textNode.getRangeFontSize(0, 1);
+      if (typeof ranged !== "number") continue;
+      fontSize = ranged;
+    } else {
+      continue;
+    }
 
     if (!fontSizeMap.has(fontSize)) {
       fontSizeMap.set(fontSize, []);

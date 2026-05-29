@@ -59,11 +59,17 @@ function setNested(obj: TokenGroup, path: string[], value: TokenValue): void {
 }
 
 export function buildTokens(variables: Variable[]): TokenGroup | null {
-  if (variables.length === 0) return null;
+  // The documented token schema (4.5.1) covers only color and number. Drop
+  // STRING/BOOLEAN variables rather than emit a wrong $type with a stringified
+  // value (e.g. { $type: "number", $value: "Inter" }).
+  const supported = variables.filter(
+    (v) => v.resolvedType === "COLOR" || v.resolvedType === "FLOAT",
+  );
+  if (supported.length === 0) return null;
 
   const tokens: TokenGroup = {};
 
-  for (const variable of variables) {
+  for (const variable of supported) {
     const parts = variable.name.split("/");
     const tokenValue: TokenValue = {
       $type: resolveType(variable),

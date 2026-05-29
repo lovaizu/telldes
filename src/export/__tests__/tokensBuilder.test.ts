@@ -81,6 +81,21 @@ describe("buildTokens", () => {
     expect(xl.$value).toBe(36);
   });
 
+  it("drops STRING/BOOLEAN variables (only color & number are documented)", () => {
+    const vars = [
+      makeVariable("color/brand", "COLOR", { r: 1, g: 0, b: 0, a: 1 }),
+      makeVariable("font/family", "STRING", "Inter"),
+      makeVariable("flag/enabled", "BOOLEAN", true),
+    ];
+    const tokens = buildTokens(vars)!;
+    expect(Object.keys(tokens)).toEqual(["color"]);
+  });
+
+  it("returns null when only unsupported (STRING/BOOLEAN) variables exist", () => {
+    const vars = [makeVariable("font/family", "STRING", "Inter")];
+    expect(buildTokens(vars)).toBeNull();
+  });
+
   it("emits #RRGGBBAA when a color variable has alpha < 1", () => {
     const vars = [
       makeVariable("color/overlay", "COLOR", { r: 0, g: 0, b: 0, a: 0.5 }),

@@ -1,9 +1,16 @@
 import { colorToHex } from "../util/color";
-import { buildLayerPath, layerPathToSlug, determineType } from "./layerPath";
+import {
+  buildLayerPath,
+  layerPathToSlug,
+  determineType,
+  uniqueChildName,
+} from "./layerPath";
 
 interface SpecSizing {
   width: string;
   height: string;
+  widthPx?: number;
+  heightPx?: number;
   minWidth?: number;
   maxWidth?: number;
   minHeight?: number;
@@ -11,7 +18,8 @@ interface SpecSizing {
 }
 
 interface SpecLayout {
-  direction: string;
+  // `direction` is absent for non-container nodes whose layout carries only sizing.
+  direction?: string;
   wrap?: string;
   primaryAxisAlign?: string;
   counterAxisAlign?: string;
@@ -38,6 +46,7 @@ interface SpecFill {
   opacity?: number;
   scaleMode?: string;
   gradientStops?: { position: number; color: string }[];
+  gradientTransform?: number[][];
   [key: string]: unknown;
 }
 
@@ -90,9 +99,28 @@ function getTokenName(
   }
 }
 
-function buildLayout(node: FrameNode): SpecLayout | undefined {
-  if (node.layoutMode === "NONE") return undefined;
+// Sizing applies to any Auto Layout participant (a container OR a child of an
+// Auto Layout frame), independent of the node's own layoutMode — so a fixed
+// leaf inside an AL frame still reports its dimensions.
+function buildSizing(node: SceneNode): SpecSizing | undefined {
+  if (!("layoutSizingHorizontal" in node)) return undefined;
+  const n = node as FrameNode;
+  const sizing: SpecSizing = {
+    width: n.layoutSizingHorizontal,
+    height: n.layoutSizingVertical,
+  };
+  // "FIXED" means the rendered width/height IS the fixed value.
+  if (n.layoutSizingHorizontal === "FIXED") sizing.widthPx = n.width;
+  if (n.layoutSizingVertical === "FIXED") sizing.heightPx = n.height;
+  // min/max constraints are authoring-allowed (design doc 4.3.3) and null when unset.
+  if (n.minWidth != null) sizing.minWidth = n.minWidth;
+  if (n.maxWidth != null) sizing.maxWidth = n.maxWidth;
+  if (n.minHeight != null) sizing.minHeight = n.minHeight;
+  if (n.maxHeight != null) sizing.maxHeight = n.maxHeight;
+  return sizing;
+}
 
+function buildLayout(node: FrameNode): SpecLayout {
   const layout: SpecLayout = {
     direction: node.layoutMode,
   };
@@ -135,16 +163,8 @@ function buildLayout(node: FrameNode): SpecLayout | undefined {
     if (gapToken) layout.gapToken = gapToken;
   }
 
-  const sizing: SpecSizing = {
-    width: node.layoutSizingHorizontal,
-    height: node.layoutSizingVertical,
-  };
-  // min/max constraints are authoring-allowed (design doc 4.3.3) and null when unset.
-  if (node.minWidth != null) sizing.minWidth = node.minWidth;
-  if (node.maxWidth != null) sizing.maxWidth = node.maxWidth;
-  if (node.minHeight != null) sizing.minHeight = node.minHeight;
-  if (node.maxHeight != null) sizing.maxHeight = node.maxHeight;
-  layout.sizing = sizing;
+  const sizing = buildSizing(node);
+  if (sizing) layout.sizing = sizing;
 
   return layout;
 }
@@ -232,10 +252,15 @@ function buildFills(node: SceneNode): SpecFill[] | undefined {
     ) {
       entry = {
         type: fill.type,
+        // Per-stop alpha is meaningful (fade-to-transparent overlays, 4.3.5):
+        // emit #RRGGBBAA when a stop's alpha < 1.
         gradientStops: fill.gradientStops.map((stop) => ({
           position: stop.position,
-          color: colorToHex(stop.color),
+          color: colorToHex(stop.color, { alpha: true }),
         })),
+        // 2x3 matrix encoding the gradient's angle/center/scale — without it
+        // every gradient direction would serialize identically.
+        gradientTransform: fill.gradientTransform.map((row) => [...row]),
       };
     }
 
@@ -257,8 +282,9 @@ function buildNode(
   node: SceneNode,
   parentPath: string,
   depth: number,
+  segment: string = node.name,
 ): SpecNode {
-  const path = buildLayerPath(parentPath, node.name);
+  const path = buildLayerPath(parentPath, segment);
   const type = determineType(node, depth);
 
   const spec: SpecNode = {
@@ -282,6 +308,10 @@ function buildNode(
 
   if ("layoutMode" in node && (node as FrameNode).layoutMode !== "NONE") {
     spec.layout = buildLayout(node as FrameNode);
+  } else {
+    // Non-container node: still carry sizing if it participates in Auto Layout.
+    const sizing = buildSizing(node);
+    if (sizing) spec.layout = { sizing };
   }
 
   if (node.type === "TEXT") {
@@ -328,8 +358,8 @@ function buildNode(
   if ("children" in node) {
     const children = (node as ChildrenMixin).children as SceneNode[];
     if (children.length > 0) {
-      spec.children = children.map((child) =>
-        buildNode(child, path, depth + 1),
+      spec.children = children.map((child, i) =>
+        buildNode(child, path, depth + 1, uniqueChildName(children, i)),
       );
     }
   }
@@ -348,9 +378,9 @@ export function buildSpec(page: PageNode): SpecJson {
   const children: SpecNode[] = [];
   for (const frame of topFrames) {
     if ("children" in frame) {
-      for (const child of frame.children) {
-        children.push(buildNode(child, "", 1));
-      }
+      frame.children.forEach((child, i) =>
+        children.push(buildNode(child, "", 1, uniqueChildName(frame.children, i))),
+      );
     }
   }
 

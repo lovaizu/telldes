@@ -13,7 +13,7 @@ interface SelectionNote {
 
 interface ExportFile {
   path: string;
-  data: number[];
+  data: Uint8Array;
 }
 
 interface ExportFrame {
@@ -76,11 +76,26 @@ const App: Component = () => {
     assets: ExportFile[],
   ) => {
     for (const ss of screenshots) {
-      folder.file(ss.path, new Uint8Array(ss.data));
+      folder.file(ss.path, ss.data);
     }
     for (const asset of assets) {
-      folder.file(asset.path, new Uint8Array(asset.data));
+      folder.file(asset.path, asset.data);
     }
+  };
+
+  // Top-level frame names become zip folder names. Neutralize path separators
+  // (so they can't spawn nested folders) and suffix duplicates so two frames
+  // sharing a name (e.g. responsive desktop/mobile copies) don't clobber.
+  const resolveFrameFolderNames = (names: string[]): string[] => {
+    const used = new Set<string>();
+    return names.map((raw) => {
+      const base = raw.replace(/[/\\]/g, "-").trim() || "frame";
+      let name = base;
+      let i = 2;
+      while (used.has(name)) name = `${base}-${i++}`;
+      used.add(name);
+      return name;
+    });
   };
 
   const handleExportData = async (msg: ExportData) => {
@@ -94,25 +109,22 @@ const App: Component = () => {
       }
 
       const allSections: { name: string }[] = [];
-      let primaryWidth = 1440;
+      // Primary viewport = the first frame's width (not whichever frame is last).
+      const primaryWidth = msg.frames[0]?.spec?.viewport?.width ?? 1440;
+      const frameNames = resolveFrameFolderNames(msg.frames.map((f) => f.name));
 
-      for (const frame of msg.frames) {
-        const folder = root.folder(frame.name)!;
+      msg.frames.forEach((frame, idx) => {
+        const folder = root.folder(frameNames[idx])!;
         folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
         addFilesToFolder(folder, frame.screenshots, frame.assets);
-
-        const sections = frame.spec?.children ?? [];
-        allSections.push(...sections);
-        primaryWidth = frame.spec?.viewport?.width ?? primaryWidth;
-      }
+        allSections.push(...(frame.spec?.children ?? []));
+      });
 
       const sectionTasks = generateSectionTasks(allSections);
       root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth)));
       root.file("steering.md", steeringTemplate
         .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
         .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
-
-      const frameNames = msg.frames.map((f) => f.name);
       const readmeContent = [
         "# Telldes Export",
         "",

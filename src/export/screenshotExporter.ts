@@ -1,4 +1,9 @@
-import { buildLayerPath, layerPathToSlug, determineType } from "./layerPath";
+import {
+  buildLayerPath,
+  layerPathToSlug,
+  determineType,
+  uniqueChildName,
+} from "./layerPath";
 
 export interface ScreenshotEntry {
   path: string;
@@ -10,15 +15,23 @@ async function exportNode(
   parentPath: string,
   depth: number,
   results: ScreenshotEntry[],
+  segment: string = node.name,
 ): Promise<void> {
-  const path = buildLayerPath(parentPath, node.name);
+  const path = buildLayerPath(parentPath, segment);
   const type = determineType(node, depth);
 
   if (type === "section" || type === "block") {
-    const data = await (node as ExportMixin).exportAsync({
-      format: "PNG",
-      constraint: { type: "SCALE", value: 2 },
-    });
+    let data: Uint8Array;
+    try {
+      data = await (node as ExportMixin).exportAsync({
+        format: "PNG",
+        constraint: { type: "SCALE", value: 2 },
+      });
+    } catch (err) {
+      // Surface which node failed (e.g. exceeds Figma's 4096px raster limit)
+      // instead of an opaque whole-export failure.
+      throw new Error(`Failed to export screenshot "${path}": ${err}`);
+    }
     results.push({
       path: `screenshots/${layerPathToSlug(path)}.png`,
       data,
@@ -26,8 +39,9 @@ async function exportNode(
   }
 
   if ("children" in node) {
-    for (const child of (node as ChildrenMixin).children as SceneNode[]) {
-      await exportNode(child, path, depth + 1, results);
+    const children = (node as ChildrenMixin).children as SceneNode[];
+    for (let i = 0; i < children.length; i++) {
+      await exportNode(children[i], path, depth + 1, results, uniqueChildName(children, i));
     }
   }
 }
@@ -38,8 +52,9 @@ export async function exportScreenshots(
   const results: ScreenshotEntry[] = [];
   if (!("children" in pageFrame)) return results;
 
-  for (const child of (pageFrame as ChildrenMixin).children as SceneNode[]) {
-    await exportNode(child, "", 1, results);
+  const children = (pageFrame as ChildrenMixin).children as SceneNode[];
+  for (let i = 0; i < children.length; i++) {
+    await exportNode(children[i], "", 1, results, uniqueChildName(children, i));
   }
   return results;
 }

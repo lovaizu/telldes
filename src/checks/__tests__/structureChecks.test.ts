@@ -77,6 +77,17 @@ describe("checkAutoLayout", () => {
     const instance = makeFrame({ type: "INSTANCE", children: [child] });
     expect(checkAutoLayout([instance])).toHaveLength(0);
   });
+
+  it("ignores nodes inside an instance (not fixable on the instance)", () => {
+    const instance = { id: "inst", type: "INSTANCE", parent: null };
+    const innerFrame = makeFrame({
+      id: "inner",
+      layoutMode: "NONE",
+      children: [makeRect()],
+      parent: instance,
+    });
+    expect(checkAutoLayout([innerFrame])).toHaveLength(0);
+  });
 });
 
 describe("checkDefaultNames", () => {

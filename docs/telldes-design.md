@@ -423,8 +423,8 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 | type | フィールド | 説明 |
 |---|---|---|
 | `SOLID` | `color`（#RRGGBB）, `colorToken?`, `opacity?` | 単色塗り |
-| `IMAGE` | `scaleMode`（`FILL`/`FIT`/`CROP`/`TILE`）, `opacity?` | 画像塗り。画像実体は `assets/images/` に書き出される |
-| `GRADIENT_LINEAR` / `GRADIENT_RADIAL` / `GRADIENT_ANGULAR` / `GRADIENT_DIAMOND` | `gradientStops`（`[{ position, color }]`）, `opacity?` | グラデーション。`color` は #RRGGBB、`position` は 0〜1 |
+| `IMAGE` | `scaleMode`（`FILL`/`FIT`/`CROP`/`TILE`）, `opacity?` | 画像塗り。画像実体は `assets/images/{レイヤーパス}.png` に書き出される（コンテナの背景画像は塗りのソース画像をそのまま書き出す） |
+| `GRADIENT_LINEAR` / `GRADIENT_RADIAL` / `GRADIENT_ANGULAR` / `GRADIENT_DIAMOND` | `gradientStops`（`[{ position, color }]`）, `gradientTransform`, `opacity?` | グラデーション。`position` は 0〜1、`color` は #RRGGBB（アルファ < 1 の場合は #RRGGBBAA）。`gradientTransform` は 2x3 変換行列で角度/中心/スケールを表す |
 
 - `opacity` は塗りの不透明度が 1 未満の場合のみ付与する数値（0〜1）。半透明オーバーレイ（4.3.5）の再現に使う。
 - IMAGE / GRADIENT を含む全種類の塗りを `fills` に出力する（SOLID 以外を欠落させない）。
@@ -438,9 +438,15 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 - 全角共通の場合: 数値（例 `8`）。Variable 適用時は `cornerRadiusToken`。
 - 角ごとに異なる場合: オブジェクト `{ "topLeft": n, "topRight": n, "bottomRight": n, "bottomLeft": n }`。
 
-**layout.sizing の min/max**
+**layout.sizing**
 
-4.3.3 で許可される最小/最大サイズが設定されている場合、`layout.sizing` に `minWidth` / `maxWidth` / `minHeight` / `maxHeight`（数値）を付与する。
+- `width` / `height` はサイジングモード（`FILL` / `HUG` / `FIXED`）。`FIXED` の場合は実ピクセル値 `widthPx` / `heightPx` を併せて付与する。
+- 4.3.3 で許可される最小/最大サイズが設定されている場合、`minWidth` / `maxWidth` / `minHeight` / `maxHeight`（数値）を付与する。
+- Auto Layout コンテナ以外のノード（末端要素など）でも、Auto Layout の子であればサイジング情報を持つ。その場合 `layout` は `direction` 等を持たず `sizing` のみを含む。
+
+**path / ファイル名の一意性**
+
+同一親内に同名の子（レイヤー順序で区別する同名インスタンス等、4.3.6）がある場合、2つ目以降の `path` セグメントとスクリーンショット/アセットのファイル名に `-2`, `-3` … の接尾辞を付けて一意化する。これにより spec.json の参照とファイル名が常に一致する。トップレベルフレーム名が重複する場合も、フォルダ名に同じ規則で接尾辞を付ける。
 
 ### 4.6 Auto Layout → CSS flexbox 対応表
 

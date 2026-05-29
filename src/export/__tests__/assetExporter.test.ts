@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from "vitest";
 import { exportAssets } from "../assetExporter";
 
+const mockGetImageByHash = vi.fn();
+vi.stubGlobal("figma", { getImageByHash: mockGetImageByHash });
+
 function makeNode(
   overrides: Record<string, unknown> = {},
 ): SceneNode {
@@ -50,19 +53,40 @@ describe("exportAssets", () => {
     expect(new TextDecoder().decode(results[0].data)).toBe("<svg></svg>");
   });
 
-  it("does not export a container frame's IMAGE fill as a raster asset", async () => {
+  it("does not render a container frame as a raster (no baked-in children)", async () => {
     const child = makeNode({ name: "label", type: "TEXT", fills: [] });
     delete (child as any).children;
-    // hero FRAME with a background photo + real child content
+    // hero FRAME with a background photo (no imageHash) + real child content
     const hero = makeNode({
       name: "hero",
       type: "FRAME",
       fills: [{ type: "IMAGE", visible: true }],
       children: [child],
     });
+    expect(hero.exportAsync).not.toHaveBeenCalled();
+    const root = makeNode({ children: [hero] });
+    await exportAssets(root);
+    expect(hero.exportAsync).not.toHaveBeenCalled();
+  });
+
+  it("exports a container's background image from its fill hash (not a node render)", async () => {
+    mockGetImageByHash.mockReturnValue({
+      getBytesAsync: vi.fn().mockResolvedValue(new Uint8Array([7, 8, 9])),
+    });
+    const child = makeNode({ name: "label", type: "TEXT", fills: [] });
+    delete (child as any).children;
+    const hero = makeNode({
+      name: "hero",
+      type: "FRAME",
+      fills: [{ type: "IMAGE", visible: true, imageHash: "abc123" }],
+      children: [child],
+    });
     const root = makeNode({ children: [hero] });
     const results = await exportAssets(root);
-    expect(results).toHaveLength(0);
+    expect(results).toHaveLength(1);
+    expect(results[0].path).toBe("assets/images/hero.png");
+    expect(mockGetImageByHash).toHaveBeenCalledWith("abc123");
+    expect(hero.exportAsync).not.toHaveBeenCalled(); // source bytes, not a render
   });
 
   it("generates -- separated file names from layer path", async () => {
