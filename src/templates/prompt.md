@@ -5,13 +5,20 @@
 This zip contains a complete design specification exported from Figma by the Telldes plugin. Your task is to produce pixel-perfect HTML/CSS that matches the design comp exactly.
 
 **Contents:**
-- `spec.json` — structured design spec (node tree, layout, text, fills, tokens)
-- `tokens.json` — design tokens in W3C DTCG format (if Variables are defined)
-- `screenshots/` — reference images for sections and blocks
-- `assets/images/` — raster images (PNG 2x)
-- `assets/icons/` — vector icons (SVG)
-- `steering.md` — pre-coding checklist, task list, and rules
+
+Root-level files (shared across all frames):
 - `prompt.md` — this file
+- `steering.md` — pre-coding checklist, task list, and rules
+- `tokens.json` — design tokens in W3C DTCG format (if Variables are defined)
+- `README.md` — zip contents overview
+
+One folder per top-level Figma frame, each containing that frame's spec and media:
+- `{frame}/spec.json` — structured design spec (node tree, layout, text, fills, background)
+- `{frame}/screenshots/` — reference images for sections and blocks
+- `{frame}/assets/images/` — raster images (PNG 2x)
+- `{frame}/assets/icons/` — vector icons (SVG)
+
+An LP has a single frame folder (e.g. `lp/`); a multi-page or responsive design has one folder per page/viewport (e.g. `top-desktop/`, `top-mobile/`). Build each frame folder as its own page/viewport. All paths below are relative to a frame folder.
 
 **Viewport width:** {{VIEWPORT_WIDTH}}px
 
@@ -21,6 +28,8 @@ This zip contains a complete design specification exported from Figma by the Tel
 W3C Design Tokens format. Each token has `$type` (color, number) and `$value`. Use these to define CSS custom properties.
 
 ### spec.json
+Top level: `page`, `viewport.width`, an optional `background` (the frame's own fill, same shape as `fills` — apply to the page/body), and `children`.
+
 Recursive node tree. Each node has:
 - `name` — layer name
 - `type` — `section` | `block` | `element`
