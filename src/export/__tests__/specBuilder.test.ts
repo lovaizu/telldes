@@ -401,6 +401,43 @@ describe("buildSpec", () => {
     expect(spec.children[0].children![0].cornerRadiusToken).toBe("radius/card");
   });
 
+  it("maps ExtraBold/UltraBold font styles to weight 800", () => {
+    for (const style of ["ExtraBold", "Extra Bold", "UltraBold"]) {
+      const text = makeTextNode({ fontName: { family: "Inter", style } });
+      const section = makeFrame({ name: "hero", children: [text] });
+      const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+      expect(spec.children[0].children![0].text!.fontWeight, style).toBe(800);
+    }
+  });
+
+  it("resolves a mixed fontName from the first character (not empty/400)", () => {
+    const text = makeTextNode({
+      fontName: Symbol("figma.mixed"),
+      getRangeFontName: () => ({ family: "Roboto", style: "Bold" }),
+    });
+    const section = makeFrame({ name: "hero", children: [text] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    const t = spec.children[0].children![0].text!;
+    expect(t.fontFamily).toBe("Roboto");
+    expect(t.fontWeight).toBe(700);
+  });
+
+  it("captures the top-level frame's own fill as page background", () => {
+    const section = makeFrame({ name: "hero", children: [] });
+    const root = makeFrame({
+      children: [section],
+      fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, visible: true }],
+    });
+    const spec = buildSpec(makePage([root]));
+    expect(spec.background).toEqual([{ type: "SOLID", color: "#000000" }]);
+  });
+
+  it("omits background when the top-level frame has no fill", () => {
+    const section = makeFrame({ name: "hero", children: [] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    expect(spec).not.toHaveProperty("background");
+  });
+
   it("sets nodeType TEXT for text nodes", () => {
     const text = makeTextNode();
     const section = makeFrame({ name: "hero", children: [text] });

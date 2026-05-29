@@ -72,6 +72,7 @@ interface SpecNode {
 interface SpecJson {
   page: string;
   viewport: { width: number };
+  background?: SpecFill[];
   children: SpecNode[];
 }
 
@@ -181,11 +182,21 @@ function buildTextProps(node: TextNode): SpecText | undefined {
     const ranged = node.getRangeFontSize(0, 1);
     if (typeof ranged === "number") fontSize = ranged;
   }
-  const fontName = node.fontName as FontName | typeof figma.mixed;
-  const fontFamily = typeof fontName === "object" && "family" in fontName ? fontName.family : "";
-  const fontWeight = typeof fontName === "object" && "style" in fontName
-    ? parseFontWeight(fontName.style)
-    : 400;
+  // Mirror the fontSize fallback: when fontName is figma.mixed, sample the first
+  // character so the real family/weight is emitted instead of ""/400.
+  let fontFamily = "";
+  let fontWeight = 400;
+  let resolvedFont: FontName | undefined;
+  if (typeof node.fontName === "object" && "family" in node.fontName) {
+    resolvedFont = node.fontName;
+  } else if (characters.length > 0) {
+    const ranged = node.getRangeFontName(0, 1);
+    if (typeof ranged === "object" && "family" in ranged) resolvedFont = ranged;
+  }
+  if (resolvedFont) {
+    fontFamily = resolvedFont.family;
+    fontWeight = parseFontWeight(resolvedFont.style);
+  }
 
   const text: SpecText = { characters, fontSize, fontFamily, fontWeight };
 
@@ -218,8 +229,12 @@ function parseFontWeight(style: string): number {
     ExtraBold: 800, UltraBold: 800,
     Black: 900, Heavy: 900,
   };
-  for (const [key, val] of Object.entries(map)) {
-    if (style.includes(key)) return val;
+  // Drop spaces ("Extra Bold" → "ExtraBold") and test longest keys first so a
+  // substring like "Bold" can't shadow "ExtraBold"/"UltraBold".
+  const s = style.replace(/\s+/g, "");
+  const keys = Object.keys(map).sort((a, b) => b.length - a.length);
+  for (const key of keys) {
+    if (s.includes(key)) return map[key];
   }
   return 400;
 }
@@ -384,9 +399,14 @@ export function buildSpec(page: PageNode): SpecJson {
     }
   }
 
+  // The top-level frame's own fill is the page background (design doc 4.3.5);
+  // it is never a child node, so capture it here.
+  const background = rootFrame ? buildFills(rootFrame) : undefined;
+
   return {
     page: page.name,
     viewport: { width: viewportWidth },
+    ...(background && background.length ? { background } : {}),
     children,
   };
 }
