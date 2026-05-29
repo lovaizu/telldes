@@ -25,10 +25,14 @@ Recursive node tree. Each node has:
 - `name` — layer name
 - `type` — `section` | `block` | `element`
 - `path` — full layer path (`>` separated)
-- `layout` — Auto Layout properties (direction, gap, padding, sizing, alignment)
-- `text` — text content and typography (characters, fontSize, fontFamily, fontWeight, fill)
-- `fills` — background fills
-- `cornerRadius` — border radius
+- `layout` — Auto Layout properties (direction, gap, padding, alignment, and `sizing`). `sizing` may include `minWidth`/`maxWidth`/`minHeight`/`maxHeight` — apply as `min-width`/`max-width`/`min-height`/`max-height`.
+- `text` — text content and typography (characters, fontSize, fontFamily, fontWeight, fill). `fillOpacity` (0–1, when present) is the text color opacity.
+- `fills` — fills (array). Each entry has a `type`:
+  - `SOLID` → `color` (#RRGGBB) as background-color
+  - `IMAGE` → `scaleMode` (FILL/FIT/CROP/TILE); the image is in `assets/images/` under the node's path
+  - `GRADIENT_LINEAR`/`GRADIENT_RADIAL`/`GRADIENT_ANGULAR`/`GRADIENT_DIAMOND` → `gradientStops` (`[{ position, color }]`) as a CSS gradient
+  - `opacity` (0–1, when present) is that fill's opacity. Multiple fills stack back-to-front (later entries paint on top) — e.g. an image fill plus a semi-transparent SOLID overlay.
+- `cornerRadius` — border radius. Either a number (uniform) or `{ topLeft, topRight, bottomRight, bottomLeft }` (per-corner) → `border-radius: TL TR BR BL`.
 - `note` — designer annotations (behavior, links, interactions)
 - `screenshot` — reference image path
 - `*Token` fields — token name when a Variable is applied

@@ -35,7 +35,8 @@ function resolveModeValue(val: VariableValue, seen: Set<string>): string | numbe
     return resolveModeValue(referenced.valuesByMode[refModeIds[0]], seen);
   }
   if (typeof val === "object" && val !== null && "r" in val) {
-    return colorToHex(val as RGBA);
+    // #RRGGBB, or #RRGGBBAA when alpha < 1 (design doc 4.5.1).
+    return colorToHex(val as RGBA, { alpha: true });
   }
   return String(val);
 }

@@ -221,6 +221,70 @@ describe("buildSpec", () => {
     expect(fills[0].color).toBe("#3B82F6");
   });
 
+  it("captures fill opacity for a semi-transparent overlay", () => {
+    const rect = {
+      id: "r1",
+      name: "overlay",
+      type: "RECTANGLE",
+      fills: [
+        { type: "SOLID", color: { r: 0, g: 0, b: 0 }, opacity: 0.5, visible: true },
+      ],
+      boundVariables: {},
+      getPluginData: () => "",
+    } as unknown as SceneNode;
+    const section = makeFrame({ name: "hero", children: [rect] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    expect(spec.children[0].children![0].fills![0].opacity).toBe(0.5);
+  });
+
+  it("emits IMAGE and GRADIENT fills (not only SOLID)", () => {
+    const rect = {
+      id: "r1",
+      name: "banner",
+      type: "RECTANGLE",
+      fills: [
+        { type: "IMAGE", scaleMode: "FILL", visible: true },
+        {
+          type: "GRADIENT_LINEAR",
+          visible: true,
+          gradientStops: [
+            { position: 0, color: { r: 1, g: 0, b: 0, a: 1 } },
+            { position: 1, color: { r: 0, g: 0, b: 1, a: 1 } },
+          ],
+        },
+      ],
+      boundVariables: {},
+      getPluginData: () => "",
+    } as unknown as SceneNode;
+    const section = makeFrame({ name: "hero", children: [rect] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    const fills = spec.children[0].children![0].fills!;
+    expect(fills).toHaveLength(2);
+    expect(fills[0]).toMatchObject({ type: "IMAGE", scaleMode: "FILL" });
+    expect(fills[1].type).toBe("GRADIENT_LINEAR");
+    expect(fills[1].gradientStops).toEqual([
+      { position: 0, color: "#FF0000" },
+      { position: 1, color: "#0000FF" },
+    ]);
+  });
+
+  it("includes min/max sizing constraints when set", () => {
+    const frame = makeFrame({
+      name: "col",
+      children: [],
+      minWidth: 320,
+      maxWidth: 1200,
+      minHeight: null,
+      maxHeight: null,
+    });
+    const section = makeFrame({ name: "hero", children: [frame] });
+    const spec = buildSpec(makePage([makeFrame({ children: [section] })]));
+    const sizing = spec.children[0].children![0].layout!.sizing!;
+    expect(sizing.minWidth).toBe(320);
+    expect(sizing.maxWidth).toBe(1200);
+    expect(sizing).not.toHaveProperty("minHeight");
+  });
+
   it("includes cornerRadius when set", () => {
     const frame = makeFrame({
       name: "card",
@@ -233,20 +297,28 @@ describe("buildSpec", () => {
     expect(spec.children[0].children![0].cornerRadius).toBe(8);
   });
 
-  it("resolves a mixed cornerRadius to the top-left corner value", () => {
+  it("emits a per-corner object for a mixed cornerRadius", () => {
     const card = {
       id: "c1",
       name: "card",
       type: "RECTANGLE",
       cornerRadius: Symbol("figma.mixed"),
       topLeftRadius: 12,
+      topRightRadius: 0,
+      bottomRightRadius: 8,
+      bottomLeftRadius: 0,
       boundVariables: {},
       getPluginData: () => "",
     } as unknown as SceneNode;
     const section = makeFrame({ name: "hero", children: [card] });
     const root = makeFrame({ children: [section] });
     const spec = buildSpec(makePage([root]));
-    expect(spec.children[0].children![0].cornerRadius).toBe(12);
+    expect(spec.children[0].children![0].cornerRadius).toEqual({
+      topLeft: 12,
+      topRight: 0,
+      bottomRight: 8,
+      bottomLeft: 0,
+    });
   });
 
   it("reads cornerRadiusToken from the topLeftRadius binding", () => {

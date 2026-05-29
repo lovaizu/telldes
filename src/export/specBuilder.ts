@@ -1,6 +1,15 @@
 import { colorToHex } from "../util/color";
 import { buildLayerPath, layerPathToSlug, determineType } from "./layerPath";
 
+interface SpecSizing {
+  width: string;
+  height: string;
+  minWidth?: number;
+  maxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+}
+
 interface SpecLayout {
   direction: string;
   wrap?: string;
@@ -8,7 +17,7 @@ interface SpecLayout {
   counterAxisAlign?: string;
   padding?: { top: number; right: number; bottom: number; left: number };
   gap?: number;
-  sizing?: { width: string; height: string };
+  sizing?: SpecSizing;
   [key: string]: unknown;
 }
 
@@ -18,14 +27,23 @@ interface SpecText {
   fontFamily: string;
   fontWeight: number;
   fill?: string;
+  fillOpacity?: number;
   [key: string]: unknown;
 }
 
 interface SpecFill {
   type: string;
-  color: string;
+  color?: string;
+  colorToken?: string;
+  opacity?: number;
+  scaleMode?: string;
+  gradientStops?: { position: number; color: string }[];
   [key: string]: unknown;
 }
+
+type SpecCornerRadius =
+  | number
+  | { topLeft: number; topRight: number; bottomRight: number; bottomLeft: number };
 
 interface SpecNode {
   name: string;
@@ -37,7 +55,7 @@ interface SpecNode {
   layout?: SpecLayout;
   text?: SpecText;
   fills?: SpecFill[];
-  cornerRadius?: number;
+  cornerRadius?: SpecCornerRadius;
   children?: SpecNode[];
   [key: string]: unknown;
 }
@@ -117,10 +135,16 @@ function buildLayout(node: FrameNode): SpecLayout | undefined {
     if (gapToken) layout.gapToken = gapToken;
   }
 
-  layout.sizing = {
+  const sizing: SpecSizing = {
     width: node.layoutSizingHorizontal,
     height: node.layoutSizingVertical,
   };
+  // min/max constraints are authoring-allowed (design doc 4.3.3) and null when unset.
+  if (node.minWidth != null) sizing.minWidth = node.minWidth;
+  if (node.maxWidth != null) sizing.maxWidth = node.maxWidth;
+  if (node.minHeight != null) sizing.minHeight = node.minHeight;
+  if (node.maxHeight != null) sizing.maxHeight = node.maxHeight;
+  layout.sizing = sizing;
 
   return layout;
 }
@@ -150,9 +174,13 @@ function buildTextProps(node: TextNode): SpecText | undefined {
 
   const fills = node.fills;
   if (Array.isArray(fills) && fills.length > 0 && fills[0].type === "SOLID") {
-    text.fill = colorToHex(fills[0].color);
+    const solid = fills[0];
+    text.fill = colorToHex(solid.color);
     const fillToken = getTokenName(node, "fills");
     if (fillToken) text.fillToken = fillToken;
+    if (solid.opacity !== undefined && solid.opacity < 1) {
+      text.fillOpacity = solid.opacity;
+    }
   }
 
   return text;
@@ -186,13 +214,35 @@ function buildFills(node: SceneNode): SpecFill[] | undefined {
   // stays aligned with its own paint.
   for (let i = 0; i < fills.length; i++) {
     const fill = fills[i];
-    if (fill.type === "SOLID" && fill.visible !== false) {
-      const entry: SpecFill = {
-        type: "SOLID",
-        color: colorToHex(fill.color),
-      };
+    if (fill.visible === false) continue;
+
+    let entry: SpecFill | undefined;
+    if (fill.type === "SOLID") {
+      entry = { type: "SOLID", color: colorToHex(fill.color) };
       const token = getTokenName(node, "fills", i);
       if (token) entry.colorToken = token;
+    } else if (fill.type === "IMAGE") {
+      entry = { type: "IMAGE" };
+      if (fill.scaleMode) entry.scaleMode = fill.scaleMode;
+    } else if (
+      fill.type === "GRADIENT_LINEAR" ||
+      fill.type === "GRADIENT_RADIAL" ||
+      fill.type === "GRADIENT_ANGULAR" ||
+      fill.type === "GRADIENT_DIAMOND"
+    ) {
+      entry = {
+        type: fill.type,
+        gradientStops: fill.gradientStops.map((stop) => ({
+          position: stop.position,
+          color: colorToHex(stop.color),
+        })),
+      };
+    }
+
+    if (entry) {
+      if (fill.opacity !== undefined && fill.opacity < 1) {
+        entry.opacity = fill.opacity;
+      }
       result.push(entry);
     }
   }
@@ -252,22 +302,26 @@ function buildNode(
 
   if ("cornerRadius" in node) {
     const cr = (node as CornerMixin).cornerRadius;
-    // When corners differ, cornerRadius is figma.mixed; fall back to the
-    // top-left corner so a real resolved value is still emitted (design doc
-    // 4.5.2 documents a single scalar cornerRadius).
-    let radius: number | undefined;
     if (typeof cr === "number") {
-      radius = cr;
+      if (cr > 0) {
+        spec.cornerRadius = cr;
+        // Corner-radius variables bind via topLeftRadius (there is no
+        // "cornerRadius" bindable field in the Figma API).
+        const crToken = getTokenName(node, "topLeftRadius");
+        if (crToken) spec.cornerRadiusToken = crToken;
+      }
     } else if ("topLeftRadius" in node) {
-      const tl = (node as RectangleCornerMixin).topLeftRadius;
-      if (typeof tl === "number") radius = tl;
-    }
-    if (radius !== undefined && radius > 0) {
-      spec.cornerRadius = radius;
-      // Corner-radius variables bind via topLeftRadius (there is no
-      // "cornerRadius" bindable field in the Figma API).
-      const crToken = getTokenName(node, "topLeftRadius");
-      if (crToken) spec.cornerRadiusToken = crToken;
+      // figma.mixed: corners differ — emit the per-corner object (design doc 4.5.2.1).
+      const c = node as RectangleCornerMixin;
+      const corners = {
+        topLeft: c.topLeftRadius,
+        topRight: c.topRightRadius,
+        bottomRight: c.bottomRightRadius,
+        bottomLeft: c.bottomLeftRadius,
+      };
+      if (Object.values(corners).some((v) => typeof v === "number" && v > 0)) {
+        spec.cornerRadius = corners;
+      }
     }
   }
 

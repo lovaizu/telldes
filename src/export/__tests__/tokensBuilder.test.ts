@@ -81,6 +81,17 @@ describe("buildTokens", () => {
     expect(xl.$value).toBe(36);
   });
 
+  it("emits #RRGGBBAA when a color variable has alpha < 1", () => {
+    const vars = [
+      makeVariable("color/overlay", "COLOR", { r: 0, g: 0, b: 0, a: 0.5 }),
+    ];
+    const tokens = buildTokens(vars)!;
+    const overlay = (tokens.color as Record<string, unknown>)[
+      "overlay"
+    ] as Record<string, unknown>;
+    expect(overlay.$value).toBe("#00000080");
+  });
+
   it("follows a VARIABLE_ALIAS to the referenced resolved value", () => {
     // semantic token aliases a primitive color token
     const primitive = makeVariable(

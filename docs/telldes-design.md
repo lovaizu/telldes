@@ -295,6 +295,8 @@ Variablesが定義されている場合のみ出力。W3C Design Tokens Communit
 
 Variablesの構造をそのままJSON化する。デザイナーの命名がそのままトークン名になる。
 
+color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満の場合のみ #RRGGBBAA（8桁）で表現する。エイリアス（他トークンの参照）は解決済みの値に展開する。
+
 #### 4.5.2 spec.json（デザインスペック）
 
 ページの階層構造を再帰的に表現。
@@ -409,6 +411,36 @@ Variablesの構造をそのままJSON化する。デザイナーの命名がそ�
 - `screenshot` は子を持つノード（セクション、ブロック）に付与
 - 値は常に解決済み値を持つ。Variableが適用されている場合は `*Token` フィールドにトークン名も付与
 - `note` は付与されたノードにのみ存在
+
+#### 4.5.2.1 フィールド詳細
+
+上記の基本例に加え、以下のフィールドを出力する。いずれも該当する値が存在する場合のみ付与する（存在しない場合はフィールド自体を省略する）。
+
+**fills（背景・塗り）**
+
+`fills` 配列の各要素は `type` で種類を表す。
+
+| type | フィールド | 説明 |
+|---|---|---|
+| `SOLID` | `color`（#RRGGBB）, `colorToken?`, `opacity?` | 単色塗り |
+| `IMAGE` | `scaleMode`（`FILL`/`FIT`/`CROP`/`TILE`）, `opacity?` | 画像塗り。画像実体は `assets/images/` に書き出される |
+| `GRADIENT_LINEAR` / `GRADIENT_RADIAL` / `GRADIENT_ANGULAR` / `GRADIENT_DIAMOND` | `gradientStops`（`[{ position, color }]`）, `opacity?` | グラデーション。`color` は #RRGGBB、`position` は 0〜1 |
+
+- `opacity` は塗りの不透明度が 1 未満の場合のみ付与する数値（0〜1）。半透明オーバーレイ（4.3.5）の再現に使う。
+- IMAGE / GRADIENT を含む全種類の塗りを `fills` に出力する（SOLID 以外を欠落させない）。
+
+**text.fill**
+
+テキスト色も塗りの不透明度が 1 未満の場合は `text.fillOpacity`（0〜1）を付与する。
+
+**cornerRadius**
+
+- 全角共通の場合: 数値（例 `8`）。Variable 適用時は `cornerRadiusToken`。
+- 角ごとに異なる場合: オブジェクト `{ "topLeft": n, "topRight": n, "bottomRight": n, "bottomLeft": n }`。
+
+**layout.sizing の min/max**
+
+4.3.3 で許可される最小/最大サイズが設定されている場合、`layout.sizing` に `minWidth` / `maxWidth` / `minHeight` / `maxHeight`（数値）を付与する。
 
 ### 4.6 Auto Layout → CSS flexbox 対応表
 
