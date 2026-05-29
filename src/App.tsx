@@ -80,39 +80,24 @@ const App: Component = () => {
         root.file("tokens.json", JSON.stringify(msg.tokens, null, 2));
       }
 
-      if (!msg.responsive) {
-        const viewportWidth = msg.spec?.viewport?.width ?? 1440;
-        const sections = (msg.spec?.children ?? []) as { name: string }[];
-        const sectionTasks = generateSectionTasks(sections);
+      const allSections: { name: string }[] = [];
+      let primaryWidth = 1440;
 
-        root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth)));
-        root.file("steering.md", steeringTemplate
-          .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(viewportWidth))
-          .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
-        root.file("spec.json", JSON.stringify(msg.spec, null, 2));
-        addFilesToFolder(root, msg.screenshots, msg.assets);
-      } else {
-        const allSections: { name: string }[] = [];
-        let primaryWidth = 1440;
+      for (const frame of msg.frames) {
+        const folder = root.folder(frame.name)!;
+        folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
+        addFilesToFolder(folder, frame.screenshots, frame.assets);
 
-        for (const variant of msg.variants) {
-          const folder = root.folder(variant.role)!;
-          folder.file("spec.json", JSON.stringify(variant.spec, null, 2));
-          addFilesToFolder(folder, variant.screenshots, variant.assets);
-
-          const sections = (variant.spec?.children ?? []) as { name: string }[];
-          if (variant.role === "desktop") {
-            primaryWidth = variant.spec?.viewport?.width ?? 1440;
-            allSections.push(...sections);
-          }
-        }
-
-        const sectionTasks = generateSectionTasks(allSections);
-        root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth)));
-        root.file("steering.md", steeringTemplate
-          .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
-          .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
+        const sections = (frame.spec?.children ?? []) as { name: string }[];
+        allSections.push(...sections);
+        primaryWidth = frame.spec?.viewport?.width ?? primaryWidth;
       }
+
+      const sectionTasks = generateSectionTasks(allSections);
+      root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth)));
+      root.file("steering.md", steeringTemplate
+        .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
+        .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
 
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);

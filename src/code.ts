@@ -7,7 +7,6 @@ import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
 import { exportAssets } from "./export/assetExporter";
-import { detectResponsiveLayout } from "./export/responsiveDetector";
 
 figma.showUI(__html__, { width: 360, height: 480 });
 
@@ -101,54 +100,31 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       const topFrames = page.children.filter(
         (n) => n.type === "FRAME" || n.type === "SECTION",
       );
-      const layout = detectResponsiveLayout(topFrames);
 
-      if (layout.mode === "single") {
-        const spec = buildSpec(page);
-        const rootFrame = topFrames[0];
-        let screenshots: Awaited<ReturnType<typeof exportScreenshots>> = [];
-        let assets: Awaited<ReturnType<typeof exportAssets>> = [];
+      const frames: { name: string; spec: object; screenshots: any[]; assets: any[] }[] = [];
 
-        if (rootFrame) {
-          screenshots = await exportScreenshots(rootFrame);
-          assets = await exportAssets(rootFrame);
-        }
+      for (const frame of topFrames) {
+        const mockPage = {
+          name: page.name,
+          children: [frame],
+        } as unknown as PageNode;
+        const spec = buildSpec(mockPage);
+        const screenshots = await exportScreenshots(frame);
+        const assets = await exportAssets(frame);
 
-        figma.ui.postMessage({
-          type: "export-data",
-          responsive: false,
+        frames.push({
+          name: frame.name,
           spec,
-          tokens,
           screenshots: screenshots.map((s) => ({ path: s.path, data: Array.from(s.data) })),
           assets: assets.map((a) => ({ path: a.path, data: Array.from(a.data) })),
         });
-      } else {
-        const variants: { role: string; spec: object; screenshots: any[]; assets: any[] }[] = [];
-
-        for (const frame of layout.frames) {
-          const mockPage = {
-            name: page.name,
-            children: [frame.node],
-          } as unknown as PageNode;
-          const spec = buildSpec(mockPage);
-          const screenshots = await exportScreenshots(frame.node);
-          const assets = await exportAssets(frame.node);
-
-          variants.push({
-            role: frame.role,
-            spec,
-            screenshots: screenshots.map((s) => ({ path: s.path, data: Array.from(s.data) })),
-            assets: assets.map((a) => ({ path: a.path, data: Array.from(a.data) })),
-          });
-        }
-
-        figma.ui.postMessage({
-          type: "export-data",
-          responsive: true,
-          variants,
-          tokens,
-        });
       }
+
+      figma.ui.postMessage({
+        type: "export-data",
+        frames,
+        tokens,
+      });
     } catch (err) {
       figma.ui.postMessage({
         type: "export-error",
