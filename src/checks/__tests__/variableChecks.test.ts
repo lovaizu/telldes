@@ -89,6 +89,23 @@ describe("checkRepeatedColors", () => {
     ];
     expect(checkRepeatedColors(nodes)).toHaveLength(0);
   });
+
+  it("does not inflate the count from repeated identical fills on one node", () => {
+    const red = { r: 1, g: 0, b: 0 };
+    // a single node with the same color in three fill layers must not reach the
+    // 3-place threshold on its own
+    const node = {
+      id: "1",
+      name: "node-1",
+      type: "RECTANGLE",
+      fills: [
+        { type: "SOLID", color: red, opacity: 1, visible: true },
+        { type: "SOLID", color: red, opacity: 1, visible: true },
+        { type: "SOLID", color: red, opacity: 1, visible: true },
+      ],
+    } as unknown as SceneNode;
+    expect(checkRepeatedColors([node])).toHaveLength(0);
+  });
 });
 
 describe("checkRepeatedSpacing", () => {

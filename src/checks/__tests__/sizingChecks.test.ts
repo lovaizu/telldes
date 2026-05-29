@@ -48,10 +48,18 @@ describe("checkSizing", () => {
   it("detects both directions invalid", () => {
     const node = makeFrame({
       layoutSizingHorizontal: "STRETCH",
-      layoutSizingVertical: "INHERIT",
+      layoutSizingVertical: "STRETCH",
     });
     const results = checkSizing([node]);
     expect(results).toHaveLength(2);
+  });
+
+  it("skips INHERIT (node outside an Auto Layout context)", () => {
+    const node = makeFrame({
+      layoutSizingHorizontal: "INHERIT",
+      layoutSizingVertical: "INHERIT",
+    });
+    expect(checkSizing([node])).toHaveLength(0);
   });
 
   it("ignores nodes without layoutSizingHorizontal", () => {

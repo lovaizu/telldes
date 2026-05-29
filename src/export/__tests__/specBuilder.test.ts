@@ -233,6 +233,38 @@ describe("buildSpec", () => {
     expect(spec.children[0].children![0].cornerRadius).toBe(8);
   });
 
+  it("resolves a mixed cornerRadius to the top-left corner value", () => {
+    const card = {
+      id: "c1",
+      name: "card",
+      type: "RECTANGLE",
+      cornerRadius: Symbol("figma.mixed"),
+      topLeftRadius: 12,
+      boundVariables: {},
+      getPluginData: () => "",
+    } as unknown as SceneNode;
+    const section = makeFrame({ name: "hero", children: [card] });
+    const root = makeFrame({ children: [section] });
+    const spec = buildSpec(makePage([root]));
+    expect(spec.children[0].children![0].cornerRadius).toBe(12);
+  });
+
+  it("reads cornerRadiusToken from the topLeftRadius binding", () => {
+    mockGetVariableById.mockReturnValue({ name: "radius/card" });
+    const card = {
+      id: "c1",
+      name: "card",
+      type: "RECTANGLE",
+      cornerRadius: 8,
+      boundVariables: { topLeftRadius: { id: "var-r" } },
+      getPluginData: () => "",
+    } as unknown as SceneNode;
+    const section = makeFrame({ name: "hero", children: [card] });
+    const root = makeFrame({ children: [section] });
+    const spec = buildSpec(makePage([root]));
+    expect(spec.children[0].children![0].cornerRadiusToken).toBe("radius/card");
+  });
+
   it("sets nodeType TEXT for text nodes", () => {
     const text = makeTextNode();
     const section = makeFrame({ name: "hero", children: [text] });

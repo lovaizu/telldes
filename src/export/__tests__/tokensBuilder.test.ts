@@ -1,12 +1,20 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { buildTokens } from "../tokensBuilder";
+
+const mockGetVariableById = vi.fn();
+
+vi.stubGlobal("figma", {
+  variables: { getVariableById: mockGetVariableById },
+});
 
 function makeVariable(
   name: string,
   resolvedType: string,
   value: unknown,
+  id = name,
 ): Variable {
   return {
+    id,
     name,
     resolvedType,
     valuesByMode: { mode1: value },
@@ -71,5 +79,41 @@ describe("buildTokens", () => {
     const xl = heading["xl"] as Record<string, unknown>;
     expect(xl.$type).toBe("number");
     expect(xl.$value).toBe(36);
+  });
+
+  it("follows a VARIABLE_ALIAS to the referenced resolved value", () => {
+    // semantic token aliases a primitive color token
+    const primitive = makeVariable(
+      "color/blue-500",
+      "COLOR",
+      { r: 0.231, g: 0.51, b: 0.965, a: 1 },
+      "prim-id",
+    );
+    mockGetVariableById.mockImplementation((id: string) =>
+      id === "prim-id" ? primitive : null,
+    );
+    const semantic = makeVariable("color/bg-primary", "COLOR", {
+      type: "VARIABLE_ALIAS",
+      id: "prim-id",
+    });
+    const tokens = buildTokens([semantic])!;
+    const bg = (tokens.color as Record<string, unknown>)[
+      "bg-primary"
+    ] as Record<string, unknown>;
+    expect(bg.$value).toBe("#3B82F6");
+  });
+
+  it("returns 0 instead of [object Object] on an alias cycle", () => {
+    const selfRef = makeVariable("color/loop", "COLOR", {
+      type: "VARIABLE_ALIAS",
+      id: "color/loop",
+    });
+    mockGetVariableById.mockImplementation(() => selfRef);
+    const tokens = buildTokens([selfRef])!;
+    const loop = (tokens.color as Record<string, unknown>)["loop"] as Record<
+      string,
+      unknown
+    >;
+    expect(loop.$value).toBe(0);
   });
 });

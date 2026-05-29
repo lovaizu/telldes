@@ -1,19 +1,12 @@
 import type { CheckResult } from "./types";
-
-function colorToHex(r: number, g: number, b: number, a: number): string {
-  const toHex = (v: number) =>
-    Math.round(v * 255)
-      .toString(16)
-      .padStart(2, "0");
-  return a < 1
-    ? `#${toHex(r)}${toHex(g)}${toHex(b)}${toHex(a)}`
-    : `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
+import { colorToHex } from "../util/color";
 
 function hasBoundVariable(node: SceneNode, field: string): boolean {
   if (!("boundVariables" in node)) return false;
-  const bound = (node as any).boundVariables;
-  return bound && bound[field];
+  const bound = (node as SceneNodeMixin).boundVariables as
+    | Record<string, unknown>
+    | undefined;
+  return Boolean(bound && bound[field]);
 }
 
 function extractColors(node: SceneNode): { color: string; nodeId: string; nodeName: string }[] {
@@ -26,7 +19,10 @@ function extractColors(node: SceneNode): { color: string; nodeId: string; nodeNa
 
   for (const fill of fills) {
     if (fill.type === "SOLID" && fill.visible !== false) {
-      const hex = colorToHex(fill.color.r, fill.color.g, fill.color.b, fill.opacity ?? 1);
+      const hex = colorToHex(
+        { ...fill.color, a: fill.opacity ?? 1 },
+        { alpha: true, uppercase: false },
+      );
       entries.push({ color: hex, nodeId: node.id, nodeName: node.name });
     }
   }
@@ -37,7 +33,10 @@ export function checkRepeatedColors(nodes: SceneNode[]): CheckResult[] {
   const colorMap = new Map<string, { nodeId: string; nodeName: string }[]>();
 
   for (const node of nodes) {
+    const seen = new Set<string>();
     for (const entry of extractColors(node)) {
+      if (seen.has(entry.color)) continue;
+      seen.add(entry.color);
       if (!colorMap.has(entry.color)) {
         colorMap.set(entry.color, []);
       }

@@ -1,3 +1,6 @@
+import { colorToHex } from "../util/color";
+import { buildLayerPath, layerPathToSlug, determineType } from "./layerPath";
+
 interface SpecLayout {
   direction: string;
   wrap?: string;
@@ -45,28 +48,25 @@ interface SpecJson {
   children: SpecNode[];
 }
 
-function colorToHex(color: RGB): string {
-  const toHex = (v: number) =>
-    Math.round(v * 255)
-      .toString(16)
-      .padStart(2, "0");
-  return `#${toHex(color.r)}${toHex(color.g)}${toHex(color.b)}`.toUpperCase();
-}
-
 function getTokenName(
   node: SceneNode,
   field: string,
+  index = 0,
 ): string | undefined {
   if (!("boundVariables" in node)) return undefined;
-  const bound = (node as any).boundVariables;
-  if (!bound || !bound[field]) return undefined;
+  const bound = (node as SceneNodeMixin).boundVariables as
+    | Record<string, VariableAlias | VariableAlias[] | undefined>
+    | undefined;
+  const raw = bound?.[field];
+  if (!raw) return undefined;
 
-  const binding = Array.isArray(bound[field]) ? bound[field][0] : bound[field];
+  // Array-valued bindings (e.g. fills) align by index with the source array.
+  const binding = Array.isArray(raw) ? raw[index] : raw;
   if (!binding?.id) return undefined;
 
   try {
     const variable = figma.variables.getVariableById(binding.id);
-    return variable?.name;
+    return variable?.name ?? undefined;
   } catch {
     return undefined;
   }
@@ -81,8 +81,8 @@ function buildLayout(node: FrameNode): SpecLayout | undefined {
 
   if (node.layoutWrap === "WRAP") {
     layout.wrap = "WRAP";
-    if ((node as any).counterAxisAlignContent && (node as any).counterAxisAlignContent !== "AUTO") {
-      layout.counterAxisAlignContent = (node as any).counterAxisAlignContent;
+    if (node.counterAxisAlignContent && node.counterAxisAlignContent !== "AUTO") {
+      layout.counterAxisAlignContent = node.counterAxisAlignContent;
     }
   }
 
@@ -106,8 +106,7 @@ function buildLayout(node: FrameNode): SpecLayout | undefined {
     for (const f of padFields) {
       const token = getTokenName(node, f);
       if (token) {
-        const key = f.replace("padding", "padding") + "Token";
-        layout[key] = token;
+        layout[`${f}Token`] = token;
       }
     }
   }
@@ -128,7 +127,16 @@ function buildLayout(node: FrameNode): SpecLayout | undefined {
 
 function buildTextProps(node: TextNode): SpecText | undefined {
   const characters = node.characters;
-  const fontSize = typeof node.fontSize === "number" ? node.fontSize : 0;
+  // When the text has mixed font sizes, node.fontSize is figma.mixed; fall back
+  // to the first character's resolved size rather than emitting 0 (design doc
+  // 4.5.2: values are always resolved).
+  let fontSize = 0;
+  if (typeof node.fontSize === "number") {
+    fontSize = node.fontSize;
+  } else if (characters.length > 0) {
+    const ranged = node.getRangeFontSize(0, 1);
+    if (typeof ranged === "number") fontSize = ranged;
+  }
   const fontName = node.fontName as FontName | typeof figma.mixed;
   const fontFamily = typeof fontName === "object" && "family" in fontName ? fontName.family : "";
   const fontWeight = typeof fontName === "object" && "style" in fontName
@@ -174,13 +182,16 @@ function buildFills(node: SceneNode): SpecFill[] | undefined {
   if (!Array.isArray(fills) || fills.length === 0) return undefined;
 
   const result: SpecFill[] = [];
-  for (const fill of fills) {
+  // Iterate by index so each fill's bound variable (boundVariables.fills[i])
+  // stays aligned with its own paint.
+  for (let i = 0; i < fills.length; i++) {
+    const fill = fills[i];
     if (fill.type === "SOLID" && fill.visible !== false) {
       const entry: SpecFill = {
         type: "SOLID",
         color: colorToHex(fill.color),
       };
-      const token = getTokenName(node, "fills");
+      const token = getTokenName(node, "fills", i);
       if (token) entry.colorToken = token;
       result.push(entry);
     }
@@ -189,16 +200,7 @@ function buildFills(node: SceneNode): SpecFill[] | undefined {
 }
 
 function screenshotPath(layerPath: string): string {
-  return `screenshots/${layerPath.replace(/ > /g, "--")}.png`;
-}
-
-function determineType(
-  node: SceneNode,
-  depth: number,
-): "section" | "block" | "element" {
-  if (depth === 1) return "section";
-  if ("children" in node && (node as any).children.length > 0) return "block";
-  return "element";
+  return `screenshots/${layerPathToSlug(layerPath)}.png`;
 }
 
 function buildNode(
@@ -206,7 +208,7 @@ function buildNode(
   parentPath: string,
   depth: number,
 ): SpecNode {
-  const path = parentPath ? `${parentPath} > ${node.name}` : node.name;
+  const path = buildLayerPath(parentPath, node.name);
   const type = determineType(node, depth);
 
   const spec: SpecNode = {
@@ -241,24 +243,36 @@ function buildNode(
     if (fills) spec.fills = fills;
   }
 
-  if ("layoutAlign" in node && (node as any).layoutAlign === "STRETCH") {
+  if ("layoutAlign" in node && (node as LayoutMixin).layoutAlign === "STRETCH") {
     spec.layoutAlign = "STRETCH";
   }
-  if ("layoutGrow" in node && (node as any).layoutGrow === 1) {
+  if ("layoutGrow" in node && (node as LayoutMixin).layoutGrow === 1) {
     spec.layoutGrow = 1;
   }
 
   if ("cornerRadius" in node) {
-    const cr = (node as any).cornerRadius;
-    if (typeof cr === "number" && cr > 0) {
-      spec.cornerRadius = cr;
-      const crToken = getTokenName(node, "cornerRadius");
+    const cr = (node as CornerMixin).cornerRadius;
+    // When corners differ, cornerRadius is figma.mixed; fall back to the
+    // top-left corner so a real resolved value is still emitted (design doc
+    // 4.5.2 documents a single scalar cornerRadius).
+    let radius: number | undefined;
+    if (typeof cr === "number") {
+      radius = cr;
+    } else if ("topLeftRadius" in node) {
+      const tl = (node as RectangleCornerMixin).topLeftRadius;
+      if (typeof tl === "number") radius = tl;
+    }
+    if (radius !== undefined && radius > 0) {
+      spec.cornerRadius = radius;
+      // Corner-radius variables bind via topLeftRadius (there is no
+      // "cornerRadius" bindable field in the Figma API).
+      const crToken = getTokenName(node, "topLeftRadius");
       if (crToken) spec.cornerRadiusToken = crToken;
     }
   }
 
   if ("children" in node) {
-    const children = (node as any).children as SceneNode[];
+    const children = (node as ChildrenMixin).children as SceneNode[];
     if (children.length > 0) {
       spec.children = children.map((child) =>
         buildNode(child, path, depth + 1),

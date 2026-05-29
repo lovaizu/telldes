@@ -1,22 +1,31 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import promptTemplate from "./templates/prompt.md?raw";
 import steeringTemplate from "./templates/steering.md?raw";
+import type { CheckResult } from "./checks/types";
 
 type Tab = "check" | "note" | "export";
-type CheckLevel = "error" | "suggestion";
-
-interface CheckResult {
-  level: CheckLevel;
-  nodeId: string;
-  nodeName: string;
-  message: string;
-  suggestion: string;
-}
 
 interface SelectionNote {
   nodeId: string;
   nodeName: string;
   note: string;
+}
+
+interface ExportFile {
+  path: string;
+  data: number[];
+}
+
+interface ExportFrame {
+  name: string;
+  spec: { children?: { name: string }[]; viewport?: { width: number } };
+  screenshots: ExportFile[];
+  assets: ExportFile[];
+}
+
+interface ExportData {
+  frames: ExportFrame[];
+  tokens: unknown;
 }
 
 const App: Component = () => {
@@ -61,7 +70,11 @@ const App: Component = () => {
       .map((s) => `- [ ] Code section: **${s.name}**\n  - [ ] Layout and structure\n  - [ ] Visual styles\n  - [ ] Assets and images\n  - [ ] Notes and interactions\n  - [ ] Compare with screenshot`)
       .join("\n") || "- [ ] (no sections found)";
 
-  const addFilesToFolder = (folder: any, screenshots: any[], assets: any[]) => {
+  const addFilesToFolder = (
+    folder: { file: (path: string, data: Uint8Array) => void },
+    screenshots: ExportFile[],
+    assets: ExportFile[],
+  ) => {
     for (const ss of screenshots) {
       folder.file(ss.path, new Uint8Array(ss.data));
     }
@@ -70,7 +83,7 @@ const App: Component = () => {
     }
   };
 
-  const handleExportData = async (msg: any) => {
+  const handleExportData = async (msg: ExportData) => {
     try {
       const { default: JSZip } = await import("jszip");
       const zip = new JSZip();
@@ -88,7 +101,7 @@ const App: Component = () => {
         folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
         addFilesToFolder(folder, frame.screenshots, frame.assets);
 
-        const sections = (frame.spec?.children ?? []) as { name: string }[];
+        const sections = frame.spec?.children ?? [];
         allSections.push(...sections);
         primaryWidth = frame.spec?.viewport?.width ?? primaryWidth;
       }
@@ -99,7 +112,7 @@ const App: Component = () => {
         .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
         .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
 
-      const frameNames = (msg.frames as { name: string }[]).map((f) => f.name);
+      const frameNames = msg.frames.map((f) => f.name);
       const readmeContent = [
         "# Telldes Export",
         "",

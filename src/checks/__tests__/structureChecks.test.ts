@@ -63,6 +63,20 @@ describe("checkAutoLayout", () => {
     const results = checkAutoLayout([rect]);
     expect(results).toHaveLength(0);
   });
+
+  it("detects a manually-placed COMPONENT / COMPONENT_SET", () => {
+    const child = makeRect();
+    const comp = makeFrame({ type: "COMPONENT", children: [child] });
+    const compSet = makeFrame({ type: "COMPONENT_SET", children: [child] });
+    expect(checkAutoLayout([comp])).toHaveLength(1);
+    expect(checkAutoLayout([compSet])).toHaveLength(1);
+  });
+
+  it("ignores INSTANCE (layout inherited from main component)", () => {
+    const child = makeRect();
+    const instance = makeFrame({ type: "INSTANCE", children: [child] });
+    expect(checkAutoLayout([instance])).toHaveLength(0);
+  });
 });
 
 describe("checkDefaultNames", () => {
@@ -75,6 +89,13 @@ describe("checkDefaultNames", () => {
       const node = makeRect({ name });
       const results = checkDefaultNames([node]);
       expect(results, `should detect "${name}"`).toHaveLength(1);
+    }
+  });
+
+  it("detects numberless Figma defaults (bare 'Vector' / 'Image')", () => {
+    for (const name of ["Vector", "Image"]) {
+      const node = makeRect({ name });
+      expect(checkDefaultNames([node]), `should detect "${name}"`).toHaveLength(1);
     }
   });
 
@@ -124,66 +145,49 @@ describe("checkDuplicateNames", () => {
 });
 
 describe("checkBackgroundAsChild", () => {
-  it("detects rectangle named 'bg' matching parent size", () => {
-    const bg = makeRect({
-      id: "bg",
-      name: "bg",
-      type: "RECTANGLE",
-      width: 400,
-      height: 300,
-    });
+  it("detects child named 'bg'", () => {
+    const bg = makeRect({ id: "bg", name: "bg", type: "RECTANGLE" });
     const frame = makeFrame({ children: [bg] });
     const results = checkBackgroundAsChild([frame]);
     expect(results).toHaveLength(1);
     expect(results[0].suggestion).toContain("fill");
   });
 
-  it("detects rectangle named 'background'", () => {
-    const bg = makeRect({
-      name: "background",
-      type: "RECTANGLE",
-      width: 400,
-      height: 300,
-    });
+  it("detects child named 'background'", () => {
+    const bg = makeRect({ name: "background", type: "RECTANGLE" });
     const frame = makeFrame({ children: [bg] });
     const results = checkBackgroundAsChild([frame]);
     expect(results).toHaveLength(1);
   });
 
-  it("ignores rectangle with different size", () => {
-    const rect = makeRect({
-      name: "bg",
-      type: "RECTANGLE",
-      width: 100,
-      height: 100,
-    });
-    const frame = makeFrame({ children: [rect] });
+  it("detects the design doc's examples 'bg-image' and 'overlay' (name-driven, not size-driven)", () => {
+    const bgImage = makeRect({ id: "bgi", name: "bg-image" });
+    const overlay = makeRect({ id: "ov", name: "overlay" });
+    const content = makeRect({ id: "c", name: "content" });
+    const frame = makeFrame({ children: [bgImage, overlay, content] });
     const results = checkBackgroundAsChild([frame]);
-    expect(results).toHaveLength(0);
+    // both background layers flagged, content untouched
+    expect(results).toHaveLength(2);
+    expect(results.map((r) => r.nodeName).sort()).toEqual(["bg-image", "overlay"]);
   });
 
-  it("ignores full-size rectangle with non-bg name", () => {
-    const rect = makeRect({
-      name: "hero-image",
-      type: "RECTANGLE",
-      width: 400,
-      height: 300,
-    });
-    const frame = makeFrame({ children: [rect] });
-    const results = checkBackgroundAsChild([frame]);
-    expect(results).toHaveLength(0);
-  });
-
-  it("ignores non-rectangle full-size child named bg", () => {
-    const text = {
-      id: "t1",
+  it("detects a background named child regardless of node type", () => {
+    const bgFrame = {
+      id: "bf",
       name: "bg",
-      type: "TEXT",
+      type: "FRAME",
       width: 400,
       height: 300,
       parent: null,
     } as unknown as SceneNode;
-    const frame = makeFrame({ children: [text] });
+    const frame = makeFrame({ children: [bgFrame] });
+    const results = checkBackgroundAsChild([frame]);
+    expect(results).toHaveLength(1);
+  });
+
+  it("ignores children whose name does not signal a background", () => {
+    const rect = makeRect({ name: "hero-image", type: "RECTANGLE" });
+    const frame = makeFrame({ children: [rect] });
     const results = checkBackgroundAsChild([frame]);
     expect(results).toHaveLength(0);
   });

@@ -1,7 +1,12 @@
 import type { CheckResult } from "./types";
 
 const DEFAULT_NAME_PATTERN =
-  /^(Frame|Group|Rectangle|Ellipse|Line|Polygon|Star|Vector|Text|Section|Component|Instance|Slice|Stamp|Highlight|Sticky|Connector|Shape with text|Widget)\s+\d+$/;
+  /^(?:(?:Frame|Group|Rectangle|Ellipse|Line|Polygon|Star|Vector|Text|Section|Component|Instance|Slice|Stamp|Highlight|Sticky|Connector|Shape with text|Widget)\s+\d+|Vector|Image)$/;
+
+// Layer names that signal "this child is a background", matched as a whole
+// word so the design doc's own examples (`bg-image`, `overlay`) are caught.
+const BACKGROUND_NAME_PATTERN =
+  /(^|[-_ ])(bg|background|背景|overlay|オーバーレイ)([-_ ]|$)/i;
 
 function result(
   node: SceneNode,
@@ -20,8 +25,14 @@ function result(
 export function checkAutoLayout(nodes: SceneNode[]): CheckResult[] {
   const results: CheckResult[] = [];
   for (const node of nodes) {
+    // FRAME-derived containers carry a real layoutMode. INSTANCE is excluded:
+    // its layout is inherited from the main component (would be a false positive).
+    const isFrameLikeContainer =
+      node.type === "FRAME" ||
+      node.type === "COMPONENT" ||
+      node.type === "COMPONENT_SET";
     if (
-      node.type === "FRAME" &&
+      isFrameLikeContainer &&
       (node as FrameNode).layoutMode === "NONE" &&
       (node as FrameNode).children.length > 0
     ) {
@@ -85,28 +96,22 @@ export function checkBackgroundAsChild(nodes: SceneNode[]): CheckResult[] {
   const results: CheckResult[] = [];
   for (const node of nodes) {
     if (!("children" in node)) continue;
-    const frame = node as FrameNode;
-    if (frame.children.length === 0) continue;
+    const children = (node as ChildrenMixin).children;
+    if (children.length === 0) continue;
 
-    const firstChild = frame.children[0];
-    const isFullSize =
-      "width" in firstChild &&
-      "height" in firstChild &&
-      Math.abs(firstChild.width - frame.width) < 1 &&
-      Math.abs(firstChild.height - frame.height) < 1;
-
-    const isFillLike =
-      firstChild.type === "RECTANGLE" &&
-      firstChild.name.toLowerCase().match(/^(bg|background|背景)$/);
-
-    if (isFullSize && isFillLike) {
-      results.push(
-        result(
-          firstChild,
-          "背景を子レイヤーとして配置",
-          "フレームのfillに設定してください",
-        ),
-      );
+    // Background intent is signalled by the layer NAME (design doc 4.3.5
+    // examples: bg-image, overlay), not geometry. Flag every matching child
+    // so layered backgrounds (image + overlay) are each reported.
+    for (const child of children) {
+      if (BACKGROUND_NAME_PATTERN.test(child.name)) {
+        results.push(
+          result(
+            child,
+            "背景を子レイヤーとして配置",
+            "フレームのfillに設定してください",
+          ),
+        );
+      }
     }
   }
   return results;

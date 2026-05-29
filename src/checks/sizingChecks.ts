@@ -10,7 +10,13 @@ export function checkSizing(nodes: SceneNode[]): CheckResult[] {
     if (!("layoutSizingHorizontal" in node)) continue;
     const n = node as FrameNode;
 
-    if (!isValidSizing(n.layoutSizingHorizontal)) {
+    // "INHERIT" means the node is outside an Auto Layout context, where these
+    // sizing properties are not authoritative — skip to avoid false positives
+    // on legitimately fixed/absolute elements.
+    if (
+      n.layoutSizingHorizontal !== "INHERIT" &&
+      !isValidSizing(n.layoutSizingHorizontal)
+    ) {
       results.push({
         level: "error",
         nodeId: node.id,
@@ -20,7 +26,10 @@ export function checkSizing(nodes: SceneNode[]): CheckResult[] {
       });
     }
 
-    if (!isValidSizing(n.layoutSizingVertical)) {
+    if (
+      n.layoutSizingVertical !== "INHERIT" &&
+      !isValidSizing(n.layoutSizingVertical)
+    ) {
       results.push({
         level: "error",
         nodeId: node.id,

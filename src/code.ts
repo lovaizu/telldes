@@ -71,10 +71,6 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
     }
   }
 
-  if (msg.type === "get-note") {
-    sendSelectionNote();
-  }
-
   if (msg.type === "run-export") {
     const checks = runAllChecks();
     const errors = checks.filter((c) => c.level === "error");
@@ -101,7 +97,13 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         (n) => n.type === "FRAME" || n.type === "SECTION",
       );
 
-      const frames: { name: string; spec: object; screenshots: any[]; assets: any[] }[] = [];
+      type ExportFile = { path: string; data: number[] };
+      const frames: {
+        name: string;
+        spec: object;
+        screenshots: ExportFile[];
+        assets: ExportFile[];
+      }[] = [];
 
       for (const frame of topFrames) {
         const mockPage = {
