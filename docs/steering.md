@@ -522,6 +522,43 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 ---
 
+State
+-----
+
+* **Status**: paused
+* **Date**: 2026-06-23
+* **ブランチ**: `worktree-figma-plugins`
+* **PR**: https://github.com/lovaizu/telldes/pull/1
+* **Last completed**: T-1 進行中。Figma 実機テストで発覚した不具合の修正と、トークン源泉の方針確定（設計書反映済み）まで。
+* **Next**: 4.3.4/4.7.2/4.7.4 に確定した方針をコードに実装する（下記「未実装の確定方針」）。その後 T-1 のフルフロー（Review→Export→CC）を継続。
+
+### このセッションの作業（2026-06-23）
+
+Figma 実機での T-1 テスト中に発覚した問題を修正し、設計方針を1つ確定した。
+
+**修正（コミット済みになる WIP 分）:**
+1. **起動時 SyntaxError 修正** — `vite.config.code.ts` の `target` を `es2020`→`es2017` に変更。Figma のプラグイン VM（jsvm-cpp）が `?.`/`??` を解釈できず `Unexpected token ?` で起動失敗していた。esbuild にトランスパイルさせて解消。
+2. **manifest に `id` 追加** — `manifest.json` に `"id": "telldes-dev-local"`。`getPluginData`/`setPluginData`（note 機能）が ID 無しで例外を投げ、起動直後の `sendSelectionNote()` で落ちていた。ローカル開発用の任意文字列。公開時は発行される数値 ID に差し替え。
+3. **UI タブ並び順変更** — `src/App.tsx`。Notes → Review → Export の順に変更し、初期表示タブも `note` に（最頻用が Notes のため）。
+
+**設計方針の確定（`docs/telldes-design.md` に反映済み・コードは未実装）:**
+- 基本姿勢「ツールが無視・変換するものは必ず Review か README で告知（暗黙の drop/skip 禁止）」を 4.3.4 に明記。
+- トークン源泉を Figma 定石に統一: 色=Variables 一本化、数値=Variables、タイポ=Text Style を named token 化。Color Style は廃し Review で Variable 化を誘導（**ユーザー決定: Variables 一本化**）。STRING/BOOLEAN Variable は対象外＋告知。
+- 書き出し範囲＝画面フレーム（ルート直下の FRAME/SECTION）と 4.7.4 に明文化。裸 Component 定義は対象外で Review 告知。
+- 装飾アイコン（サークルアロー等）は Frame でなく **Group** にする例外を 4.3.2 に追記（Review の AutoLayout チェックは GROUP 対象外。**ユーザー決定: Review は現状維持**）。
+
+### 未実装の確定方針（Next の具体作業）
+
+設計書 4.3.4/4.7.2/4.7.4 に記載済みだが、コード未反映。doc-first 方針（[[doc-first-accuracy]]）で設計→実装の順。告知チェックは error でなく **suggestion**（Export を止めない）で実装すること。
+
+1. **Text Style → タイポトークン** / `src/export/tokensBuilder.ts` + `src/export/specBuilder.ts` / Text Style を named typography token として出力し spec から参照
+2. **告知チェック3種**（Color Style 使用 / STRING・BOOLEAN Variable 使用 / ルート直下の裸 Component 定義）/ `src/checks/`（suggestion レベル。現状 `structureChecks.ts` の `result()` は error 固定なので suggestion 用ヘルパが必要）
+3. **Export README に除外物を明記** / `src/App.tsx` の README 生成
+4. **tokens.json 出力条件の更新** / `tokensBuilder.ts` / typography 追加に合わせる
+5. 各変更にテスト追加
+
+---
+
 現在の状態（2026-05-29時点）
 -----
 

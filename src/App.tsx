@@ -29,7 +29,7 @@ interface ExportData {
 }
 
 const App: Component = () => {
-  const [activeTab, setActiveTab] = createSignal<Tab>("check");
+  const [activeTab, setActiveTab] = createSignal<Tab>("note");
   const [results, setResults] = createSignal<CheckResult[]>([]);
   const [hasRun, setHasRun] = createSignal(false);
   const [running, setRunning] = createSignal(false);
@@ -192,17 +192,17 @@ const App: Component = () => {
       <nav class="tabs">
         <button
           class="tab"
-          classList={{ active: activeTab() === "check" }}
-          onClick={() => setActiveTab("check")}
-        >
-          Review
-        </button>
-        <button
-          class="tab"
           classList={{ active: activeTab() === "note" }}
           onClick={() => setActiveTab("note")}
         >
           Notes
+        </button>
+        <button
+          class="tab"
+          classList={{ active: activeTab() === "check" }}
+          onClick={() => setActiveTab("check")}
+        >
+          Review
         </button>
         <button
           class="tab"
