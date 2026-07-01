@@ -529,8 +529,8 @@ State
 * **Date**: 2026-06-23
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **Last completed**: T-1 進行中。Figma 実機テストで発覚した不具合の修正と、トークン源泉の方針確定（設計書反映済み）まで。
-* **Next**: 4.3.4/4.7.2/4.7.4 に確定した方針をコードに実装する（下記「未実装の確定方針」）。その後 T-1 のフルフロー（Review→Export→CC）を継続。
+* **Last completed**: トークン提案の改善（セマンティック体系での命名誘導＋Radius/Elevationチェック追加）。設計書 4.3.4/4.7.2 に推奨トークン体系を明記し、`variableChecks.ts` に `checkRepeatedRadius`/`checkRepeatedShadow` を追加。+8テスト（計109パス）。値→スロットの自動判定はしない方針（ユーザー決定）。
+* **Next**: 4.3.4/4.7.2/4.7.4 に確定した既存方針をコードに実装する（下記「未実装の確定方針」）。その後 T-1 のフルフロー（Review→Export→CC）を継続。**なお `spec.json` は effect（drop shadow）を未出力**。Elevation 提案を活かすには specBuilder への effect 出力が別途必要（4.3.4 に注記済み）。
 
 ### このセッションの作業（2026-06-23）
 
