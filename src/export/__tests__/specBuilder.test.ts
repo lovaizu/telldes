@@ -2,9 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { buildSpec } from "../specBuilder";
 
 const mockGetVariableById = vi.fn();
+const mockGetStyleById = vi.fn();
+const mixedSymbol = Symbol("figma.mixed");
 
 vi.stubGlobal("figma", {
   variables: { getVariableById: mockGetVariableById },
+  getStyleById: mockGetStyleById,
+  mixed: mixedSymbol,
 });
 
 function makeTextNode(overrides: Record<string, unknown> = {}): SceneNode {
@@ -17,6 +21,7 @@ function makeTextNode(overrides: Record<string, unknown> = {}): SceneNode {
     fontName: { family: "Inter", style: "Bold" },
     fills: [{ type: "SOLID", color: { r: 0, g: 0, b: 0 }, visible: true }],
     boundVariables: {},
+    textStyleId: "",
     getPluginData: () => "",
     ...overrides,
   } as unknown as SceneNode;
@@ -58,6 +63,7 @@ function makePage(children: SceneNode[]): PageNode {
 
 beforeEach(() => {
   mockGetVariableById.mockReset();
+  mockGetStyleById.mockReset();
 });
 
 describe("buildSpec", () => {
@@ -617,5 +623,56 @@ describe("buildSpec — typography metrics", () => {
     expect(text.letterSpacing).toBe("1px");
     expect(text.textCase).toBe("lowercase");
     expect(text.textDecoration).toBe("line-through");
+  });
+});
+
+describe("buildSpec — typographyToken", () => {
+  const wrap = (text: SceneNode) =>
+    buildSpec(makePage([makeFrame({ children: [text] })])).children[0].text!;
+
+  it("adds typographyToken when textStyleId resolves to a single style", () => {
+    mockGetStyleById.mockReturnValue({ type: "TEXT", name: "heading-md" });
+    const t = makeTextNode({ textStyleId: "style-1" });
+    const text = wrap(t);
+    expect(text.typographyToken).toBe("typography/heading-md");
+  });
+
+  it("omits typographyToken when textStyleId is figma.mixed", () => {
+    const t = makeTextNode({ textStyleId: mixedSymbol });
+    const text = wrap(t);
+    expect(text.typographyToken).toBeUndefined();
+    expect(mockGetStyleById).not.toHaveBeenCalled();
+  });
+
+  it("omits typographyToken when no style is applied (textStyleId === '')", () => {
+    const t = makeTextNode({ textStyleId: "" });
+    const text = wrap(t);
+    expect(text.typographyToken).toBeUndefined();
+    expect(mockGetStyleById).not.toHaveBeenCalled();
+  });
+
+  it("omits typographyToken when the style lookup returns null", () => {
+    mockGetStyleById.mockReturnValue(null);
+    const t = makeTextNode({ textStyleId: "stale-id" });
+    const text = wrap(t);
+    expect(text.typographyToken).toBeUndefined();
+  });
+
+  it("coexists with fontSizeToken/fillToken without interference", () => {
+    mockGetStyleById.mockReturnValue({ type: "TEXT", name: "heading-md" });
+    mockGetVariableById.mockImplementation((id: string) =>
+      id === "var-fs" ? { name: "font-size/heading" } : { name: "color/text-primary" },
+    );
+    const t = makeTextNode({
+      textStyleId: "style-1",
+      boundVariables: {
+        fontSize: { id: "var-fs" },
+        fills: [{ id: "var-fill" }],
+      },
+    });
+    const text = wrap(t);
+    expect(text.typographyToken).toBe("typography/heading-md");
+    expect(text.fontSizeToken).toBe("font-size/heading");
+    expect(text.fillToken).toBe("color/text-primary");
   });
 });

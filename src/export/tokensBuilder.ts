@@ -1,8 +1,21 @@
 import { colorToHex } from "../util/color";
+import {
+  parseFontWeight,
+  lineHeightToTokenValue,
+  letterSpacingToTokenValue,
+} from "../util/typography";
+
+interface TypographyValue {
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  lineHeight: string;
+  letterSpacing: string;
+}
 
 interface TokenValue {
   $type: string;
-  $value: string | number;
+  $value: string | number | TypographyValue;
 }
 
 type TokenGroup = { [key: string]: TokenGroup | TokenValue };
@@ -76,14 +89,32 @@ function setNested(obj: TokenGroup, path: string[], value: TokenValue): void {
   }
 }
 
-export function buildTokens(variables: Variable[]): TokenGroup | null {
+// A Text Style is single-valued (never figma.mixed), unlike TextNode-level
+// extraction, so no mixed-handling is needed here. $value is the Text
+// Style's canonical definition — always all 5 keys, never sparse (design doc
+// 4.5.1), which is why this uses the *ToTokenValue formatters (AUTO →
+// "normal", 0 → "0em") rather than the sparse per-node ones.
+function resolveTypographyValue(style: TextStyle): TypographyValue {
+  return {
+    fontFamily: style.fontName.family,
+    fontSize: style.fontSize,
+    fontWeight: parseFontWeight(style.fontName.style),
+    lineHeight: lineHeightToTokenValue(style.lineHeight),
+    letterSpacing: letterSpacingToTokenValue(style.letterSpacing),
+  };
+}
+
+export function buildTokens(
+  variables: Variable[],
+  textStyles: TextStyle[] = [],
+): TokenGroup | null {
   // The documented token schema (4.5.1) covers only color and number. Drop
   // STRING/BOOLEAN variables rather than emit a wrong $type with a stringified
   // value (e.g. { $type: "number", $value: "Inter" }).
   const supported = variables.filter(
     (v) => v.resolvedType === "COLOR" || v.resolvedType === "FLOAT",
   );
-  if (supported.length === 0) return null;
+  if (supported.length === 0 && textStyles.length === 0) return null;
 
   const tokens: TokenGroup = {};
 
@@ -92,6 +123,17 @@ export function buildTokens(variables: Variable[]): TokenGroup | null {
     const tokenValue: TokenValue = {
       $type: resolveType(variable),
       $value: resolveValue(variable),
+    };
+    setNested(tokens, parts, tokenValue);
+  }
+
+  // Text Styles aren't designer-named with a "typography/" prefix the way
+  // Variables are self-grouping by "/" — inject the top-level group here.
+  for (const style of textStyles) {
+    const parts = ["typography", ...style.name.split("/")];
+    const tokenValue: TokenValue = {
+      $type: "typography",
+      $value: resolveTypographyValue(style),
     };
     setNested(tokens, parts, tokenValue);
   }

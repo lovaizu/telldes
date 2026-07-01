@@ -1,5 +1,10 @@
 import { colorToHex } from "../util/color";
 import {
+  parseFontWeight,
+  lineHeightToSparseCss,
+  letterSpacingToSparseCss,
+} from "../util/typography";
+import {
   buildLayerPath,
   layerPathToSlug,
   determineType,
@@ -42,6 +47,9 @@ interface SpecText {
   textAlign?: string; // center | right | justify (LEFT omitted as default)
   textCase?: string; // uppercase | lowercase | capitalize | small-caps
   textDecoration?: string; // underline | line-through
+  // Text Style applied to this node, e.g. "typography/heading-md" — only when
+  // textStyleId resolves to a single, non-mixed style (design doc 4.5.2.1).
+  typographyToken?: string;
   [key: string]: unknown;
 }
 
@@ -235,11 +243,11 @@ function buildTextProps(node: TextNode): SpecText | undefined {
   // Metrics below can be figma.mixed; sample the first character to mirror the
   // fontSize/fontName fallback rather than dropping the value.
   const lineHeight = resolveMixed(node, node.lineHeight, (n) => n.getRangeLineHeight(0, 1));
-  const lhCss = lineHeight && lineHeightToCss(lineHeight);
+  const lhCss = lineHeight && lineHeightToSparseCss(lineHeight);
   if (lhCss) text.lineHeight = lhCss;
 
   const letterSpacing = resolveMixed(node, node.letterSpacing, (n) => n.getRangeLetterSpacing(0, 1));
-  const lsCss = letterSpacing && letterSpacingToCss(letterSpacing);
+  const lsCss = letterSpacing && letterSpacingToSparseCss(letterSpacing);
   if (lsCss) text.letterSpacing = lsCss;
 
   const align = textAlignToCss(node.textAlignHorizontal);
@@ -253,7 +261,26 @@ function buildTextProps(node: TextNode): SpecText | undefined {
   const decoCss = decoration && textDecorationToCss(decoration);
   if (decoCss) text.textDecoration = decoCss;
 
+  const typographyToken = getTypographyToken(node);
+  if (typographyToken) text.typographyToken = typographyToken;
+
   return text;
+}
+
+// Resolve the applied Text Style to a token name matching tokens.json's
+// typography group (design doc 4.5.2.1). Unlike other mixed fields, there is
+// no first-character fallback here — a single token name cannot represent a
+// mix of styles, so figma.mixed and "no style applied" both omit the field.
+function getTypographyToken(node: TextNode): string | undefined {
+  const styleId = node.textStyleId;
+  if (typeof styleId !== "string" || styleId === "") return undefined;
+  try {
+    const style = figma.getStyleById(styleId);
+    if (!style) return undefined;
+    return `typography/${style.name}`;
+  } catch {
+    return undefined;
+  }
 }
 
 // Return the direct value unless it is figma.mixed (a symbol), in which case
@@ -267,20 +294,6 @@ function resolveMixed<T>(
   if (node.characters.length === 0) return undefined;
   const ranged = sample(node);
   return typeof ranged === "symbol" ? undefined : ranged;
-}
-
-function lineHeightToCss(lh: LineHeight): string | undefined {
-  // AUTO is Figma's default (browser line-height applies) — omit it.
-  if (lh.unit === "PIXELS") return `${lh.value}px`;
-  if (lh.unit === "PERCENT") return `${lh.value}%`;
-  return undefined;
-}
-
-function letterSpacingToCss(ls: LetterSpacing): string | undefined {
-  if (ls.value === 0) return undefined;
-  // PERCENT letter-spacing is a fraction of the font size → em.
-  if (ls.unit === "PERCENT") return `${ls.value / 100}em`;
-  return `${ls.value}px`;
 }
 
 function textAlignToCss(align: TextNode["textAlignHorizontal"]): string | undefined {
@@ -309,28 +322,6 @@ function textDecorationToCss(td: TextDecoration): string | undefined {
     STRIKETHROUGH: "line-through",
   };
   return map[td]; // NONE → undefined
-}
-
-function parseFontWeight(style: string): number {
-  const map: Record<string, number> = {
-    Thin: 100, Hairline: 100,
-    ExtraLight: 200, UltraLight: 200,
-    Light: 300,
-    Regular: 400, Normal: 400,
-    Medium: 500,
-    SemiBold: 600, DemiBold: 600,
-    Bold: 700,
-    ExtraBold: 800, UltraBold: 800,
-    Black: 900, Heavy: 900,
-  };
-  // Drop spaces ("Extra Bold" → "ExtraBold") and test longest keys first so a
-  // substring like "Bold" can't shadow "ExtraBold"/"UltraBold".
-  const s = style.replace(/\s+/g, "");
-  const keys = Object.keys(map).sort((a, b) => b.length - a.length);
-  for (const key of keys) {
-    if (s.includes(key)) return map[key];
-  }
-  return 400;
 }
 
 function buildFills(node: SceneNode): SpecFill[] | undefined {

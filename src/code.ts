@@ -85,13 +85,21 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
     try {
       const page = figma.currentPage;
 
-      let tokens = null;
+      let vars: Variable[] = [];
       try {
-        const vars = figma.variables.getLocalVariables();
-        tokens = buildTokens(vars);
+        vars = figma.variables.getLocalVariables();
       } catch {
         // Variables API may not be available
       }
+
+      let textStyles: TextStyle[] = [];
+      try {
+        textStyles = figma.getLocalTextStyles();
+      } catch {
+        // Text Styles API may not be available
+      }
+
+      const tokens = buildTokens(vars, textStyles);
 
       const topFrames = page.children.filter(
         (n) => n.type === "FRAME" || n.type === "SECTION",

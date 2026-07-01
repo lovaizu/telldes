@@ -21,6 +21,20 @@ function makeVariable(
   } as unknown as Variable;
 }
 
+function makeTextStyle(
+  name: string,
+  overrides: Record<string, unknown> = {},
+): TextStyle {
+  return {
+    name,
+    fontName: { family: "Inter", style: "Bold" },
+    fontSize: 28,
+    lineHeight: { unit: "PIXELS", value: 36 },
+    letterSpacing: { unit: "PIXELS", value: 0 },
+    ...overrides,
+  } as unknown as TextStyle;
+}
+
 describe("buildTokens", () => {
   it("returns null when no variables", () => {
     expect(buildTokens([])).toBeNull();
@@ -153,5 +167,89 @@ describe("buildTokens", () => {
       unknown
     >;
     expect(loop.$value).toBe(0);
+  });
+});
+
+describe("buildTokens — typography (Text Styles)", () => {
+  it("converts a single text style to a typography token with correct $type/$value", () => {
+    const styles = [
+      makeTextStyle("heading-md", {
+        fontName: { family: "Inter", style: "Bold" },
+        fontSize: 28,
+        lineHeight: { unit: "PIXELS", value: 36 },
+        letterSpacing: { unit: "PIXELS", value: 0 },
+      }),
+    ];
+    const tokens = buildTokens([], styles)!;
+    const headingMd = (tokens.typography as Record<string, unknown>)[
+      "heading-md"
+    ] as Record<string, unknown>;
+    expect(headingMd.$type).toBe("typography");
+    expect(headingMd.$value).toEqual({
+      fontFamily: "Inter",
+      fontSize: 28,
+      fontWeight: 700,
+      lineHeight: "36px",
+      letterSpacing: "0em",
+    });
+  });
+
+  it("maps AUTO lineHeight to the CSS keyword 'normal'", () => {
+    const styles = [makeTextStyle("body", { lineHeight: { unit: "AUTO" } })];
+    const tokens = buildTokens([], styles)!;
+    const body = (tokens.typography as Record<string, unknown>)["body"] as Record<
+      string,
+      unknown
+    >;
+    expect((body.$value as Record<string, unknown>).lineHeight).toBe("normal");
+  });
+
+  it("maps zero letterSpacing to the literal '0em' (never omitted)", () => {
+    const styles = [
+      makeTextStyle("body", { letterSpacing: { unit: "PIXELS", value: 0 } }),
+    ];
+    const tokens = buildTokens([], styles)!;
+    const body = (tokens.typography as Record<string, unknown>)["body"] as Record<
+      string,
+      unknown
+    >;
+    expect((body.$value as Record<string, unknown>).letterSpacing).toBe("0em");
+  });
+
+  it("converts PERCENT-unit lineHeight/letterSpacing to %/em", () => {
+    const styles = [
+      makeTextStyle("lead", {
+        lineHeight: { unit: "PERCENT", value: 150 },
+        letterSpacing: { unit: "PERCENT", value: 2 },
+      }),
+    ];
+    const tokens = buildTokens([], styles)!;
+    const lead = (tokens.typography as Record<string, unknown>)["lead"] as Record<
+      string,
+      unknown
+    >;
+    const value = lead.$value as Record<string, unknown>;
+    expect(value.lineHeight).toBe("150%");
+    expect(value.letterSpacing).toBe("0.02em");
+  });
+
+  it("nests a slash-named text style under the typography group", () => {
+    const styles = [makeTextStyle("heading/md")];
+    const tokens = buildTokens([], styles)!;
+    const typographyGroup = tokens.typography as Record<string, unknown>;
+    const headingGroup = typographyGroup.heading as Record<string, unknown>;
+    const md = headingGroup.md as Record<string, unknown>;
+    expect(md.$type).toBe("typography");
+  });
+
+  it("returns non-null when only text styles exist (no Variables)", () => {
+    const styles = [makeTextStyle("body")];
+    const tokens = buildTokens([], styles);
+    expect(tokens).not.toBeNull();
+    expect(tokens!.typography).toBeDefined();
+  });
+
+  it("still returns null when both variables and text styles are empty", () => {
+    expect(buildTokens([], [])).toBeNull();
   });
 });
