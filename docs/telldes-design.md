@@ -334,6 +334,8 @@ Variablesの構造をそのままJSON化する。デザイナーの命名がそ�
 
 `typography` グループは Text Style から出力する（4.3.4「Text Style は named typography token として出力し、spec から参照」）。Variables ではなく Text Style が源泉である点が color/spacing と異なるが、`tokens.json` 上のトークンとしての扱いは同じ。`$type` は `"typography"`、`$value` は `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` を持つ複合値（W3C DTCG の composite token 形式）とする。トークン名（上記例の `heading-md`）は Text Style 名をそのまま用いる。命名は自由だが、4.3.4 の推奨トークン体系（`display` / `heading-lg` / `heading-md` / `heading-sm` / `body` / `lead` / `caption` / `label`）に従うことを推奨する。
 
+`$value` は Text Style の canonical な定義値であり、個々のノードに対する解決済みメトリクスではない。そのため 4.5.2.1 の `text.*` フィールドで採用している「既定値は省略」という間引き規約はここには適用されず、各値が既定的かどうかに関わらず `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` の 5 キーを常にすべて含める（例の `"letterSpacing": "0em"` はこの規約により省略しない）。`lineHeight` が Text Style 上 AUTO 設定の場合も同様に省略や `"AUTO"` という文字列での出力はせず、そのフォントサイズにおける計算後の line-height をpx値に解決して出力する（例 `"33.6px"`）。これは mixed 値を先頭文字の値で解決する他フィールドの方針と同じく、`$value` が常に具体的な解決値を持つようにするためである。
+
 color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満の場合のみ #RRGGBBAA（8桁）で表現する。エイリアス（他トークンの参照）は解決済みの値に展開する。
 
 あるトークン名が、別のトークンのグループ接頭辞と一致する場合（例: `color` と `color/primary` が併存）、グループ自身の値は予約キー `$base` に格納する（例: `color.$base` と `color.primary` の両方を保持）。これにより同名の値が失われない。
@@ -506,6 +508,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 | `textDecoration` | `underline` / `line-through` | NONE（既定）は省略 |
 
 - `typographyToken`: ノードの `textStyleId` が単一の Text Style を指している場合のみ付与する文字列（例 `"typography/heading-md"`。命名は `tokens.json` の `typography` トークン名（4.5.1）と対応する）。`textStyleId` が `figma.mixed`（複数の Text Style が混在）の場合、単一のトークン名で表せないため `typographyToken` は付与しない（他フィールドのような先頭文字での解決は行わない）。Text Style が適用されていないノードも同様に省略する。
+- `typographyToken` と `fontSizeToken` / `fillToken` などのプロパティ単位のトークンは独立しており、併存しうる。`typographyToken` は適用された Text Style を表し、`fontSizeToken` / `fillToken` は個々のプロパティに直接バインドされた Variable を表すため、両者は排他的ではない。同一ノードがどちらか一方のみ、両方、またはいずれも持たない場合があり、各フィールドは加算的（additive）に付与される。
 
 **opacity（ノード不透明度）**
 
