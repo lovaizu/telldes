@@ -535,10 +535,10 @@ Ph-7: doc-first ギャップ解消
 **前提**: R-1 完了
 
 **作業内容**:
-- [ ] 4.5.1 に W3C DTCG composite 形式（`$type: "typography"`, `$value: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`）の JSON 例を追記。推奨命名（`display / heading-lg / heading-md / heading-sm / body / lead / caption / label`）にも触れる
-- [ ] 4.5.2.1 の「text（タイポグラフィのメトリクス）」節に `typographyToken` フィールドを追記。付与条件（`textStyleId` が単一 ID の場合のみ。`figma.mixed` は除外）を明記
-- [ ] セルフチェック（チェック結果: `docs/checks/G-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] 4.5.1 に W3C DTCG composite 形式（`$type: "typography"`, `$value: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`）の JSON 例を追記。推奨命名（`display / heading-lg / heading-md / heading-sm / body / lead / caption / label`）にも触れる
+- [x] 4.5.2.1 の「text（タイポグラフィのメトリクス）」節に `typographyToken` フィールドを追記。付与条件（`textStyleId` が単一 ID の場合のみ。`figma.mixed` は除外）を明記
+- [x] セルフチェック（チェック結果: `docs/checks/G-1.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - 4.5.1 に typography トークンの `$type`/`$value` 構造例が記載されていること
