@@ -526,7 +526,7 @@ State
 -----
 
 * **Status**: paused
-* **Date**: 2026-06-23
+* **Date**: 2026-07-02
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
 * **Last completed**: (1) トークン提案の改善（セマンティック体系での命名誘導＋Radius/Elevationチェック追加、`variableChecks.ts`）。(2) 描画に効く silent drop の解消 — `spec.json` に `effects`（drop/inner shadow・blur）／typography metrics（lineHeight・letterSpacing・textAlign・textCase・textDecoration）／node `opacity` を出力（`specBuilder.ts`）。設計書 4.3.4/4.5.2.1/4.7.2 と `prompt.md` を更新。計118テストパス。値→スロットの自動判定はしない方針（ユーザー決定）。
