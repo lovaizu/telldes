@@ -334,7 +334,7 @@ Variablesの構造をそのままJSON化する。デザイナーの命名がそ�
 
 `typography` グループは Text Style から出力する（4.3.4「Text Style は named typography token として出力し、spec から参照」）。Variables ではなく Text Style が源泉である点が color/spacing と異なるが、`tokens.json` 上のトークンとしての扱いは同じ。`$type` は `"typography"`、`$value` は `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` を持つ複合値（W3C DTCG の composite token 形式）とする。トークン名（上記例の `heading-md`）は Text Style 名をそのまま用いる。命名は自由だが、4.3.4 の推奨トークン体系（`display` / `heading-lg` / `heading-md` / `heading-sm` / `body` / `lead` / `caption` / `label`）に従うことを推奨する。
 
-`$value` は Text Style の canonical な定義値であり、個々のノードに対する解決済みメトリクスではない。そのため 4.5.2.1 の `text.*` フィールドで採用している「既定値は省略」という間引き規約はここには適用されず、各値が既定的かどうかに関わらず `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` の 5 キーを常にすべて含める（例の `"letterSpacing": "0em"` はこの規約により省略しない）。`lineHeight` が Text Style 上 AUTO 設定の場合も同様に省略や `"AUTO"` という文字列での出力はせず、そのフォントサイズにおける計算後の line-height をpx値に解決して出力する（例 `"33.6px"`）。これは mixed 値を先頭文字の値で解決する他フィールドの方針と同じく、`$value` が常に具体的な解決値を持つようにするためである。
+`$value` は Text Style の canonical な定義値であり、個々のノードに対する解決済みメトリクスではない。そのため 4.5.2.1 の `text.*` フィールドで採用している「既定値は省略」という間引き規約はここには適用されず、各値が既定的かどうかに関わらず `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` の 5 キーを常にすべて含める（例の `"letterSpacing": "0em"` はこの規約により省略しない）。`lineHeight` が Text Style 上 AUTO 設定の場合も同様に省略や `"AUTO"` という文字列での出力はせず、CSS の `line-height: normal` に相当するキーワード文字列 `"normal"` を `$value.lineHeight` に出力する（Figma Plugin API は AUTO 設定の描画後 line-height をpx値として提供しないため、CSS 側の意味的な等価表現を用いる）。これは mixed 値を先頭文字の値で解決する他フィールドの方針と同じく、`$value` が常に具体的な解決値を持つようにするためである。
 
 color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満の場合のみ #RRGGBBAA（8桁）で表現する。エイリアス（他トークンの参照）は解決済みの値に展開する。
 
