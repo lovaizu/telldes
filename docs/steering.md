@@ -525,12 +525,20 @@ Ph-6: レスポンシブ対応＋統合テスト
 State
 -----
 
-* **Status**: active
+* **Status**: paused
 * **Date**: 2026-07-02
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **Reconciled**: 2026-07-02 に `/rn:up` で照合。`complete task #` マーカー無し、直近コミットは前回 "Last completed" と一致。Text Style トークン実装はコメント参照のみ＝未着手を確認。チェックオフ対象タスク無し・ブロッカー無し。
-* **Next**: 下記「未実装の確定方針」5項目をコードに実装する（設計書 4.3.4/4.7.2/4.7.4 は記載済み・コード未反映）。項目1（Text Style→タイポトークン）から着手。その後 T-1 のフルフロー（Review→Export→CC）を継続。**残ギャップ**: Effect Style / Text Style の named token 化は本作業（項目1）で解消予定。
+* **Last completed**: `/rn:up` で照合（コミット `8d7b6a9`）。`complete task #` マーカー無し、直近コミットは前回 "Last completed" と一致、Text Style トークン実装はコメント参照のみ＝未着手を確認。チェックオフ対象タスク・ブロッカー無し。
+* **Next**: 下記「未実装の確定方針」5項目をコードに実装。項目1（Text Style→タイポトークン）から着手（Code タスク＝full verification chain）。task-workflow の Execute から。着手の起点コミットは `8d7b6a9`（HEAD）。その後 T-1 のフルフロー（Review→Export→CC）を継続。
+
+### 項目1 着手メモ（設計書リサーチ済み・実装未着手）
+
+* **設計方針（設計書 4.3.4 / 137行）**: Text Style を named typography token として `tokens.json` に出力し、spec から参照。推奨命名: `display / heading-lg / heading-md / heading-sm / body / lead / caption / label`（Text Style 名がそのままトークン名）。
+* **現行コード** `src/export/tokensBuilder.ts`: `buildTokens(variables)` は COLOR/FLOAT のみ。`setNested`（`/`区切り階層 ＋ leaf/group 名衝突を `$base` に退避）が使える。typography 追加時はこのシグネチャ or 呼び出し側で Text Style も渡す設計変更が要る。
+* **⚠️ doc-first で先に埋めるギャップ**: 設計書 4.5.1（tokens.json）の JSON 例は **color/number のみ**で、**typography トークンの JSON スキーマ形状が未記載**。W3C DTCG composite（`$type: "typography"`, `$value: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`）で 4.5.1 に例を追記してから実装するのが [[doc-first-accuracy]] 方針。spec 側の参照フィールド名（例 `text.typographyToken`）も 4.5.2.1 の text 節に追記が必要。
+* **spec 側**: text ノードが Text Style 適用時（`textStyleId` が単一 ID、`figma.mixed` は除外）に参照トークン名を付与。`specBuilder.ts` の text 抽出箇所（4.5.2.1「text」節、metrics 出力の近く）に追加。
+* **残り項目2–5**: (2) 告知チェック3種（Color Style / STRING・BOOLEAN Variable / ルート直下の裸 Component、suggestion レベル。`structureChecks.ts` の `result()` は error 固定なので suggestion ヘルパが要る) (3) Export README に除外物明記（`App.tsx`）(4) tokens.json 出力条件を typography 追加に合わせ更新 (5) 各変更にテスト追加。
 
 ### このセッションの作業（2026-06-23）
 
