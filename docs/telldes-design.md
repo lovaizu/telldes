@@ -142,7 +142,24 @@ Figma現行のベストプラクティスに合わせ、トークンの源泉を
 
 Variablesの使用そのものは必須ではない。使わない場合、CCはspec.jsonの解決済み値（`resolvedValue`）から直接CSSを生成する（同じ値が複数箇所でも個別値として出力）。チェック時に繰り返し使われている値を検出し「Variableにしませんか？」と提案する。
 
-命名規約は自由。デザイナーが意味のわかる名前を付ければよい。
+命名規約は自由。ただし意味の一貫性のため、以下の**推奨トークン体系**を指針とする。Reviewの提案（4.7.2）はこの語彙で命名を促す。**telldesは値をどのスロットに割り当てるかを自動判定しない**（誤検知を避けるため）。「この値はトークン化を推奨。命名はこの体系から選ぶ」までを案内し、具体的なスロット選択はデザイナーが行う。
+
+```
+Color（Variables COLOR）
+  brand:    primary / primary-hover / secondary
+  neutral:  bg / surface / text-primary / text-secondary / text-tertiary / border
+  status:   success / warning / error / info（各々 -bg と -text に分割）
+Typography（Text Style名）
+  display / heading-lg / heading-md / heading-sm / body / lead / caption / label
+Spacing（Variables FLOAT）
+  xs / sm / md / lg / xl / 2xl
+Radius（Variables FLOAT）
+  sm / md / lg / full
+Elevation（Effect Style / drop shadow）
+  shadow-sm / shadow-md / shadow-lg
+```
+
+Elevation（ドロップシャドウ）の命名指針はReviewで案内するが、現状 `spec.json` はeffectを出力しない（別途対応）。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である。
 
 #### 4.3.5 背景の扱い
 
@@ -509,10 +526,12 @@ Telldesプラグインは以下の3つの機能を提供する。
 **サイジングチェック（エラー）:**
 - Hug/Fill/Fixed以外の曖昧なサイジング → 「Hug/Fill/Fixedのいずれかに設定してください」
 
-**Variablesチェック（提案）:**
-- 同じ色が3箇所以上使用 → 「この色をVariableに登録しませんか？」
-- 同じspacing/padding値が複数箇所 → 「この間隔をVariableに登録しませんか？」
-- 同じfont-size値が複数箇所 → 「このフォントサイズをVariableに登録しませんか？」
+**Variablesチェック（提案）:** いずれも命名は推奨トークン体系（4.3.4）から選ぶよう案内する。値→スロットの自動判定はしない。
+- 同じ色が3箇所以上使用 → 「この色をVariableに登録しませんか？（命名は color 体系: brand / neutral / status から）」
+- 同じspacing/padding値が複数箇所 → 「この間隔をVariableに登録しませんか？（命名は spacing スケール: xs〜2xl から）」
+- 同じfont-size値が複数箇所 → 「Text Style にまとめませんか？（命名は typography スケール: display〜label から）」
+- 同じcorner radius値が複数箇所 → 「この角丸をVariableに登録しませんか？（命名は radius スケール: sm / md / lg / full から）」
+- 同じdrop shadowが複数箇所 → 「この影を Effect Style にまとめませんか？（命名は elevation スケール: shadow-sm / md / lg から）」
 
 **源泉・範囲チェック（提案／告知）:**「予測できない動き」を防ぐため、ツールが対象外にするものは黙って捨てずReviewで知らせる。
 - Color Styleを使用 → 「Variableに移行しませんか？（カラーはVariablesに一本化）」（4.3.4）

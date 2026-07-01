@@ -3,6 +3,8 @@ import {
   checkRepeatedColors,
   checkRepeatedSpacing,
   checkRepeatedFontSize,
+  checkRepeatedRadius,
+  checkRepeatedShadow,
 } from "../variableChecks";
 
 function makeSolidNode(
@@ -226,5 +228,131 @@ describe("checkRepeatedFontSize", () => {
     const results = checkRepeatedFontSize([makeMixed("1"), makeMixed("2")]);
     expect(results).toHaveLength(2);
     expect(results[0].message).toContain("18px");
+  });
+});
+
+function makeRadiusNode(id: string, cornerRadius: number): SceneNode {
+  return {
+    id,
+    name: `rect-${id}`,
+    type: "RECTANGLE",
+    cornerRadius,
+    topLeftRadius: cornerRadius,
+  } as unknown as SceneNode;
+}
+
+describe("checkRepeatedRadius", () => {
+  it("suggests when same corner radius used in 2+ nodes", () => {
+    const results = checkRepeatedRadius([
+      makeRadiusNode("1", 8),
+      makeRadiusNode("2", 8),
+    ]);
+    expect(results).toHaveLength(2);
+    expect(results[0].level).toBe("suggestion");
+    expect(results[0].message).toContain("8px");
+    expect(results[0].suggestion).toContain("radius");
+  });
+
+  it("does not suggest for unique radii or zero", () => {
+    expect(
+      checkRepeatedRadius([makeRadiusNode("1", 8), makeRadiusNode("2", 12)]),
+    ).toHaveLength(0);
+    expect(
+      checkRepeatedRadius([makeRadiusNode("1", 0), makeRadiusNode("2", 0)]),
+    ).toHaveLength(0);
+  });
+
+  it("excludes a radius already bound to a variable", () => {
+    const bound = {
+      id: "b",
+      name: "rect-b",
+      type: "RECTANGLE",
+      cornerRadius: 8,
+      topLeftRadius: 8,
+      boundVariables: { topLeftRadius: { id: "v1" } },
+    } as unknown as SceneNode;
+    const results = checkRepeatedRadius([bound, makeRadiusNode("2", 8)]);
+    // only the unbound node contributes → below the 2-place threshold
+    expect(results).toHaveLength(0);
+  });
+
+  it("counts unbound corners of a mixed-radius node", () => {
+    const mixed = (id: string) =>
+      ({
+        id,
+        name: `rect-${id}`,
+        type: "RECTANGLE",
+        cornerRadius: Symbol("mixed"),
+        topLeftRadius: 8,
+        topRightRadius: 8,
+        bottomRightRadius: 0,
+        bottomLeftRadius: 0,
+      }) as unknown as SceneNode;
+    const results = checkRepeatedRadius([mixed("1"), mixed("2")]);
+    const r8 = results.filter((r) => r.message.includes("8px"));
+    expect(r8).toHaveLength(2);
+  });
+});
+
+function makeShadowNode(
+  id: string,
+  offset: { x: number; y: number },
+  radius: number,
+  color = { r: 0, g: 0, b: 0, a: 0.25 },
+): SceneNode {
+  return {
+    id,
+    name: `card-${id}`,
+    type: "FRAME",
+    effectStyleId: "",
+    effects: [{ type: "DROP_SHADOW", visible: true, color, offset, radius, spread: 0 }],
+  } as unknown as SceneNode;
+}
+
+describe("checkRepeatedShadow", () => {
+  it("suggests when the same drop shadow used in 2+ nodes", () => {
+    const results = checkRepeatedShadow([
+      makeShadowNode("1", { x: 0, y: 1 }, 2),
+      makeShadowNode("2", { x: 0, y: 1 }, 2),
+    ]);
+    expect(results).toHaveLength(2);
+    expect(results[0].level).toBe("suggestion");
+    expect(results[0].suggestion).toContain("elevation");
+  });
+
+  it("distinguishes different shadows", () => {
+    const results = checkRepeatedShadow([
+      makeShadowNode("1", { x: 0, y: 1 }, 2),
+      makeShadowNode("2", { x: 0, y: 4 }, 8),
+    ]);
+    expect(results).toHaveLength(0);
+  });
+
+  it("ignores invisible shadows and non-shadow effects", () => {
+    const hidden = {
+      id: "h",
+      name: "card-h",
+      type: "FRAME",
+      effectStyleId: "",
+      effects: [
+        { type: "DROP_SHADOW", visible: false, color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0 },
+        { type: "LAYER_BLUR", visible: true, radius: 4 },
+      ],
+    } as unknown as SceneNode;
+    expect(
+      checkRepeatedShadow([hidden, makeShadowNode("2", { x: 0, y: 1 }, 2)]),
+    ).toHaveLength(0);
+  });
+
+  it("skips nodes whose shadow comes from an applied Effect Style", () => {
+    const styled = (id: string) =>
+      ({
+        id,
+        name: `card-${id}`,
+        type: "FRAME",
+        effectStyleId: "S:abc123",
+        effects: [{ type: "DROP_SHADOW", visible: true, color: { r: 0, g: 0, b: 0, a: 0.25 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0 }],
+      }) as unknown as SceneNode;
+    expect(checkRepeatedShadow([styled("1"), styled("2")])).toHaveLength(0);
   });
 });
