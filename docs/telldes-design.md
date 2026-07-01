@@ -159,7 +159,7 @@ Elevation（Effect Style / drop shadow）
   shadow-sm / shadow-md / shadow-lg
 ```
 
-Elevation（ドロップシャドウ）の命名指針はReviewで案内するが、現状 `spec.json` はeffectを出力しない（別途対応）。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である。
+Elevation（ドロップシャドウ）の命名指針はReviewで案内する。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である（Effect Style を named token として tokens.json に出す対応は Text Style トークンと同じく別途）。
 
 #### 4.3.5 背景の扱い
 
@@ -464,6 +464,36 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 - 全角共通の場合: 数値（例 `8`）。Variable 適用時は `cornerRadiusToken`。
 - 角ごとに異なる場合: オブジェクト `{ "topLeft": n, "topRight": n, "bottomRight": n, "bottomLeft": n }`。
+
+**effects（影・ぼかし）**
+
+可視の effect を `effects` 配列として出力する（描画に効くため暗黙に捨てない。4.3.4 の基本姿勢）。各要素は `type` で種類を表す。
+
+| type | フィールド | CSS 対応 |
+|---|---|---|
+| `DROP_SHADOW` | `color`（#RRGGBB/#RRGGBBAA）, `offsetX`, `offsetY`, `blur`, `spread?` | `box-shadow: offsetX offsetY blur spread color` |
+| `INNER_SHADOW` | 同上 ＋ `inset: true` | `box-shadow: inset ...` |
+| `LAYER_BLUR` | `blur` | `filter: blur(blur px)` |
+| `BACKGROUND_BLUR` | `blur` | `backdrop-filter: blur(blur px)` |
+
+- `blur` は Figma の `effect.radius`。`spread` は 0 のとき省略。非可視 effect は出力しない。
+- Effect Style を named token として `tokens.json` に出す対応は未実装（Text Style トークンと同様の別途対応）。現状は解決済みの実値のみ出力する。
+
+**text（タイポグラフィのメトリクス）**
+
+`text` には `characters` / `fontSize` / `fontFamily` / `fontWeight` に加え、描画に効くメトリクスを CSS 相当で出力する（該当時のみ）。`figma.mixed` の場合は先頭文字の値で解決する。
+
+| フィールド | 値の例 | 備考 |
+|---|---|---|
+| `lineHeight` | `"24px"` / `"150%"` | AUTO（既定）は省略 |
+| `letterSpacing` | `"0.5px"` / `"0.02em"` | PERCENT はフォントサイズ比＝em に変換。0 は省略 |
+| `textAlign` | `center` / `right` / `justify` | LEFT（既定）は省略 |
+| `textCase` | `uppercase` / `lowercase` / `capitalize` / `small-caps` | ORIGINAL（既定）は省略 |
+| `textDecoration` | `underline` / `line-through` | NONE（既定）は省略 |
+
+**opacity（ノード不透明度）**
+
+ノード自身の不透明度が 1 未満の場合のみ `opacity`（0〜1）を出力する。塗り単位の `opacity`（fills 内）／テキスト色の `fillOpacity` とは別のノード全体の不透明度。
 
 **layout.sizing**
 

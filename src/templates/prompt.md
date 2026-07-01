@@ -35,13 +35,15 @@ Recursive node tree. Each node has:
 - `type` — `section` | `block` | `element`
 - `path` — full layer path (`>` separated)
 - `layout` — Auto Layout properties (direction, gap, padding, alignment, and `sizing`). `sizing` may include `minWidth`/`maxWidth`/`minHeight`/`maxHeight` — apply as `min-width`/`max-width`/`min-height`/`max-height`.
-- `text` — text content and typography (characters, fontSize, fontFamily, fontWeight, fill). `fillOpacity` (0–1, when present) is the text color opacity.
+- `text` — text content and typography (characters, fontSize, fontFamily, fontWeight, fill). `fillOpacity` (0–1, when present) is the text color opacity. When present also apply: `lineHeight` (`24px`/`150%`), `letterSpacing` (`0.5px`/`0.02em`), `textAlign`, `textCase` (→ `text-transform`, or `font-variant` for `small-caps`), `textDecoration`.
 - `fills` — fills (array). Each entry has a `type`:
   - `SOLID` → `color` (#RRGGBB) as background-color
   - `IMAGE` → `scaleMode` (FILL/FIT/CROP/TILE); the image is in `assets/images/` under the node's path
   - `GRADIENT_LINEAR`/`GRADIENT_RADIAL`/`GRADIENT_ANGULAR`/`GRADIENT_DIAMOND` → `gradientStops` (`[{ position, color }]`) as a CSS gradient
   - `opacity` (0–1, when present) is that fill's opacity. Multiple fills stack back-to-front (later entries paint on top) — e.g. an image fill plus a semi-transparent SOLID overlay.
 - `cornerRadius` — border radius. Either a number (uniform) or `{ topLeft, topRight, bottomRight, bottomLeft }` (per-corner) → `border-radius: TL TR BR BL`.
+- `effects` — array of shadows/blurs. `DROP_SHADOW`/`INNER_SHADOW` → `box-shadow: [inset] offsetX offsetY blur spread color` (`inset: true` present on inner shadows). `LAYER_BLUR` → `filter: blur(Npx)`; `BACKGROUND_BLUR` → `backdrop-filter: blur(Npx)` (`blur` is the radius).
+- `opacity` — node-level opacity (0–1, when < 1) → CSS `opacity`.
 - `note` — designer annotations (behavior, links, interactions)
 - `screenshot` — reference image path
 - `*Token` fields — token name when a Variable is applied
@@ -67,7 +69,7 @@ Follow this order:
 1. **CSS custom properties** — If tokens.json exists, define CSS variables from tokens
 2. **HTML structure** — Build DOM from spec.json hierarchy (section → block → element)
 3. **Layout (CSS flexbox)** — Apply flexbox from layout properties (see mapping table below)
-4. **Visual styles** — Apply fills, text styles, cornerRadius from spec
+4. **Visual styles** — Apply fills, text styles, cornerRadius, effects (box-shadow/blur), and opacity from spec
 5. **Assets** — Place images and icons using asset paths
 6. **Visual verification** — Compare against screenshots/ for each section and block
 7. **Notes** — Implement behaviors, interactions, and links from note fields

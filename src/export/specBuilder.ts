@@ -36,7 +36,23 @@ interface SpecText {
   fontWeight: number;
   fill?: string;
   fillOpacity?: number;
+  // Typography metrics that change rendered layout — CSS equivalents.
+  lineHeight?: string; // "24px" | "150%"
+  letterSpacing?: string; // "0.5px" | "0.02em"
+  textAlign?: string; // center | right | justify (LEFT omitted as default)
+  textCase?: string; // uppercase | lowercase | capitalize | small-caps
+  textDecoration?: string; // underline | line-through
   [key: string]: unknown;
+}
+
+interface SpecEffect {
+  type: string; // DROP_SHADOW | INNER_SHADOW | LAYER_BLUR | BACKGROUND_BLUR
+  color?: string; // shadows only (#RRGGBB or #RRGGBBAA)
+  offsetX?: number; // shadows only
+  offsetY?: number; // shadows only
+  blur: number; // Figma effect.radius → CSS blur radius
+  spread?: number; // shadows only, when non-zero
+  inset?: boolean; // true for INNER_SHADOW → CSS `inset`
 }
 
 interface SpecFill {
@@ -65,6 +81,8 @@ interface SpecNode {
   text?: SpecText;
   fills?: SpecFill[];
   cornerRadius?: SpecCornerRadius;
+  effects?: SpecEffect[];
+  opacity?: number;
   children?: SpecNode[];
   [key: string]: unknown;
 }
@@ -214,7 +232,83 @@ function buildTextProps(node: TextNode): SpecText | undefined {
     }
   }
 
+  // Metrics below can be figma.mixed; sample the first character to mirror the
+  // fontSize/fontName fallback rather than dropping the value.
+  const lineHeight = resolveMixed(node, node.lineHeight, (n) => n.getRangeLineHeight(0, 1));
+  const lhCss = lineHeight && lineHeightToCss(lineHeight);
+  if (lhCss) text.lineHeight = lhCss;
+
+  const letterSpacing = resolveMixed(node, node.letterSpacing, (n) => n.getRangeLetterSpacing(0, 1));
+  const lsCss = letterSpacing && letterSpacingToCss(letterSpacing);
+  if (lsCss) text.letterSpacing = lsCss;
+
+  const align = textAlignToCss(node.textAlignHorizontal);
+  if (align) text.textAlign = align;
+
+  const textCase = resolveMixed(node, node.textCase, (n) => n.getRangeTextCase(0, 1));
+  const caseCss = textCase && textCaseToCss(textCase);
+  if (caseCss) text.textCase = caseCss;
+
+  const decoration = resolveMixed(node, node.textDecoration, (n) => n.getRangeTextDecoration(0, 1));
+  const decoCss = decoration && textDecorationToCss(decoration);
+  if (decoCss) text.textDecoration = decoCss;
+
   return text;
+}
+
+// Return the direct value unless it is figma.mixed (a symbol), in which case
+// sample the first character. Undefined when unresolvable (e.g. empty text).
+function resolveMixed<T>(
+  node: TextNode,
+  direct: T | symbol,
+  sample: (n: TextNode) => T | symbol,
+): T | undefined {
+  if (typeof direct !== "symbol") return direct;
+  if (node.characters.length === 0) return undefined;
+  const ranged = sample(node);
+  return typeof ranged === "symbol" ? undefined : ranged;
+}
+
+function lineHeightToCss(lh: LineHeight): string | undefined {
+  // AUTO is Figma's default (browser line-height applies) — omit it.
+  if (lh.unit === "PIXELS") return `${lh.value}px`;
+  if (lh.unit === "PERCENT") return `${lh.value}%`;
+  return undefined;
+}
+
+function letterSpacingToCss(ls: LetterSpacing): string | undefined {
+  if (ls.value === 0) return undefined;
+  // PERCENT letter-spacing is a fraction of the font size → em.
+  if (ls.unit === "PERCENT") return `${ls.value / 100}em`;
+  return `${ls.value}px`;
+}
+
+function textAlignToCss(align: TextNode["textAlignHorizontal"]): string | undefined {
+  const map: Record<string, string> = {
+    CENTER: "center",
+    RIGHT: "right",
+    JUSTIFIED: "justify",
+  };
+  return map[align]; // LEFT → undefined (CSS default)
+}
+
+function textCaseToCss(tc: TextCase): string | undefined {
+  const map: Record<string, string> = {
+    UPPER: "uppercase",
+    LOWER: "lowercase",
+    TITLE: "capitalize",
+    SMALL_CAPS: "small-caps",
+    SMALL_CAPS_FORCED: "small-caps",
+  };
+  return map[tc]; // ORIGINAL → undefined
+}
+
+function textDecorationToCss(td: TextDecoration): string | undefined {
+  const map: Record<string, string> = {
+    UNDERLINE: "underline",
+    STRIKETHROUGH: "line-through",
+  };
+  return map[td]; // NONE → undefined
 }
 
 function parseFontWeight(style: string): number {
@@ -370,6 +464,16 @@ function buildNode(
     }
   }
 
+  const effects = buildEffects(node);
+  if (effects) spec.effects = effects;
+
+  // Node-level opacity < 1 changes rendering (fades, ghost states) — emit it
+  // rather than dropping it silently.
+  if ("opacity" in node) {
+    const op = (node as SceneNodeMixin & { opacity: number }).opacity;
+    if (typeof op === "number" && op < 1) spec.opacity = op;
+  }
+
   if ("children" in node) {
     const children = (node as ChildrenMixin).children as SceneNode[];
     if (children.length > 0) {
@@ -380,6 +484,35 @@ function buildNode(
   }
 
   return spec;
+}
+
+// Visible effects → CSS box-shadow / filter. Resolved values (accuracy first);
+// Effect Style naming is a separate follow-up (like Text Style tokens).
+function buildEffects(node: SceneNode): SpecEffect[] | undefined {
+  if (!("effects" in node)) return undefined;
+  const effects = (node as BlendMixin).effects;
+  if (!Array.isArray(effects) || effects.length === 0) return undefined;
+
+  const result: SpecEffect[] = [];
+  for (const effect of effects) {
+    if (effect.visible === false) continue;
+    if (effect.type === "DROP_SHADOW" || effect.type === "INNER_SHADOW") {
+      const ds = effect as DropShadowEffect | InnerShadowEffect;
+      const entry: SpecEffect = {
+        type: ds.type,
+        color: colorToHex(ds.color, { alpha: true }),
+        offsetX: ds.offset.x,
+        offsetY: ds.offset.y,
+        blur: ds.radius,
+      };
+      if (ds.spread) entry.spread = ds.spread;
+      if (ds.type === "INNER_SHADOW") entry.inset = true;
+      result.push(entry);
+    } else if (effect.type === "LAYER_BLUR" || effect.type === "BACKGROUND_BLUR") {
+      result.push({ type: effect.type, blur: (effect as BlurEffect).radius });
+    }
+  }
+  return result.length > 0 ? result : undefined;
 }
 
 export function buildSpec(page: PageNode): SpecJson {

@@ -482,3 +482,140 @@ describe("buildSpec", () => {
     expect(spec.children[0].layout!.counterAxisAlignContent).toBe("SPACE_BETWEEN");
   });
 });
+
+describe("buildSpec — effects", () => {
+  it("emits a drop shadow with offset/blur/spread/color", () => {
+    const card = makeFrame({
+      name: "card",
+      effects: [
+        {
+          type: "DROP_SHADOW",
+          visible: true,
+          color: { r: 0, g: 0, b: 0, a: 0.25 },
+          offset: { x: 0, y: 4 },
+          radius: 8,
+          spread: 2,
+        },
+      ],
+      children: [],
+    });
+    const spec = buildSpec(makePage([makeFrame({ children: [card] })]));
+    expect(spec.children[0].effects).toEqual([
+      { type: "DROP_SHADOW", color: "#00000040", offsetX: 0, offsetY: 4, blur: 8, spread: 2 },
+    ]);
+  });
+
+  it("marks inner shadows inset and omits zero spread", () => {
+    const card = makeFrame({
+      name: "inset",
+      effects: [
+        {
+          type: "INNER_SHADOW",
+          visible: true,
+          color: { r: 0, g: 0, b: 0, a: 1 },
+          offset: { x: 1, y: 1 },
+          radius: 2,
+          spread: 0,
+        },
+      ],
+      children: [],
+    });
+    const spec = buildSpec(makePage([makeFrame({ children: [card] })]));
+    const eff = spec.children[0].effects![0];
+    expect(eff.inset).toBe(true);
+    expect(eff.spread).toBeUndefined();
+    expect(eff.color).toBe("#000000");
+  });
+
+  it("emits blur effects and skips invisible ones", () => {
+    const card = makeFrame({
+      name: "blurred",
+      effects: [
+        { type: "LAYER_BLUR", visible: true, radius: 6 },
+        { type: "DROP_SHADOW", visible: false, color: { r: 0, g: 0, b: 0, a: 1 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0 },
+      ],
+      children: [],
+    });
+    const spec = buildSpec(makePage([makeFrame({ children: [card] })]));
+    expect(spec.children[0].effects).toEqual([{ type: "LAYER_BLUR", blur: 6 }]);
+  });
+
+  it("omits effects when none are visible", () => {
+    const card = makeFrame({
+      name: "plain",
+      effects: [{ type: "DROP_SHADOW", visible: false, color: { r: 0, g: 0, b: 0, a: 1 }, offset: { x: 0, y: 1 }, radius: 2, spread: 0 }],
+      children: [],
+    });
+    const spec = buildSpec(makePage([makeFrame({ children: [card] })]));
+    expect(spec.children[0].effects).toBeUndefined();
+  });
+});
+
+describe("buildSpec — node opacity", () => {
+  it("emits node opacity below 1", () => {
+    const ghost = makeFrame({ name: "ghost", opacity: 0.5, children: [] });
+    const spec = buildSpec(makePage([makeFrame({ children: [ghost] })]));
+    expect(spec.children[0].opacity).toBe(0.5);
+  });
+
+  it("omits opacity when fully opaque", () => {
+    const solid = makeFrame({ name: "solid", opacity: 1, children: [] });
+    const spec = buildSpec(makePage([makeFrame({ children: [solid] })]));
+    expect(spec.children[0].opacity).toBeUndefined();
+  });
+});
+
+describe("buildSpec — typography metrics", () => {
+  const wrap = (text: SceneNode) => buildSpec(makePage([makeFrame({ children: [text] })])).children[0].text!;
+
+  it("emits pixel and percent line-height, letter-spacing, align, case, decoration", () => {
+    const t = makeTextNode({
+      lineHeight: { unit: "PIXELS", value: 24 },
+      letterSpacing: { unit: "PERCENT", value: 2 },
+      textAlignHorizontal: "CENTER",
+      textCase: "UPPER",
+      textDecoration: "UNDERLINE",
+    });
+    const text = wrap(t);
+    expect(text.lineHeight).toBe("24px");
+    expect(text.letterSpacing).toBe("0.02em");
+    expect(text.textAlign).toBe("center");
+    expect(text.textCase).toBe("uppercase");
+    expect(text.textDecoration).toBe("underline");
+  });
+
+  it("omits defaults (AUTO line-height, 0 spacing, LEFT/ORIGINAL/NONE)", () => {
+    const t = makeTextNode({
+      lineHeight: { unit: "AUTO" },
+      letterSpacing: { unit: "PIXELS", value: 0 },
+      textAlignHorizontal: "LEFT",
+      textCase: "ORIGINAL",
+      textDecoration: "NONE",
+    });
+    const text = wrap(t);
+    expect(text.lineHeight).toBeUndefined();
+    expect(text.letterSpacing).toBeUndefined();
+    expect(text.textAlign).toBeUndefined();
+    expect(text.textCase).toBeUndefined();
+    expect(text.textDecoration).toBeUndefined();
+  });
+
+  it("resolves mixed metrics via the first character", () => {
+    const mixed = Symbol("mixed");
+    const t = makeTextNode({
+      lineHeight: mixed,
+      letterSpacing: mixed,
+      textCase: mixed,
+      textDecoration: mixed,
+      getRangeLineHeight: () => ({ unit: "PERCENT", value: 150 }),
+      getRangeLetterSpacing: () => ({ unit: "PIXELS", value: 1 }),
+      getRangeTextCase: () => "LOWER",
+      getRangeTextDecoration: () => "STRIKETHROUGH",
+    });
+    const text = wrap(t);
+    expect(text.lineHeight).toBe("150%");
+    expect(text.letterSpacing).toBe("1px");
+    expect(text.textCase).toBe("lowercase");
+    expect(text.textDecoration).toBe("line-through");
+  });
+});
