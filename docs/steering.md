@@ -525,12 +525,12 @@ Ph-6: レスポンシブ対応＋統合テスト
 State
 -----
 
-* **Status**: paused
+* **Status**: active
 * **Date**: 2026-07-02
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **Last completed**: (1) トークン提案の改善（セマンティック体系での命名誘導＋Radius/Elevationチェック追加、`variableChecks.ts`）。(2) 描画に効く silent drop の解消 — `spec.json` に `effects`（drop/inner shadow・blur）／typography metrics（lineHeight・letterSpacing・textAlign・textCase・textDecoration）／node `opacity` を出力（`specBuilder.ts`）。設計書 4.3.4/4.5.2.1/4.7.2 と `prompt.md` を更新。計118テストパス。値→スロットの自動判定はしない方針（ユーザー決定）。
-* **Next**: 4.3.4/4.7.2/4.7.4 に確定した既存方針をコードに実装する（下記「未実装の確定方針」）。その後 T-1 のフルフロー（Review→Export→CC）を継続。**残ギャップ**: Effect Style / Text Style を named token として `tokens.json` に出す対応は未実装（実値は spec に出るので描画は再現可、DRY 化のみ保留）。
+* **Reconciled**: 2026-07-02 に `/rn:up` で照合。`complete task #` マーカー無し、直近コミットは前回 "Last completed" と一致。Text Style トークン実装はコメント参照のみ＝未着手を確認。チェックオフ対象タスク無し・ブロッカー無し。
+* **Next**: 下記「未実装の確定方針」5項目をコードに実装する（設計書 4.3.4/4.7.2/4.7.4 は記載済み・コード未反映）。項目1（Text Style→タイポトークン）から着手。その後 T-1 のフルフロー（Review→Export→CC）を継続。**残ギャップ**: Effect Style / Text Style の named token 化は本作業（項目1）で解消予定。
 
 ### このセッションの作業（2026-06-23）
 
