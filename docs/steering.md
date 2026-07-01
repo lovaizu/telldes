@@ -165,6 +165,7 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 | Ph-4 | 書き出し機能の実装 | Ph-2, Ph-3 完了 | 設計書 4.5 節のフォーマットで zip が出力されること |
 | Ph-5 | CC プロンプト＋ステアリングテンプレート | Ph-4 完了 | prompt.md, steering.md が zip に同梱され、CC が正しく動作すること |
 | Ph-6 | レスポンシブ対応＋統合テスト | Ph-5 完了 | desktop/mobile 2フレーム構成で正しく出力されること |
+| Ph-7 | doc-first ギャップ解消（タイポトークン・告知チェック等） | R-1 完了 | 設計書 4.3.4/4.7.2/4.7.4 確定方針が実装・テストに反映されていること |
 
 ---
 
@@ -499,7 +500,7 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 **目的**: 実際の LP デザインを使い、チェック→修正→書き出し→CC コーディングのフルフローを確認する。
 
-**前提**: Ph-5, R-1 完了
+**前提**: Ph-5, R-1, Ph-7 完了
 
 **作業内容**:
 - [ ] テスト用 LP デザインを Figma で作成（最低限: header, hero, features, pricing, footer）
@@ -522,48 +523,116 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 ---
 
+Ph-7: doc-first ギャップ解消
+------------------
+
+設計書 4.3.4/4.7.2/4.7.4 に方針は確定済みだが、コード未反映の5項目。doc-first 方針（[[doc-first-accuracy]]）に従い設計書側のギャップ（G-1）を先に埋めてから実装する。告知チェック（G-3）は error でなく **suggestion**（Export を止めない）で実装する。
+
+### G-1: tokens.json typography トークンスキーマの設計書追記
+
+**目的**: 設計書 4.5.1 に typography トークンの JSON スキーマ例を追記し、4.5.2.1 text 節に spec 側の参照フィールド名を追記する（doc-first ギャップ解消）。
+
+**前提**: R-1 完了
+
+**作業内容**:
+- [ ] 4.5.1 に W3C DTCG composite 形式（`$type: "typography"`, `$value: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`）の JSON 例を追記。推奨命名（`display / heading-lg / heading-md / heading-sm / body / lead / caption / label`）にも触れる
+- [ ] 4.5.2.1 の「text（タイポグラフィのメトリクス）」節に `typographyToken` フィールドを追記。付与条件（`textStyleId` が単一 ID の場合のみ。`figma.mixed` は除外）を明記
+- [ ] セルフチェック（チェック結果: `docs/checks/G-1.md`）
+- [ ] ユーザーレビュー依頼・OK取得
+
+**完了条件**:
+- 4.5.1 に typography トークンの `$type`/`$value` 構造例が記載されていること
+- 4.5.2.1 に `typographyToken` フィールドの付与条件が明記されていること
+
+---
+
+### G-2: Text Style → typography トークン実装
+
+**目的**: `tokensBuilder.ts` で Text Style を named typography token として `tokens.json` に出力し、`specBuilder.ts` の text 抽出で `typographyToken` を参照させる。
+
+**前提**: G-1 完了
+
+**作業内容**:
+- [ ] `tokensBuilder.ts`: `figma.getLocalTextStylesAsync()`（または同等API）から typography トークンを生成し、G-1 で追記したスキーマで出力。既存の `setNested`（`$base` 衝突退避）を再利用
+- [ ] `specBuilder.ts`: text ノードの `textStyleId` が単一 ID の場合に `typographyToken` を付与（`figma.mixed` は除外）
+- [ ] テスト作成
+- [ ] セルフチェック（チェック結果: `docs/checks/G-2.md`）
+- [ ] ユーザーレビュー依頼・OK取得
+
+**完了条件**:
+- `tokens.json` に typography トークンが G-1 のスキーマ準拠で出力されること
+- Text Style 適用ノードの `spec.json` text に `typographyToken` が付与されること
+- `textStyleId` が mixed のノードには付与されないこと
+- テストが全グリーンであること
+
+---
+
+### G-3: 告知チェック3種（suggestion）実装
+
+**目的**: Color Style 使用／STRING・BOOLEAN Variable 使用／ルート直下の裸 Component 定義を suggestion レベルで検出する（設計書 4.7.2 節「源泉・範囲チェック」）。
+
+**前提**: G-1 完了（G-2 と並行着手可）
+
+**作業内容**:
+- [ ] `structureChecks.ts`（または `variableChecks.ts`）に suggestion レベルの `result()` ヘルパーを追加（現状 `result()` は error 固定）
+- [ ] Color Style 使用チェック実装
+- [ ] STRING/BOOLEAN Variable 使用チェック実装
+- [ ] ルート直下の裸 Component/Component Set 定義チェック実装
+- [ ] テスト作成
+- [ ] セルフチェック（チェック結果: `docs/checks/G-3.md`）
+- [ ] ユーザーレビュー依頼・OK取得
+
+**完了条件**:
+- 3チェックとも suggestion レベルで検出され、書き出しをブロックしないこと
+- 各チェックの改善方法メッセージが設計書 4.7.2 節の文言と一致すること
+- テストが全グリーンであること
+
+---
+
+### G-4: Export README 除外物明記
+
+**目的**: 書き出し zip の `README.md` に書き出し対象外のもの（`App.tsx` 等の非デザインノード由来ファイル、G-3 で告知対象となる裸 Component 等）を明記する。
+
+**前提**: G-1 完了
+
+**作業内容**:
+- [ ] `src/App.tsx` の README 生成箇所に除外物セクションを追加
+- [ ] テスト作成（該当箇所があれば）
+- [ ] セルフチェック（チェック結果: `docs/checks/G-4.md`）
+- [ ] ユーザーレビュー依頼・OK取得
+
+**完了条件**:
+- `README.md` に除外物が明記されること
+
+---
+
+### G-5: tokens.json 出力条件の更新
+
+**目的**: typography トークン追加に合わせ、`tokens.json` の出力条件（Variables 未定義時は出力しない）を Text Style の有無も含めた判定に更新する。
+
+**前提**: G-2 完了
+
+**作業内容**:
+- [ ] `tokensBuilder.ts` の出力条件を「Variables または Text Style のいずれかが存在する場合に出力」に変更
+- [ ] テスト更新
+- [ ] セルフチェック（チェック結果: `docs/checks/G-5.md`）
+- [ ] ユーザーレビュー依頼・OK取得
+
+**完了条件**:
+- Variables 未定義でも Text Style 定義済みなら `tokens.json` が出力されること
+- どちらも未定義なら `tokens.json` が出力されないこと
+- テストが全グリーンであること
+
+---
+
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-07-02
-* **ブランチ**: `worktree-figma-plugins`
-* **PR**: https://github.com/lovaizu/telldes/pull/1
-* **Last completed**: `/rn:up` で照合（コミット `8d7b6a9`）。`complete task #` マーカー無し、直近コミットは前回 "Last completed" と一致、Text Style トークン実装はコメント参照のみ＝未着手を確認。チェックオフ対象タスク・ブロッカー無し。
-* **Next**: 下記「未実装の確定方針」5項目をコードに実装。項目1（Text Style→タイポトークン）から着手（Code タスク＝full verification chain）。task-workflow の Execute から。着手の起点コミットは `8d7b6a9`（HEAD）。その後 T-1 のフルフロー（Review→Export→CC）を継続。
-
-### 項目1 着手メモ（設計書リサーチ済み・実装未着手）
-
-* **設計方針（設計書 4.3.4 / 137行）**: Text Style を named typography token として `tokens.json` に出力し、spec から参照。推奨命名: `display / heading-lg / heading-md / heading-sm / body / lead / caption / label`（Text Style 名がそのままトークン名）。
-* **現行コード** `src/export/tokensBuilder.ts`: `buildTokens(variables)` は COLOR/FLOAT のみ。`setNested`（`/`区切り階層 ＋ leaf/group 名衝突を `$base` に退避）が使える。typography 追加時はこのシグネチャ or 呼び出し側で Text Style も渡す設計変更が要る。
-* **⚠️ doc-first で先に埋めるギャップ**: 設計書 4.5.1（tokens.json）の JSON 例は **color/number のみ**で、**typography トークンの JSON スキーマ形状が未記載**。W3C DTCG composite（`$type: "typography"`, `$value: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`）で 4.5.1 に例を追記してから実装するのが [[doc-first-accuracy]] 方針。spec 側の参照フィールド名（例 `text.typographyToken`）も 4.5.2.1 の text 節に追記が必要。
-* **spec 側**: text ノードが Text Style 適用時（`textStyleId` が単一 ID、`figma.mixed` は除外）に参照トークン名を付与。`specBuilder.ts` の text 抽出箇所（4.5.2.1「text」節、metrics 出力の近く）に追加。
-* **残り項目2–5**: (2) 告知チェック3種（Color Style / STRING・BOOLEAN Variable / ルート直下の裸 Component、suggestion レベル。`structureChecks.ts` の `result()` は error 固定なので suggestion ヘルパが要る) (3) Export README に除外物明記（`App.tsx`）(4) tokens.json 出力条件を typography 追加に合わせ更新 (5) 各変更にテスト追加。
-
-### このセッションの作業（2026-06-23）
-
-Figma 実機での T-1 テスト中に発覚した問題を修正し、設計方針を1つ確定した。
-
-**修正（コミット済みになる WIP 分）:**
-1. **起動時 SyntaxError 修正** — `vite.config.code.ts` の `target` を `es2020`→`es2017` に変更。Figma のプラグイン VM（jsvm-cpp）が `?.`/`??` を解釈できず `Unexpected token ?` で起動失敗していた。esbuild にトランスパイルさせて解消。
-2. **manifest に `id` 追加** — `manifest.json` に `"id": "telldes-dev-local"`。`getPluginData`/`setPluginData`（note 機能）が ID 無しで例外を投げ、起動直後の `sendSelectionNote()` で落ちていた。ローカル開発用の任意文字列。公開時は発行される数値 ID に差し替え。
-3. **UI タブ並び順変更** — `src/App.tsx`。Notes → Review → Export の順に変更し、初期表示タブも `note` に（最頻用が Notes のため）。
-
-**設計方針の確定（`docs/telldes-design.md` に反映済み・コードは未実装）:**
-- 基本姿勢「ツールが無視・変換するものは必ず Review か README で告知（暗黙の drop/skip 禁止）」を 4.3.4 に明記。
-- トークン源泉を Figma 定石に統一: 色=Variables 一本化、数値=Variables、タイポ=Text Style を named token 化。Color Style は廃し Review で Variable 化を誘導（**ユーザー決定: Variables 一本化**）。STRING/BOOLEAN Variable は対象外＋告知。
-- 書き出し範囲＝画面フレーム（ルート直下の FRAME/SECTION）と 4.7.4 に明文化。裸 Component 定義は対象外で Review 告知。
-- 装飾アイコン（サークルアロー等）は Frame でなく **Group** にする例外を 4.3.2 に追記（Review の AutoLayout チェックは GROUP 対象外。**ユーザー決定: Review は現状維持**）。
-
-### 未実装の確定方針（Next の具体作業）
-
-設計書 4.3.4/4.7.2/4.7.4 に記載済みだが、コード未反映。doc-first 方針（[[doc-first-accuracy]]）で設計→実装の順。告知チェックは error でなく **suggestion**（Export を止めない）で実装すること。
-
-1. **Text Style → タイポトークン** / `src/export/tokensBuilder.ts` + `src/export/specBuilder.ts` / Text Style を named typography token として出力し spec から参照
-2. **告知チェック3種**（Color Style 使用 / STRING・BOOLEAN Variable 使用 / ルート直下の裸 Component 定義）/ `src/checks/`（suggestion レベル。現状 `structureChecks.ts` の `result()` は error 固定なので suggestion 用ヘルパが必要）
-3. **Export README に除外物を明記** / `src/App.tsx` の README 生成
-4. **tokens.json 出力条件の更新** / `tokensBuilder.ts` / typography 追加に合わせる
-5. 各変更にテスト追加
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: context needed for resume
 
 ---
 
