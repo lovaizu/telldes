@@ -314,11 +314,25 @@ Variablesが定義されている場合のみ出力。W3C Design Tokens Communit
       "$type": "number",
       "$value": 16
     }
+  },
+  "typography": {
+    "heading-md": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": 28,
+        "fontWeight": 700,
+        "lineHeight": "36px",
+        "letterSpacing": "0em"
+      }
+    }
   }
 }
 ```
 
 Variablesの構造をそのままJSON化する。デザイナーの命名がそのままトークン名になる。
+
+`typography` グループは Text Style から出力する（4.3.4「Text Style は named typography token として出力し、spec から参照」）。Variables ではなく Text Style が源泉である点が color/spacing と異なるが、`tokens.json` 上のトークンとしての扱いは同じ。`$type` は `"typography"`、`$value` は `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` を持つ複合値（W3C DTCG の composite token 形式）とする。トークン名（上記例の `heading-md`）は Text Style 名をそのまま用いる。命名は自由だが、4.3.4 の推奨トークン体系（`display` / `heading-lg` / `heading-md` / `heading-sm` / `body` / `lead` / `caption` / `label`）に従うことを推奨する。
 
 color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満の場合のみ #RRGGBBAA（8桁）で表現する。エイリアス（他トークンの参照）は解決済みの値に展開する。
 
@@ -490,6 +504,8 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 | `textAlign` | `center` / `right` / `justify` | LEFT（既定）は省略 |
 | `textCase` | `uppercase` / `lowercase` / `capitalize` / `small-caps` | ORIGINAL（既定）は省略 |
 | `textDecoration` | `underline` / `line-through` | NONE（既定）は省略 |
+
+- `typographyToken`: ノードの `textStyleId` が単一の Text Style を指している場合のみ付与する文字列（例 `"typography/heading-md"`。命名は `tokens.json` の `typography` トークン名（4.5.1）と対応する）。`textStyleId` が `figma.mixed`（複数の Text Style が混在）の場合、単一のトークン名で表せないため `typographyToken` は付与しない（他フィールドのような先頭文字での解決は行わない）。Text Style が適用されていないノードも同様に省略する。
 
 **opacity（ノード不透明度）**
 
