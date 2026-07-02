@@ -29,7 +29,12 @@ export function checkColorStyleUsage(nodes: SceneNode[]): CheckResult[] {
   for (const node of nodes) {
     if (!("fillStyleId" in node)) continue;
     const styleId = (node as MinimalFillsMixin).fillStyleId;
-    if (typeof styleId === "string" && styleId !== "") {
+    // TextNodes can report fillStyleId === figma.mixed when some characters
+    // are styled via a Color Style and others aren't (@figma/plugin-typings)
+    // — that's still Color Style usage on part of the node, so flag it too.
+    const usesColorStyle =
+      (typeof styleId === "string" && styleId !== "") || styleId === figma.mixed;
+    if (usesColorStyle) {
       results.push(
         suggestionResult(
           node,
@@ -132,14 +137,24 @@ export function runScopeChecks(nodes: SceneNode[]): CheckResult[] {
 // share the (nodes: SceneNode[]) => CheckResult[] shape above. There is no
 // single SceneNode to point at, so nodeId/nodeName use "" as a sentinel:
 // App.tsx's selectNode() still round-trips safely, since code.ts's
-// select-node handler calls figma.getNodeById(""), which resolves to null
-// and is a no-op (guarded by `if (node && "type" in node)`).
+// select-node handler guards with `if (msg.type === "select-node" && msg.nodeId)`
+// — an empty-string nodeId is falsy, so the whole block (including the
+// figma.getNodeById call) is skipped entirely and is a no-op.
 //
 // tokensBuilder.ts injects Variables first, then Text Styles under the same
 // TYPOGRAPHY_TOKEN_PREFIX group (setNested) — so when a Variable's full path
 // is literally "typography/<name>" and a Text Style is also named "<name>",
 // the Text Style (written second) silently overwrites the Variable's value
 // in tokens.json. Warn about the collision pre-export instead.
+//
+// Only COLOR/FLOAT Variables ever reach tokens.json (tokensBuilder.ts's
+// `supported` filter) — STRING/BOOLEAN Variables are dropped before
+// setNested runs, so they can never actually collide with a Text Style.
+// Mirror that filter here to avoid a false positive.
+function isTokenBuilderSupported(variable: Variable): boolean {
+  return variable.resolvedType === "COLOR" || variable.resolvedType === "FLOAT";
+}
+
 export function checkTypographyTokenCollisions(
   variables: Variable[],
   textStyles: TextStyle[],
@@ -148,6 +163,7 @@ export function checkTypographyTokenCollisions(
   const textStyleNames = new Set(textStyles.map((s) => s.name));
 
   for (const variable of variables) {
+    if (!isTokenBuilderSupported(variable)) continue;
     const parts = variable.name.split("/");
     if (parts[0] !== TYPOGRAPHY_TOKEN_PREFIX) continue;
     const rest = parts.slice(1).join("/");
@@ -158,7 +174,7 @@ export function checkTypographyTokenCollisions(
       nodeName: variable.name,
       message: `トークン名が衝突しています（Variable「${variable.name}」とText Style「${rest}」が同じ名前）`,
       suggestion:
-        "tokens.jsonでは後に書き出されるText Style側の値で上書きされます。名前を変更してください",
+        "tokens.jsonでは片方が上書きされます。名前を変更してください",
     });
   }
   return results;

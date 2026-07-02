@@ -48,10 +48,9 @@ function fetchVariablesAndTextStyles(): { vars: Variable[]; textStyles: TextStyl
   return { vars, textStyles };
 }
 
-function runAllChecks(): CheckResult[] {
+function runAllChecks(vars: Variable[], textStyles: TextStyle[]): CheckResult[] {
   const page = figma.currentPage;
   const nodes = collectAllNodes(page);
-  const { vars, textStyles } = fetchVariablesAndTextStyles();
   return [
     ...runStructureChecks(nodes),
     ...checkSizing(nodes),
@@ -69,7 +68,8 @@ figma.on("selectionchange", () => {
 
 figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string }) => {
   if (msg.type === "run-checks") {
-    const results = runAllChecks();
+    const { vars, textStyles } = fetchVariablesAndTextStyles();
+    const results = runAllChecks(vars, textStyles);
     figma.ui.postMessage({ type: "check-results", results });
   }
 
@@ -97,7 +97,8 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
   }
 
   if (msg.type === "run-export") {
-    const checks = runAllChecks();
+    const { vars, textStyles } = fetchVariablesAndTextStyles();
+    const checks = runAllChecks(vars, textStyles);
     const errors = checks.filter((c) => c.level === "error");
     if (errors.length > 0) {
       figma.ui.postMessage({
@@ -110,7 +111,6 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
     try {
       const page = figma.currentPage;
 
-      const { vars, textStyles } = fetchVariablesAndTextStyles();
       const tokens = buildTokens(vars, textStyles);
 
       const topFrames = page.children.filter(

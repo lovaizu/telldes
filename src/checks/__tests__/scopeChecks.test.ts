@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   checkColorStyleUsage,
   checkStringBooleanVariableUsage,
@@ -8,9 +8,15 @@ import {
 } from "../scopeChecks";
 
 const mockGetVariableById = vi.fn();
+const mixedSymbol = Symbol("figma.mixed");
 
 vi.stubGlobal("figma", {
   variables: { getVariableById: mockGetVariableById },
+  mixed: mixedSymbol,
+});
+
+beforeEach(() => {
+  mockGetVariableById.mockReset();
 });
 
 function makeNode(overrides: Record<string, unknown> = {}): SceneNode {
@@ -54,6 +60,13 @@ describe("checkColorStyleUsage", () => {
     const node = makeNode();
     delete (node as unknown as Record<string, unknown>).fillStyleId;
     expect(checkColorStyleUsage([node])).toHaveLength(0);
+  });
+
+  it("detects a TextNode with mixed fillStyleId (partially Color-Style-styled characters)", () => {
+    const node = makeNode({ fillStyleId: mixedSymbol });
+    const results = checkColorStyleUsage([node]);
+    expect(results).toHaveLength(1);
+    expect(results[0].message).toContain("Color Style");
   });
 });
 
@@ -129,13 +142,25 @@ describe("checkBareRootComponents", () => {
 
 describe("checkTypographyTokenCollisions", () => {
   it("detects a Variable/Text Style name collision under typography/<name>", () => {
-    const variable = makeVariable("typography/heading-md", "STRING");
+    const variable = makeVariable("typography/heading-md", "COLOR");
     const textStyle = makeTextStyle("heading-md");
     const results = checkTypographyTokenCollisions([variable], [textStyle]);
     expect(results).toHaveLength(1);
     expect(results[0].level).toBe("suggestion");
     expect(results[0].nodeId).toBe("");
     expect(results[0].message).toContain("heading-md");
+    expect(results[0].suggestion).toBe(
+      "tokens.jsonでは片方が上書きされます。名前を変更してください",
+    );
+  });
+
+  it("ignores a STRING/BOOLEAN typed Variable even with a matching Text Style name (never reaches tokens.json)", () => {
+    const stringVariable = makeVariable("typography/heading-md", "STRING");
+    const booleanVariable = makeVariable("typography/heading-lg", "BOOLEAN");
+    const textStyles = [makeTextStyle("heading-md"), makeTextStyle("heading-lg")];
+    expect(
+      checkTypographyTokenCollisions([stringVariable, booleanVariable], textStyles),
+    ).toHaveLength(0);
   });
 
   it("ignores a Variable not under the typography/ prefix", () => {
@@ -145,13 +170,13 @@ describe("checkTypographyTokenCollisions", () => {
   });
 
   it("ignores a typography/ Variable with no matching Text Style name", () => {
-    const variable = makeVariable("typography/heading-md", "STRING");
+    const variable = makeVariable("typography/heading-md", "FLOAT");
     const textStyle = makeTextStyle("heading-lg");
     expect(checkTypographyTokenCollisions([variable], [textStyle])).toHaveLength(0);
   });
 
   it("ignores a bare 'typography' Variable with no sub-path", () => {
-    const variable = makeVariable("typography", "STRING");
+    const variable = makeVariable("typography", "COLOR");
     const textStyle = makeTextStyle("typography");
     expect(checkTypographyTokenCollisions([variable], [textStyle])).toHaveLength(0);
   });
