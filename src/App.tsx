@@ -137,7 +137,12 @@ const App: Component = () => {
         "- `steering.md` — Pre-coding checklist, tasks, and rules",
         msg.tokens ? "- `tokens.json` — Design tokens (W3C DTCG format)" : null,
         ...frameNames.map((n: string) => `- \`${n}/\` — spec.json, screenshots, and assets for frame "${n}"`),
-      ].filter(Boolean).join("\n");
+        "",
+        "## Not included in this export",
+        "",
+        "- `prompt.md`, `steering.md`, and this `README.md` are generated from templates, not derived from design nodes — only `spec.json`, `screenshots/`, and `assets/` map 1:1 to Figma nodes.",
+        "- Component/Component Set definitions placed directly on the page (outside any frame) are excluded — they're flagged as a suggestion during Review. Move them into a frame as an instance, or onto a separate library page, to include them.",
+      ].filter((line): line is string => line !== null).join("\n");
       root.file("README.md", readmeContent);
 
       const blob = await zip.generateAsync({ type: "blob" });
