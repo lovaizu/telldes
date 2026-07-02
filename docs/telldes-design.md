@@ -586,6 +586,7 @@ Telldesプラグインは以下の3つの機能を提供する。
 - Color Styleを使用 → 「Variableに移行しませんか？（カラーはVariablesに一本化）」（4.3.4）
 - STRING/BOOLEAN Variableを使用 → 「これらはトークン出力対象外です」と告知
 - ページ直下に裸で置かれたComponent/Component Set定義 → 「書き出し対象外です。画面フレーム内にインスタンスとして配置するか、ライブラリページへ」（4.7.4の範囲方針）
+- Variableのフルパスが `typography/<name>` に一致し、同名のText Styleが存在（tokens.jsonの`typography`グループで衝突し、後に書き出されるText Style側が上書きする。4.5.1） → 「トークン名が衝突しています（VariableとText Styleが同じ名前）。tokens.jsonでは片方が上書きされます。名前を変更してください」
 
 エラーは書き出し前に解消必須。提案・告知は無視してもよい。
 

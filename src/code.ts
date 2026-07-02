@@ -2,6 +2,7 @@ import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
 import { runVariableChecks } from "./checks/variableChecks";
+import { runScopeChecks, checkTypographyTokenCollisions } from "./checks/scopeChecks";
 import type { CheckResult } from "./checks/types";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
@@ -26,13 +27,37 @@ function sendSelectionNote() {
   figma.ui.postMessage({ type: "selection-note", data });
 }
 
+// Variables/Text Styles APIs may not be available in all Figma file types
+// (e.g. some starter/free files) — swallow and fall back to empty so a check
+// run or export never hard-fails just because this data is unavailable.
+function fetchVariablesAndTextStyles(): { vars: Variable[]; textStyles: TextStyle[] } {
+  let vars: Variable[] = [];
+  try {
+    vars = figma.variables.getLocalVariables();
+  } catch {
+    // Variables API may not be available
+  }
+
+  let textStyles: TextStyle[] = [];
+  try {
+    textStyles = figma.getLocalTextStyles();
+  } catch {
+    // Text Styles API may not be available
+  }
+
+  return { vars, textStyles };
+}
+
 function runAllChecks(): CheckResult[] {
   const page = figma.currentPage;
   const nodes = collectAllNodes(page);
+  const { vars, textStyles } = fetchVariablesAndTextStyles();
   return [
     ...runStructureChecks(nodes),
     ...checkSizing(nodes),
     ...runVariableChecks(nodes),
+    ...runScopeChecks(nodes),
+    ...checkTypographyTokenCollisions(vars, textStyles),
   ];
 }
 
@@ -85,20 +110,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
     try {
       const page = figma.currentPage;
 
-      let vars: Variable[] = [];
-      try {
-        vars = figma.variables.getLocalVariables();
-      } catch {
-        // Variables API may not be available
-      }
-
-      let textStyles: TextStyle[] = [];
-      try {
-        textStyles = figma.getLocalTextStyles();
-      } catch {
-        // Text Styles API may not be available
-      }
-
+      const { vars, textStyles } = fetchVariablesAndTextStyles();
       const tokens = buildTokens(vars, textStyles);
 
       const topFrames = page.children.filter(
