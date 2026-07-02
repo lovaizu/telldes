@@ -553,11 +553,11 @@ Ph-7: doc-first ギャップ解消
 **前提**: G-1 完了
 
 **作業内容**:
-- [ ] `tokensBuilder.ts`: `figma.getLocalTextStylesAsync()`（または同等API）から typography トークンを生成し、G-1 で追記したスキーマで出力。既存の `setNested`（`$base` 衝突退避）を再利用
-- [ ] `specBuilder.ts`: text ノードの `textStyleId` が単一 ID の場合に `typographyToken` を付与（`figma.mixed` は除外）
-- [ ] テスト作成
-- [ ] セルフチェック（チェック結果: `docs/checks/G-2.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] `tokensBuilder.ts`: `figma.getLocalTextStylesAsync()`（または同等API）から typography トークンを生成し、G-1 で追記したスキーマで出力。既存の `setNested`（`$base` 衝突退避）を再利用
+- [x] `specBuilder.ts`: text ノードの `textStyleId` が単一 ID の場合に `typographyToken` を付与（`figma.mixed` は除外）
+- [x] テスト作成
+- [x] セルフチェック（チェック結果: `docs/checks/G-2.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - `tokens.json` に typography トークンが G-1 のスキーマ準拠で出力されること
