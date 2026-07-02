@@ -628,11 +628,18 @@ Ph-7: doc-first ギャップ解消
 State
 -----
 
-* **Status**: not suspended
-* **Date**: YYYY-MM-DD
-* **Last completed**: #N description
-* **Next**: #N description
-* **Notes**: context needed for resume
+* **Status**: paused
+* **Date**: 2026-07-02
+* **Last completed**: G-1 (typography token doc-first gap, commit `766b4ed` + AUTO→"normal" correction `61b99ca`)
+* **Next**: G-2 (Text Style → typography トークン実装) — code done and pushed (`afc1b5d`), coordinator Verify phase (QA/Language/SE review) complete, fix round pending before user review
+* **Notes**:
+  G-2's implementation (commit `afc1b5d`, pushed) was independently diff-reviewed and put through QA/Language/Software-engineering expert review. Findings recorded and triaged in `docs/checks/G-2.md` (written, **not yet committed** — still untracked, intentionally per task-workflow.md's "coordinator commits the check file... naturally on the post-approval steering check-off commit", but since this task isn't closed out yet the file stays uncommitted until then). Results:
+  - Language expert: OK (no action).
+  - QA + Software-engineering both flagged the same real bug: a Variable named exactly `typography/<name>` colliding with a Text Style of the same `<name>` causes the Text-Style token to silently overwrite the Variable token in `tokens.json` (`setNested`'s `$base` collision-preservation in `src/export/tokensBuilder.ts` only handles leaf-vs-group collisions, not leaf-vs-leaf at the identical terminal path — traced and confirmed, not just accepted on the expert's word). Fixing this cleanly needs a schema/policy decision, not a mechanical patch. **User decided (2026-07-02, asked in Japanese via AskUserQuestion): handle it as a new suggestion-level announcement check under G-3** (detect + warn the designer pre-export, tokens.json keeps last-write-wins, documented as such) — **not** a tokens.json schema change, **not** a silent accept. This means: (a) G-2's own code does not need a fix for the collision itself; (b) before G-3 is dispatched, its task definition/steps in this file need a new sub-item for this check, and design doc 4.7.2 needs a short addition describing it.
+  - Software-engineering also flagged a minor, valid, in-scope nit: the `"typography/"` prefix string is duplicated between `src/export/tokensBuilder.ts` and `src/export/specBuilder.ts` instead of centralized as a shared constant in `src/util/typography.ts`. This one **is** a same-task fix (mechanical, low-risk) — still pending, not yet dispatched.
+  - One Software-engineering finding was rejected as out-of-scope: doc/code mismatch on tokens.json's output condition — that's explicitly G-5's job (G-5's prerequisite is "G-2 完了"), not G-2's.
+
+  **Next concrete action on resume**: (1) dispatch a fix-round implementation expert for G-2 to centralize the `"typography/"` constant, then re-run Language + Software-engineering review on that narrow diff (QA doesn't need a re-run, its finding wasn't about this). (2) Before dispatching G-3, add the collision-announcement check as a new sub-item to G-3's 作業内容/完了条件 in this file (and flag the docs/telldes-design.md 4.7.2 addition it needs) so G-3's implementation expert gets it in its work order. (3) Once the G-2 fix round passes, present G-2 for user review on the PR, get approval, check it off with `complete task #G-2`, commit `docs/checks/G-2.md` at that point. (4) Then proceed to G-3 (now including the collision check), G-4, G-5, the item-5 tests task, then resume T-1.
 
 ---
 
