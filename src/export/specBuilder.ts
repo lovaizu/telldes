@@ -3,6 +3,7 @@ import {
   parseFontWeight,
   lineHeightToSparseCss,
   letterSpacingToSparseCss,
+  TYPOGRAPHY_TOKEN_PREFIX,
 } from "../util/typography";
 import {
   buildLayerPath,
@@ -277,7 +278,7 @@ function getTypographyToken(node: TextNode): string | undefined {
   try {
     const style = figma.getStyleById(styleId);
     if (!style) return undefined;
-    return `typography/${style.name}`;
+    return `${TYPOGRAPHY_TOKEN_PREFIX}/${style.name}`;
   } catch {
     return undefined;
   }

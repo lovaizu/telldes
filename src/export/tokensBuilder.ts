@@ -3,6 +3,7 @@ import {
   parseFontWeight,
   lineHeightToTokenValue,
   letterSpacingToTokenValue,
+  TYPOGRAPHY_TOKEN_PREFIX,
 } from "../util/typography";
 
 interface TypographyValue {
@@ -130,7 +131,7 @@ export function buildTokens(
   // Text Styles aren't designer-named with a "typography/" prefix the way
   // Variables are self-grouping by "/" — inject the top-level group here.
   for (const style of textStyles) {
-    const parts = ["typography", ...style.name.split("/")];
+    const parts = [TYPOGRAPHY_TOKEN_PREFIX, ...style.name.split("/")];
     const tokenValue: TokenValue = {
       $type: "typography",
       $value: resolveTypographyValue(style),

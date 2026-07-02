@@ -2,6 +2,12 @@
 // omitted when they equal Figma's default) and tokens.json (Text Style
 // composite tokens, values always present — design doc 4.5.1 / 4.5.2.1).
 
+// Top-level tokens.json group name for Text Style tokens, and the prefix
+// specBuilder.ts uses when building the matching spec.json typographyToken
+// reference (e.g. "typography/heading-md") — centralized so both stay in
+// sync (design doc 4.5.1 / 4.5.2.1).
+export const TYPOGRAPHY_TOKEN_PREFIX = "typography";
+
 const FONT_WEIGHT_MAP: Record<string, number> = {
   Thin: 100, Hairline: 100,
   ExtraLight: 200, UltraLight: 200,
