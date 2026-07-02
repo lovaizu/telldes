@@ -252,4 +252,12 @@ describe("buildTokens — typography (Text Styles)", () => {
   it("still returns null when both variables and text styles are empty", () => {
     expect(buildTokens([], [])).toBeNull();
   });
+
+  it("returns non-null when only text styles exist and all variables are unsupported (STRING/BOOLEAN)", () => {
+    const vars = [makeVariable("font/family", "STRING", "Inter")];
+    const styles = [makeTextStyle("body")];
+    const tokens = buildTokens(vars, styles);
+    expect(tokens).not.toBeNull();
+    expect(Object.keys(tokens!)).toEqual(["typography"]);
+  });
 });

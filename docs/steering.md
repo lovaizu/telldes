@@ -616,10 +616,10 @@ Ph-7: doc-first ギャップ解消
 **前提**: G-2 完了
 
 **作業内容**:
-- [ ] `tokensBuilder.ts` の出力条件を「Variables または Text Style のいずれかが存在する場合に出力」に変更
-- [ ] テスト更新
-- [ ] セルフチェック（チェック結果: `docs/checks/G-5.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] `tokensBuilder.ts` の出力条件を「Variables または Text Style のいずれかが存在する場合に出力」に変更
+- [x] テスト更新
+- [x] セルフチェック（チェック結果: `docs/checks/G-5.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - Variables 未定義でも Text Style 定義済みなら `tokens.json` が出力されること
@@ -633,14 +633,14 @@ State
 
 * **Status**: paused
 * **Date**: 2026-07-02
-* **Last completed**: G-4 (Export README exclusions). Check file written, both boxes checked off.
-* **Next**: G-5, then present T-1 to the user.
+* **Last completed**: G-5 (tokens.json 出力条件のdoc-first ギャップ解消). Ph-7 (G-1〜G-5) is now fully complete.
+* **Next**: T-1（統合テスト）— requires the user to build a test Figma design first; see below.
 * **Notes**:
   - User instruction in effect for this whole project (saved to persistent memory as `feedback-skip-per-task-review-gate`): do NOT pause for per-task "user review" approval — proceed autonomously through Execute → Verify → Triage → Complete → check-off for every task; user reviews everything together on the PR at the end. Still write full check files and commit a `complete task #{id}` marker per task.
-  - G-3 (done in a prior turn of this same resume): 4 suggestion-level checks (Color Style usage, STRING/BOOLEAN Variable usage, bare root Component/Component Set, Variable/Text Style token-name collision), fully reviewed and checked off (commit `8e2e201`, pushed).
-  - G-4: `src/App.tsx`'s `handleExportData` `readmeContent` now has a `## Not included in this export` section with 2 bullets — (1) `prompt.md`/`steering.md`/`README.md` are template-generated, not node-derived (only `spec.json`/`screenshots/`/`assets/` map 1:1 to nodes); (2) bare root Component/Component Set definitions are excluded and flagged as a suggestion during Review (per `checkBareRootComponents` from G-3 and design doc 4.7.4). Review (1 general-purpose agent covering QA/Language/SWE) found and I fixed a real pre-existing bug in the same array: `.filter(Boolean)` was stripping all `""` blank-line separators (not just the conditional `null` entry), so the README rendered with no blank lines between any section — changed to `.filter((line): line is string => line !== null)`. Verified with a standalone Node repro and `bun run build`. No test file exists for `src/App.tsx` or its other internal helpers (no established pattern), so none was added — consistent with prior practice. `docs/checks/G-4.md` written with full verdict tables; not yet committed (see below).
-  - Next: (1) commit `docs/steering.md` + `docs/checks/G-4.md` + `src/App.tsx` with a message containing `complete task #G-4`, then push. (2) Start G-5 (`tokensBuilder.ts`'s null-output condition needs a fuller audit+doc update per G-2's deferred scope note — the minimal `supported.length === 0 && textStyles.length === 0` check already exists from G-2, but the design doc's output-condition text still says "Variables が定義されている場合のみ" and needs updating too).
-  - T-1 (integration test) requires the user to manually build a test Figma design (header/hero/features/pricing/footer with Auto Layout) — flag it to the user once G-5 is done rather than attempting it autonomously.
+  - G-3, G-4, G-5 all completed and pushed this session: G-3 commit `8e2e201` (4 suggestion-level checks), G-4 commit `2726233` (Export README excluded-items section + a pre-existing `.filter(Boolean)` blank-line bug fixed along the way).
+  - G-5: `tokensBuilder.ts`'s output-condition code needed **no behavior change** — it was already correct from G-2 (`supported.length === 0 && textStyles.length === 0` guard). The actual gap was doc-only: `docs/telldes-design.md` had 3 stale occurrences of "Variablesが定義されている場合のみ出力" (zip tree diagram, 4.5.1 prose, 4.7.4 file list) that predated G-2 and didn't mention Text Styles as an alternate trigger — all 3 updated. Also closed a test gap: added a test for "unsupported (STRING/BOOLEAN) Variables + Text Style present" in `tokensBuilder.test.ts` (151/151 tests passing). Reviewed by 1 general-purpose agent (QA/Language/SWE) — all PASS, no issues found, confirmed via full-doc grep that no other stale occurrences were missed. `docs/checks/G-5.md` written with full verdict tables; not yet committed (see below).
+  - Immediate next action on resume: commit `docs/steering.md` + `docs/checks/G-5.md` + `docs/telldes-design.md` + `src/export/__tests__/tokensBuilder.test.ts` with a message containing `complete task #G-5`, then push.
+  - After that: **all of Ph-1〜Ph-7 are complete except T-1.** T-1 (integration test) requires the user to manually build a test Figma design (header/hero/features/pricing/footer, all frames with Auto Layout, meaningful layer names) — this cannot be done autonomously (no Figma access). Flag this to the user: ask them to build the test design, then walk through Review → fix → Export → zip verification → hand the zip to Claude Code for a coding test, per T-1's 作業内容 in this doc.
 
 ---
 

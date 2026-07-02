@@ -277,7 +277,7 @@ screenshots/
 telldes-export/
 ├── prompt.md          ← CCプロンプト（自動生成）
 ├── steering.md        ← 確認・タスク・ルール（テンプレート）
-├── tokens.json        ← デザイントークン（Variablesが定義されている場合のみ）
+├── tokens.json        ← デザイントークン（対応Variables（COLOR/FLOAT）またはText Styleが定義されている場合のみ）
 ├── README.md          ← zip内容の説明
 ├── {フレーム名}/       ← トップレベルフレームごとにフォルダ
 │   ├── spec.json      ← デザインスペック
@@ -291,7 +291,7 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
 
 #### 4.5.1 tokens.json
 
-Variablesが定義されている場合のみ出力。W3C Design Tokens Community Groupの仕様に準拠。
+対応Variables（COLOR/FLOAT。STRING/BOOLEANはトークン化対象外）またはText Styleのいずれかが定義されている場合のみ出力。どちらも未定義の場合は`tokens.json`自体を出力しない。W3C Design Tokens Community Groupの仕様に準拠。
 
 ```json
 {
@@ -607,7 +607,7 @@ Telldesプラグインは以下の3つの機能を提供する。
 出力物をzipにまとめてダウンロード:
 1. `prompt.md` — CCプロンプト
 2. `steering.md` — 確認・タスク・ルール（テンプレート）
-3. `tokens.json` — デザイントークン（Variablesが定義されている場合のみ）
+3. `tokens.json` — デザイントークン（対応Variables（COLOR/FLOAT）またはText Styleが定義されている場合のみ）
 4. `spec.json` — デザインスペック
 5. `screenshots/` — セクション＋ブロック単位のPNG画像
 6. `assets/images/` — ラスター画像（PNG 2x）
