@@ -581,8 +581,8 @@ Ph-7: doc-first ギャップ解消
 - [x] ルート直下の裸 Component/Component Set 定義チェック実装
 - [x] Variable/Text Style token 名衝突チェック実装（`src/util/typography.ts` の共有プレフィックス定数を使用し、Variable フルパスと Text Style 名が同一 `typography/<name>` に解決するケースを検出）
 - [x] テスト作成
-- [ ] セルフチェック（チェック結果: `docs/checks/G-3.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] セルフチェック（チェック結果: `docs/checks/G-3.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - 4チェックとも suggestion レベルで検出され、書き出しをブロックしないこと
@@ -633,14 +633,13 @@ State
 
 * **Status**: paused
 * **Date**: 2026-07-02
-* **Last completed**: G-2 (typography トークン出力). G-3's implementation, fix round, and both rounds of expert review are also done, but the task is NOT checked off yet — see Notes.
-* **Next**: Finish G-3's Complete phase (check file + check-off), then G-4, then G-5, then present T-1 to the user.
+* **Last completed**: G-3 (告知チェック4種・suggestion). Check file filled in with round-2 PASS verdicts, both boxes checked off.
+* **Next**: G-4, then G-5, then present T-1 to the user.
 * **Notes**:
   - User instruction in effect for this whole project (saved to persistent memory as `feedback-skip-per-task-review-gate`): do NOT pause for per-task "user review" approval — proceed autonomously through Execute → Verify → Triage → Complete → check-off for every task; user reviews everything together on the PR at the end. Still write full check files and commit a `complete task #{id}` marker per task.
-  - G-3 code work is fully done and both review rounds passed: initial implementation commit `5533198` (4 suggestion-level checks: Color Style usage, STRING/BOOLEAN Variable usage, bare root Component/Component Set, Variable/Text Style token-name collision; plus a `docs/telldes-design.md` 4.7.2 addition for the collision check's message text). Round-1 QA/Language/Software-engineering review found 6 real, independently-confirmed defects (resolvedType false-positive in the collision check, message text not matching the doc verbatim, missing `figma.mixed` case in Color Style check, a double-fetch regression in `run-export`, an inaccurate code comment, a missing `beforeEach` mock reset). All 6 fixed in one fix-round commit `7a8ea60`. Fresh QA/Language/Software-engineering agents re-reviewed `7a8ea60` — all three PASS (150/150 tests, build clean). One minor non-blocking Software-engineering nit (`isTokenBuilderSupported` in `scopeChecks.ts` duplicates `tokensBuilder.ts`'s inline filter logic) was triaged as not requiring action.
-  - Remaining work for G-3, in order: (1) `docs/checks/G-3.md` currently exists on disk but is **untracked** and only has the Self-check column filled in (round-1 content, referencing the pre-fix-round commit `5533198` and a stale "148 tests" count) — the QA/Language/Software-engineering tables and Overall Verdict are still blank. Fill them in with the round-2 PASS verdicts described above (test count is now 150/150, 10 files). (2) Check off the last 2 G-3 `作業内容` boxes in this doc (セルフチェック, ユーザーレビュー依頼・OK取得 — the latter is satisfied by the autonomous-approval instruction, not an actual pause). (3) Commit `docs/steering.md` + `docs/checks/G-3.md` together with a message containing the literal substring `complete task #G-3`, then push.
-  - After G-3 is checked off: start G-4 (`src/App.tsx`'s zip README generation needs a section listing excluded items — non-design-node files like `App.tsx` itself, and G-3's flagged bare-root Components) via the same coordinator/expert loop, then G-5 (`tokensBuilder.ts`'s null-output condition needs a fuller audit+doc update per G-2's deferred scope note — the minimal `supported.length === 0 && textStyles.length === 0` check already exists from G-2, but the design doc's output-condition text still says "Variables が定義されている場合のみ" and needs updating too).
-  - T-1 (integration test) requires the user to manually build a test Figma design (header/hero/features/pricing/footer with Auto Layout) — flag it to the user once G-3/G-4/G-5 are done rather than attempting it autonomously.
+  - G-3: implementation commit `5533198` (4 suggestion-level checks: Color Style usage, STRING/BOOLEAN Variable usage, bare root Component/Component Set, Variable/Text Style token-name collision; plus a `docs/telldes-design.md` 4.7.2 addition for the collision check's message text), fix-round commit `7a8ea60` (6 defects from round-1 review fixed: resolvedType false-positive, message text mismatch, missing `figma.mixed` case, double-fetch regression, inaccurate comment, missing `beforeEach` reset). Round-2 re-review of `7a8ea60` — QA/Language/Software-engineering all PASS (150/150 tests, build clean). One non-blocking Software-engineering nit (`isTokenBuilderSupported` duplicates `tokensBuilder.ts`'s inline filter logic) triaged as no-action. `docs/checks/G-3.md` now has all tables filled in; both remaining `作業内容` boxes checked off.
+  - Next: G-4 (`src/App.tsx`'s zip README generation needs a section listing excluded items — non-design-node files like `App.tsx` itself, and G-3's flagged bare-root Components) via the same coordinator/expert loop, then G-5 (`tokensBuilder.ts`'s null-output condition needs a fuller audit+doc update per G-2's deferred scope note — the minimal `supported.length === 0 && textStyles.length === 0` check already exists from G-2, but the design doc's output-condition text still says "Variables が定義されている場合のみ" and needs updating too).
+  - T-1 (integration test) requires the user to manually build a test Figma design (header/hero/features/pricing/footer with Auto Layout) — flag it to the user once G-4/G-5 are done rather than attempting it autonomously.
 
 ---
 
