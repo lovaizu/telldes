@@ -529,6 +529,10 @@ Ph-6: レスポンシブ対応＋統合テスト
 - 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンのままであること、(b) 修正によって既存の出力フィールド・チェックの挙動が退行していないこと、(c) 書き出し時にノード単位のエクスポートエラーが発生していないこと
 - 手戻りが発生した場合、その原因と対策が `docs/checks/T-1.md` に記録されている状態であること
 
+**進行メモ**:
+- T-1 は Figma 実機が必須のため自律実行不可。ユーザーが Figma で Review 実行 → エラー内容を貼る → 仕様どおりの検出かチェック側のバグ／誤検知かを判定、という往復で進める。エラーが 0 件になったら Export し、zip を渡してもらって 4.5 節と照合、その後 CC コーディング再現テストへ。
+- 判定実績: 子レイヤー `bg` に対する「背景を子レイヤーとして配置」エラーは設計書 4.3.5 どおりの正しい検出（誤検知ではない）。`structureChecks.ts` の背景チェックはレイヤー名のみで判定するため、背景以外の用途で `bg`/`overlay` 等を名付けた場合は誤検知になり得る点は未検証。
+
 ---
 
 Ph-7: doc-first ギャップ解消
@@ -639,15 +643,11 @@ Ph-7: doc-first ギャップ解消
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-09-06
-* **Last completed**: R-1 まで全タスク完了（S-1〜R-1, G-1〜G-5）。T-1 のステップ1（テスト用 Figma デザイン作成）まで完了。
-* **Next**: T-1 のステップ2 — Figma で Review を実行し、検出エラーを全て潰してパスさせる。
-* **Notes**:
-  - ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1
-  - T-1 は Figma 実機が必須のため自律実行不可。ユーザーが Figma で Review 実行 → エラー内容を貼る → 仕様どおりの検出かチェック側のバグ／誤検知かを判定、という往復で進める。エラーが 0 件になったら Export し、zip をこちらに渡してもらって 4.5 節と照合、その後 CC コーディング再現テストへ。
-  - ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのユーザーレビュー承認で止まらない。最後に PR でまとめてレビューする。
-  - 直近の判定実績: 子レイヤー `bg` に対する「背景を子レイヤーとして配置」エラーは設計書 4.3.5 どおりの正しい検出（誤検知ではない）。`structureChecks.ts:104` の背景チェックはレイヤー名のみで判定するため、背景以外の用途で `bg`/`overlay` 等を名付けた場合は誤検知になり得る点は未検証。
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
 
 ---
 
