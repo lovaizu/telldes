@@ -1,3 +1,5 @@
+Rn version: 0.8.0
+
 Telldes Figma Plugin 実装フェーズ
 ======================
 
@@ -60,8 +62,11 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 - [ ] 具体的な作業ステップ1
 - [ ] 具体的な作業ステップ2
 - [ ] ...
-- [ ] セルフチェック（チェック結果: `docs/checks/{タスクID}.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/{タスクID}.md`）
+- [ ] QA エキスパートレビュー（subagent）
+- [ ] Craft エキスパートレビュー（subagent、タスクの媒体に応じて）
+- [ ] Verification エキスパートレビュー（subagent、タスクの媒体に応じて）
+- [ ] （構造・方針を作る／変えるタスクのみ）Design エキスパートレビュー（subagent）
 
 **完了条件**:
 - 完了を客観的に判定できる基準を1件ずつ箇条書きで記載する
@@ -179,15 +184,15 @@ Ph-1: プロジェクトセットアップ
 **前提**: なし
 
 **作業内容**:
-- [ ] `package.json` 作成（name: telldes, scripts: build/dev/test）
-- [ ] TypeScript 設定（`tsconfig.json`）
-- [ ] esbuild 設定（plugin code → `dist/code.js`, UI → `dist/ui.html`）
-- [ ] `manifest.json`（Figma プラグインマニフェスト。editorType: figma, ui: true）
-- [ ] `src/code.ts`（プラグインメインエントリ。`figma.showUI()` のみ）
-- [ ] `src/ui.tsx`（UI エントリ。3モード切替タブ: チェック / note / 書き出し）
-- [ ] Figma でローカルプラグインとして読み込み、UI 表示を確認
-- [ ] セルフチェック（チェック結果: `docs/checks/S-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] `package.json` 作成（name: telldes, scripts: build/dev/test）
+- [x] TypeScript 設定（`tsconfig.json`）
+- [x] esbuild 設定（plugin code → `dist/code.js`, UI → `dist/ui.html`）
+- [x] `manifest.json`（Figma プラグインマニフェスト。editorType: figma, ui: true）
+- [x] `src/code.ts`（プラグインメインエントリ。`figma.showUI()` のみ）
+- [x] `src/ui.tsx`（UI エントリ。3モード切替タブ: チェック / note / 書き出し）
+- [x] Figma でローカルプラグインとして読み込み、UI 表示を確認
+- [x] セルフチェック（チェック結果: `docs/checks/S-1.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - `npm run build` でエラーなくビルドが完了すること
@@ -207,16 +212,16 @@ Ph-2: チェック機能
 **前提**: S-1 完了
 
 **作業内容**:
-- [ ] `src/checks/traversal.ts` — ページ内全ノードの再帰走査関数
-- [ ] `src/checks/structureChecks.ts` — 以下4つのチェック実装:
+- [x] `src/checks/traversal.ts` — ページ内全ノードの再帰走査関数
+- [x] `src/checks/structureChecks.ts` — 以下4つのチェック実装:
   - Auto Layout 未適用フレームの検出
   - Figma デフォルト名（"Frame 1", "Rectangle 3" 等）の検出
   - 同一親内の重複レイヤー名の検出
   - 背景を子レイヤーとして配置しているケースの検出
-- [ ] 各チェックに改善方法メッセージを付与（設計書 4.7.2 節の文言通り）
-- [ ] テスト作成（各チェックの正常系・違反検出系）
-- [ ] セルフチェック（チェック結果: `docs/checks/C-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] 各チェックに改善方法メッセージを付与（設計書 4.7.2 節の文言通り）
+- [x] テスト作成（各チェックの正常系・違反検出系）
+- [x] セルフチェック（チェック結果: `docs/checks/C-1.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - 4つの構造チェックそれぞれについて、違反があるノードが正しく検出されること
@@ -233,15 +238,15 @@ Ph-2: チェック機能
 **前提**: C-1 完了
 
 **作業内容**:
-- [ ] `src/checks/sizingChecks.ts` — Hug/Fill/Fixed 以外のサイジング検出
-- [ ] `src/checks/variableChecks.ts` — 以下3つの提案チェック:
+- [x] `src/checks/sizingChecks.ts` — Hug/Fill/Fixed 以外のサイジング検出
+- [x] `src/checks/variableChecks.ts` — 以下3つの提案チェック:
   - 同じ色が3箇所以上使用されている場合の提案
   - 同じ spacing/padding 値が複数箇所の提案
   - 同じ font-size 値が複数箇所の提案
-- [ ] エラーと提案を区別する型定義（`CheckResult { level: 'error' | 'suggestion', ... }`）
-- [ ] テスト作成
-- [ ] セルフチェック（チェック結果: `docs/checks/C-2.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] エラーと提案を区別する型定義（`CheckResult { level: 'error' | 'suggestion', ... }`）
+- [x] テスト作成
+- [x] セルフチェック（チェック結果: `docs/checks/C-2.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - サイジングチェックが Hug/Fill/Fixed 以外を正しく検出すること
@@ -258,14 +263,14 @@ Ph-2: チェック機能
 **前提**: C-1, C-2 完了
 
 **作業内容**:
-- [ ] チェック実行ボタンの実装
-- [ ] 結果一覧表示（ノード名、違反内容、改善方法）
-- [ ] エラー（赤）と提案（青/グレー）の視覚的区別
-- [ ] 結果クリックで対象ノードを選択＋ビューポート移動（`figma.viewport.scrollAndZoomIntoView`）
-- [ ] エラーゼロ時のパス表示
-- [ ] Figma 上で動作確認
-- [ ] セルフチェック（チェック結果: `docs/checks/C-3.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] チェック実行ボタンの実装
+- [x] 結果一覧表示（ノード名、違反内容、改善方法）
+- [x] エラー（赤）と提案（青/グレー）の視覚的区別
+- [x] 結果クリックで対象ノードを選択＋ビューポート移動（`figma.viewport.scrollAndZoomIntoView`）
+- [x] エラーゼロ時のパス表示
+- [x] Figma 上で動作確認
+- [x] セルフチェック（チェック結果: `docs/checks/C-3.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - チェック実行後に結果一覧が表示されること
@@ -285,14 +290,14 @@ Ph-3: note 入力 UI
 **前提**: S-1 完了
 
 **作業内容**:
-- [ ] `src/note/noteHandler.ts` — `getPluginData('note')` / `setPluginData('note', value)` のラッパー
-- [ ] UI: ノード選択時に既存 note をテキストエリアに表示
-- [ ] UI: 保存ボタンで note を保存
-- [ ] `setRelaunchData({ editNote: '' })` で note 設定済みノードにプロパティパネルボタン表示
-- [ ] ノード選択変更イベント（`figma.on('selectionchange', ...)`）でUI更新
-- [ ] Figma 上で動作確認
-- [ ] セルフチェック（チェック結果: `docs/checks/N-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] `src/note/noteHandler.ts` — `getPluginData('note')` / `setPluginData('note', value)` のラッパー
+- [x] UI: ノード選択時に既存 note をテキストエリアに表示
+- [x] UI: 保存ボタンで note を保存
+- [x] `setRelaunchData({ editNote: '' })` で note 設定済みノードにプロパティパネルボタン表示
+- [x] ノード選択変更イベント（`figma.on('selectionchange', ...)`）でUI更新
+- [x] Figma 上で動作確認
+- [x] セルフチェック（チェック結果: `docs/checks/N-1.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - ノード選択時に既存 note が表示されること
@@ -312,7 +317,7 @@ Ph-4: 書き出し機能
 **前提**: S-1 完了
 
 **作業内容**:
-- [ ] `src/export/specBuilder.ts` — ノードツリー → spec.json オブジェクト生成
+- [x] `src/export/specBuilder.ts` — ノードツリー → spec.json オブジェクト生成
   - 階層分類ロジック: ページ直下 = section、子を持つ = block、末端 = element
   - `path` 生成（`>` 区切りのレイヤーパス）
   - `layout` プロパティ抽出（設計書 4.6 節の Auto Layout プロパティ全件）
@@ -321,10 +326,10 @@ Ph-4: 書き出し機能
   - `note` 付与（`getPluginData('note')` が空でないノード）
   - `screenshot` パス付与（section + 子を持つ block）
   - Variable 参照時の `*Token` フィールド付与
-- [ ] `viewport` の width をページフレームの幅から取得
-- [ ] テスト作成（ノードモックで各プロパティの抽出を検証）
-- [ ] セルフチェック（チェック結果: `docs/checks/E-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] `viewport` の width をページフレームの幅から取得
+- [x] テスト作成（ノードモックで各プロパティの抽出を検証）
+- [x] セルフチェック（チェック結果: `docs/checks/E-1.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - 出力 JSON が設計書 4.5.2 節のスキーマに準拠すること
@@ -343,14 +348,14 @@ Ph-4: 書き出し機能
 **前提**: S-1 完了
 
 **作業内容**:
-- [ ] `src/export/tokensBuilder.ts` — `figma.variables.getLocalVariables()` からトークン JSON 生成
+- [x] `src/export/tokensBuilder.ts` — `figma.variables.getLocalVariables()` からトークン JSON 生成
   - Variable のコレクション/グループ構造を JSON の階層に変換
   - `$type` の決定（color, number）
   - `$value` の解決（resolvedValue）
-- [ ] Variables 未定義時は tokens.json を出力しない制御
-- [ ] テスト作成
-- [ ] セルフチェック（チェック結果: `docs/checks/E-2.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] Variables 未定義時は tokens.json を出力しない制御
+- [x] テスト作成
+- [x] セルフチェック（チェック結果: `docs/checks/E-2.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - 出力 JSON が設計書 4.5.1 節のフォーマットに準拠すること
@@ -367,19 +372,19 @@ Ph-4: 書き出し機能
 **前提**: E-1 完了
 
 **作業内容**:
-- [ ] `src/export/screenshotExporter.ts`
+- [x] `src/export/screenshotExporter.ts`
   - セクション: 必須で書き出し
   - 子を持つブロック: 自動で書き出し
   - エレメント（末端）: 書き出さない
   - ファイル名: レイヤーパスを `--` で結合（例: `pricing--plans--plan-pro.png`）
   - フォーマット: PNG, scale 2x
-- [ ] `src/export/assetExporter.ts`
+- [x] `src/export/assetExporter.ts`
   - ラスター画像: PNG 2x → `assets/images/{path}.png`
   - ベクターアセット: SVG → `assets/icons/{path}.svg`
   - ファイル名: レイヤーパスを `--` で結合
-- [ ] テスト作成
-- [ ] セルフチェック（チェック結果: `docs/checks/E-3.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] テスト作成
+- [x] セルフチェック（チェック結果: `docs/checks/E-3.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - セクションのスクリーンショットが必ず書き出されること
@@ -397,7 +402,7 @@ Ph-4: 書き出し機能
 **前提**: E-1, E-2, E-3 完了
 
 **作業内容**:
-- [ ] `src/export/zipPackager.ts` — JSZip で以下の構造を生成:
+- [x] `src/export/zipPackager.ts` — JSZip で以下の構造を生成:
   ```
   telldes-export/
   ├── prompt.md
@@ -409,12 +414,12 @@ Ph-4: 書き出し機能
   ├── assets/icons/
   └── README.md
   ```
-- [ ] エラーゼロの場合のみ書き出し実行可能（チェック結果との連携）
-- [ ] UI: 書き出しボタン＋ダウンロードリンク表示
-- [ ] Blob 生成→ダウンロード処理
-- [ ] Figma 上で動作確認（実際に zip をダウンロードし内容を検証）
-- [ ] セルフチェック（チェック結果: `docs/checks/E-4.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] エラーゼロの場合のみ書き出し実行可能（チェック結果との連携）
+- [x] UI: 書き出しボタン＋ダウンロードリンク表示
+- [x] Blob 生成→ダウンロード処理
+- [x] Figma 上で動作確認（実際に zip をダウンロードし内容を検証）
+- [x] セルフチェック（チェック結果: `docs/checks/E-4.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - チェックエラーがある状態では書き出しボタンが無効化されること
@@ -434,7 +439,7 @@ Ph-5: CC プロンプト＋ステアリングテンプレート
 **前提**: E-4 完了
 
 **作業内容**:
-- [ ] `src/templates/prompt.md` テンプレート作成（設計書 4.8.1 節の7構成に準拠）:
+- [x] `src/templates/prompt.md` テンプレート作成（設計書 4.8.1 節の7構成に準拠）:
   1. 概要
   2. 入力データの読み方
   3. 最初にやること（steering.md の確認フロー）
@@ -442,9 +447,9 @@ Ph-5: CC プロンプト＋ステアリングテンプレート
   5. HTML 導出ルール（設計書 4.3.6 節）
   6. Auto Layout → CSS flexbox 対応表（設計書 4.6 節）
   7. 完了時チェック
-- [ ] テンプレート内の動的部分（viewport幅等）をプレースホルダー化
-- [ ] セルフチェック（チェック結果: `docs/checks/P-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] テンプレート内の動的部分（viewport幅等）をプレースホルダー化
+- [x] セルフチェック（チェック結果: `docs/checks/P-1.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - prompt.md が設計書 4.8.1 節の7構成を全て含むこと
@@ -460,13 +465,13 @@ Ph-5: CC プロンプト＋ステアリングテンプレート
 **前提**: P-1 完了
 
 **作業内容**:
-- [ ] `src/templates/steering.md` テンプレート作成（設計書 4.8.2 節に準拠）:
+- [x] `src/templates/steering.md` テンプレート作成（設計書 4.8.2 節に準拠）:
   - 確認項目（出力形式、CSS方針、レスポンシブ、画像パス、コンポーネント粒度、フォント、デプロイ先、OGP/meta）
   - タスクリスト（コーディングステップ＋完了チェック）
   - ルール（コーディング規約）
-- [ ] spec.json / note から自動記入可能な項目の特定とマーキング
-- [ ] セルフチェック（チェック結果: `docs/checks/P-2.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] spec.json / note から自動記入可能な項目の特定とマーキング
+- [x] セルフチェック（チェック結果: `docs/checks/P-2.md`）
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - steering.md が確認項目・タスクリスト・ルールの3セクションを含むこと
@@ -488,7 +493,7 @@ Ph-6: レスポンシブ対応＋統合テスト
 - [x] トップレベルフレームごとに spec.json + screenshots/ + assets/ をフレーム名フォルダに出力
 - [x] tokens.json はルート（共通）に配置
 - [x] セルフチェック（チェック結果: `docs/checks/R-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
 - 各フレームがフレーム名のフォルダに出力されること
@@ -512,14 +517,17 @@ Ph-6: レスポンシブ対応＋統合テスト
   - prompt.md, steering.md が含まれること
 - [ ] CC に zip を渡してコーディングさせ、デザインカンプとの一致度を確認
 - [ ] 不一致があれば原因を特定し修正
-- [ ] セルフチェック（チェック結果: `docs/checks/T-1.md`）
-- [ ] ユーザーレビュー依頼・OK取得
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/T-1.md`）
+- [ ] QA エキスパートレビュー（subagent）
+- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
 
 **完了条件**:
-- テスト用 LP のチェックが全パスすること
-- 出力 zip の全ファイルが設計書準拠であること
-- CC が zip からコーディングした結果がデザインカンプと一致すること（レイアウト・色・サイズ・間隔）
-- 手戻りが発生した場合は原因と対策が記録されていること
+- テスト用 LP に対する Review がエラー0件で終了している状態であること（suggestion の残存は可、内訳が記録されていること）
+- 出力 zip の全ファイル（spec.json / tokens.json / screenshots / assets / prompt.md / steering.md / README.md）が設計書 4.5 節のフォーマットに準拠している状態であること
+- CC が zip のみからコーディングした結果が、デザインカンプとレイアウト・色・サイズ・間隔の各観点で一致している状態であること
+- 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンのままであること、(b) 修正によって既存の出力フィールド・チェックの挙動が退行していないこと、(c) 書き出し時にノード単位のエクスポートエラーが発生していないこと
+- 手戻りが発生した場合、その原因と対策が `docs/checks/T-1.md` に記録されている状態であること
 
 ---
 
@@ -631,19 +639,15 @@ Ph-7: doc-first ギャップ解消
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-07-02
-* **Last completed**: G-5 (tokens.json 出力条件のdoc-first ギャップ解消). Ph-7 (G-1〜G-5) is now fully complete.
-* **Next**: T-1（統合テスト）— requires the user to build a test Figma design first; see below.
-* **Notes**:
-  - User instruction in effect for this whole project (saved to persistent memory as `feedback-skip-per-task-review-gate`): do NOT pause for per-task "user review" approval — proceed autonomously through Execute → Verify → Triage → Complete → check-off for every task; user reviews everything together on the PR at the end. Still write full check files and commit a `complete task #{id}` marker per task.
-  - G-3, G-4, G-5 all completed, committed, and pushed this session: G-3 commit `8e2e201` (4 suggestion-level checks), G-4 commit `2726233` (Export README excluded-items section + a pre-existing `.filter(Boolean)` blank-line bug fixed along the way), G-5 commit `86f6f66` (doc-first gap: `tokensBuilder.ts`'s output guard was already correct from G-2 — updated 3 stale "Variablesが定義されている場合のみ" mentions in `telldes-design.md` and added a test for the "unsupported Variables + Text Style present" combination; 151/151 tests passing).
-  - Working tree is clean; nothing pending to commit.
-  - **All of Ph-1〜Ph-7 are complete except T-1.** T-1 (integration test) requires the user to manually build a test Figma design (header/hero/features/pricing/footer, all frames with Auto Layout, meaningful layer names) — this cannot be done autonomously (no Figma access). On resume: confirm with the user whether the test design is ready. If not, ask them to build it. Once ready, walk through Review → fix all errors → Export → verify zip contents against 4.5 → hand the zip to Claude Code for a coding test → compare output against the design comp, per T-1's 作業内容/完了条件 in this doc.
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in the design doc; not a re-narration of the session (that lives in `git log`)
 
 ---
 
-現在の状態（2026-05-29時点）
+現在の状態（2026-09-05時点）
 -----
 
 * **ブランチ**: `worktree-figma-plugins`
@@ -664,7 +668,12 @@ State
   - R-1: 全フレーム個別出力（LP/HP 両対応） ✅
   - 設計書 vs 実装の整合性監査＋9件修正 ✅
   - マルチエージェント・エキスパートレビュー 6ラウンド（収束まで反復）＋確定指摘の準拠修正 ✅（2026-05-29）
-* **テスト**: 101テスト全パス
+  - G-1: tokens.json typography トークンスキーマの設計書追記 ✅
+  - G-2: Text Style → typography トークン実装 ✅
+  - G-3: 告知チェック4種（suggestion）実装 ✅
+  - G-4: Export README 除外物明記 ✅
+  - G-5: tokens.json 出力条件の更新 ✅
+* **テスト**: 151テスト全パス
 * **UI ラベル**: Review / Notes / Export（英語、デザイナー向け）
 * **出力構造**: フレーム名ごとにフォルダ分け（LP 1フレームでも HP 複数フレームでも同じ構造）
 * **設計書との整合**: 確認済み（2026-05-29）
