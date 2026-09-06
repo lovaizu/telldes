@@ -643,11 +643,11 @@ Ph-7: doc-first ギャップ解消
 State
 -----
 
-* **Status**: not suspended
-* **Date**: YYYY-MM-DD
-* **Last completed**: #N description
-* **Next**: #N description
-* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+* **Status**: paused
+* **Date**: 2026-09-06
+* **Last completed**: R-1 まで全タスク完了（S-1〜R-1, G-1〜G-5）。T-1 のステップ1（テスト用 Figma デザイン作成）まで完了。
+* **Next**: T-1 のステップ2 — Figma で Review を実行し、検出エラーを全て潰してパスさせる。
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。T-1 は Figma 実機必須のため自律実行不可（詳細は T-1 タスクの「進行メモ」参照）。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
 
 ---
 
