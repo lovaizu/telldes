@@ -1,6 +1,6 @@
 import type JSZip from "jszip";
 import type { ExportDataMessage, ExportFile } from "../messages";
-import { buildReadme } from "./readmeBuilder";
+import { buildReadme, type ReadmeFrame } from "./readmeBuilder";
 import { resolveFrameFolderNames } from "./layerPath";
 
 /**
@@ -55,6 +55,9 @@ export async function buildExportZip({
   }
 
   const allSections: { name: string }[] = [];
+  // What each folder ends up holding, so the README's Contents lines describe
+  // the zip rather than a fixed promise of screenshots and assets.
+  const readmeFrames: ReadmeFrame[] = [];
   // Primary viewport = the first frame's width (not whichever frame is last).
   const primaryWidth = data.frames[0]?.spec?.viewport?.width ?? 1440;
   // Same function the README's layer-path roots use (exclusions.ts), so the
@@ -65,6 +68,11 @@ export async function buildExportZip({
     const folder = root.folder(frameNames[idx])!;
     folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
     addFilesToFolder(folder, frame.screenshots, frame.assets);
+    readmeFrames.push({
+      name: frameNames[idx],
+      hasScreenshots: frame.screenshots.length > 0,
+      hasAssets: frame.assets.length > 0,
+    });
     allSections.push(...(frame.spec?.children ?? []));
   });
 
@@ -82,7 +90,7 @@ export async function buildExportZip({
   root.file(
     "README.md",
     buildReadme({
-      frameNames,
+      frames: readmeFrames,
       hasTokens: Boolean(data.tokens),
       // Not defaulted: a missing report must throw here (caught by the caller
       // and surfaced as an export error) rather than produce a README that

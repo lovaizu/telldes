@@ -18,6 +18,17 @@ function makeData(overrides: Partial<ExportDataMessage> = {}): ExportDataMessage
   };
 }
 
+/** Frame payload with the fields every test varies, defaulted to empty. */
+function makeFrame(overrides: Partial<ExportDataMessage["frames"][number]> = {}) {
+  return {
+    name: "Home",
+    spec: { children: [] },
+    screenshots: [],
+    assets: [],
+    ...overrides,
+  };
+}
+
 async function buildFiles(data: ExportDataMessage): Promise<Record<string, string>> {
   const zip = await buildExportZip({
     data,
@@ -118,5 +129,87 @@ describe("buildExportZip", () => {
     );
     expect(files["telldes-export/prompt.md"]).toBe("prompt 375");
     expect(files["telldes-export/steering.md"]).toContain("Code section: **hero**");
+  });
+
+  it("takes the primary viewport from the first frame, not the last", async () => {
+    // prompt.md tells Claude Code which viewport to code against; the frame
+    // order on the page is the designer's statement of which one is primary.
+    const files = await buildFiles(
+      makeData({
+        frames: [
+          makeFrame({ name: "Mobile", spec: { viewport: { width: 375 } } }),
+          makeFrame({ name: "Desktop", spec: { viewport: { width: 1440 } } }),
+        ],
+      }),
+    );
+    expect(files["telldes-export/prompt.md"]).toBe("prompt 375");
+    expect(files["telldes-export/steering.md"]).toContain("steering 375");
+  });
+
+  it("writes each frame's screenshots and assets into its own folder", async () => {
+    // The step that turns exported bytes into zip entries. Everything else
+    // here passes empty lists, so without this the whole path is unexercised.
+    const hero = new Uint8Array([137, 80, 78, 71]);
+    const icon = new Uint8Array([60, 115, 118, 103]);
+    const zip = await buildExportZip({
+      data: makeData({
+        frames: [
+          makeFrame({
+            screenshots: [{ path: "screenshots/hero.png", data: hero }],
+            assets: [{ path: "assets/icons/x.svg", data: icon }],
+          }),
+        ],
+      }),
+      promptTemplate: "prompt {{VIEWPORT_WIDTH}}",
+      steeringTemplate: "steering {{SECTION_TASKS}}",
+    });
+
+    const shot = zip.files["telldes-export/Home/screenshots/hero.png"];
+    const asset = zip.files["telldes-export/Home/assets/icons/x.svg"];
+    expect(shot).toBeDefined();
+    expect(asset).toBeDefined();
+    expect(await shot.async("uint8array")).toEqual(hero);
+    expect(await asset.async("uint8array")).toEqual(icon);
+  });
+
+  it("describes each folder by what it actually holds", async () => {
+    // A childless frame yields a folder with nothing but spec.json; the
+    // Contents list must not promise screenshots and assets that aren't there.
+    const files = await buildFiles(
+      makeData({
+        frames: [
+          makeFrame({
+            name: "Home",
+            screenshots: [{ path: "screenshots/hero.png", data: new Uint8Array([1]) }],
+            assets: [{ path: "assets/x.svg", data: new Uint8Array([2]) }],
+          }),
+          makeFrame({ name: "Bare" }),
+        ],
+      }),
+    );
+    const readme = files["telldes-export/README.md"];
+    expect(readme).toContain(
+      '- `Home/` — spec.json, screenshots, and assets for frame "Home"',
+    );
+    expect(readme).toContain('- `Bare/` — spec.json for frame "Bare"');
+  });
+
+  it("collects section tasks from every frame, not just the first", async () => {
+    const files = await buildFiles(
+      makeData({
+        frames: [
+          makeFrame({ name: "Home", spec: { children: [{ name: "hero" }] } }),
+          makeFrame({ name: "Pricing", spec: { children: [{ name: "footer" }] } }),
+        ],
+      }),
+    );
+    const steering = files["telldes-export/steering.md"];
+    expect(steering).toContain("Code section: **hero**");
+    expect(steering).toContain("Code section: **footer**");
+  });
+
+  it("says so explicitly when no frame yielded a section", async () => {
+    const files = await buildFiles(makeData({ frames: [makeFrame()] }));
+    expect(files["telldes-export/steering.md"]).toContain("- [ ] (no sections found)");
   });
 });

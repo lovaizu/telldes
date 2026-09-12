@@ -1,13 +1,18 @@
 import { describe, it, expect } from "vitest";
-import { buildReadme } from "../readmeBuilder";
+import { buildReadme, type ReadmeFrame } from "../readmeBuilder";
 import { emptyExclusionReport, type ExclusionReport } from "../exclusions";
 
 function makeExclusions(overrides: Partial<ExclusionReport> = {}): ExclusionReport {
   return { ...emptyExclusionReport(), ...overrides };
 }
 
+/** A frame folder holding all three of spec.json, screenshots and assets. */
+function makeFrame(name: string, overrides: Partial<ReadmeFrame> = {}): ReadmeFrame {
+  return { name, hasScreenshots: true, hasAssets: true, ...overrides };
+}
+
 const base = {
-  frameNames: ["Home"],
+  frames: [makeFrame("Home")],
   hasTokens: true,
   exclusions: emptyExclusionReport(),
 };
@@ -26,7 +31,10 @@ function contentsSection(readme: string): string {
 
 describe("buildReadme", () => {
   it("lists the contents, including tokens.json and one line per frame folder", () => {
-    const readme = buildReadme({ ...base, frameNames: ["Home", "Pricing"] });
+    const readme = buildReadme({
+      ...base,
+      frames: [makeFrame("Home"), makeFrame("Pricing")],
+    });
     expect(readme).toContain("# Telldes Export");
     expect(readme).toContain("- `tokens.json` — Design tokens (W3C DTCG format)");
     expect(readme).toContain(
@@ -47,9 +55,56 @@ describe("buildReadme", () => {
   });
 
   it("lists no frame folders when the page has no exportable frames", () => {
-    const readme = buildReadme({ ...base, frameNames: [] });
+    const readme = buildReadme({ ...base, frames: [] });
     expect(contentsSection(readme)).not.toContain("spec.json, screenshots");
     expect(contentsSection(readme)).toContain("- `prompt.md`");
+  });
+
+  it("names only the files a frame folder actually holds", () => {
+    // A childless frame produces neither screenshots nor assets, and the
+    // Contents list is the one place a reader reconciles README against zip
+    // (design doc 4.7.2) — promising folders that aren't there breaks that.
+    const readme = buildReadme({
+      ...base,
+      frames: [makeFrame("Bare", { hasScreenshots: false, hasAssets: false })],
+    });
+    expect(contentsSection(readme)).toContain(
+      '- `Bare/` — spec.json for frame "Bare"',
+    );
+  });
+
+  it("lists spec.json and screenshots for a frame that produced no assets", () => {
+    const readme = buildReadme({
+      ...base,
+      frames: [makeFrame("Home", { hasAssets: false })],
+    });
+    expect(contentsSection(readme)).toContain(
+      '- `Home/` — spec.json and screenshots for frame "Home"',
+    );
+  });
+
+  it("lists all three when the folder holds screenshots and assets", () => {
+    expect(contentsSection(buildReadme(base))).toContain(
+      '- `Home/` — spec.json, screenshots, and assets for frame "Home"',
+    );
+  });
+
+  it("names a mixed-Color-Style text node by what it is, not by a style name", () => {
+    // `fillStyleId === figma.mixed` resolves to no single style, so the
+    // detection layer carries `null` and the wording lives here.
+    const section = excludedSection(
+      buildReadme({
+        ...base,
+        exclusions: makeExclusions({
+          colorStyles: [
+            { styleName: null, examplePaths: ["Home > Label"], layerCount: 1 },
+          ],
+        }),
+      }),
+    );
+    expect(section).toContain(
+      "  - (multiple Color Styles on one text node) — used on 1 layer: `Home > Label`",
+    );
   });
 
   it("always states that the template files are not derived from design nodes", () => {

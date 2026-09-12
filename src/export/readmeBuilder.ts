@@ -10,11 +10,49 @@ import type { ExclusionReport } from "./exclusions";
  * detections produces no output at all — the section states facts about this
  * export, not a checklist of things that might happen.
  */
+
+/** One exported frame folder, as the Contents list needs to describe it. */
+export interface ReadmeFrame {
+  /** Zip folder name, already de-duplicated. */
+  name: string;
+  /** Whether `screenshots/` files were written into the folder. */
+  hasScreenshots: boolean;
+  /** Whether `assets/` files were written into the folder. */
+  hasAssets: boolean;
+}
+
 export interface ReadmeInput {
-  /** Zip folder name per exported frame, already de-duplicated. */
-  frameNames: string[];
+  frames: ReadmeFrame[];
   hasTokens: boolean;
   exclusions: ExclusionReport;
+}
+
+/**
+ * Wording for a text node whose characters carry several Color Styles at once
+ * (`fillStyleId === figma.mixed`): there is no single style to name, so the
+ * entry says so instead. Lives here rather than in the detection layer because
+ * it is README prose, not a style name — exclusions.ts carries `null`.
+ */
+const MIXED_COLOR_STYLE_LABEL = "multiple Color Styles on one text node";
+
+/**
+ * Contents line for one frame folder. Only the files actually written are
+ * listed: a childless frame yields a folder holding nothing but `spec.json`,
+ * and the README is the one file whose job is to be reconcilable against the
+ * zip the reader is holding (design doc 4.7.2).
+ */
+function frameContentsLine({ name, hasScreenshots, hasAssets }: ReadmeFrame): string {
+  const parts = ["spec.json"];
+  if (hasScreenshots) parts.push("screenshots");
+  if (hasAssets) parts.push("assets");
+  const last = parts[parts.length - 1];
+  const listed =
+    parts.length === 1
+      ? last
+      : parts.length === 2
+        ? `${parts[0]} and ${last}`
+        : `${parts.slice(0, -1).join(", ")}, and ${last}`;
+  return `- \`${name}/\` — ${listed} for frame "${name}"`;
 }
 
 /** `- <lead>` followed by one indented `  - <item>` line per detection. */
@@ -32,12 +70,17 @@ function exclusionBullet(lead: string, items: string[]): string[] {
  * count is fully covered by the examples the line must not imply there are
  * more, hence the two phrasings.
  */
-function usageLine(name: string, examplePaths: string[], layerCount: number): string {
+function usageLine(
+  name: string | null,
+  examplePaths: string[],
+  layerCount: number,
+): string {
+  const label = name === null ? `(${MIXED_COLOR_STYLE_LABEL})` : `\`${name}\``;
   const paths = examplePaths.map((p) => `\`${p}\``).join(", ");
   const layers = `${layerCount} ${layerCount === 1 ? "layer" : "layers"}`;
   return layerCount > examplePaths.length
-    ? `\`${name}\` — used on ${layers}, e.g. ${paths}`
-    : `\`${name}\` — used on ${layers}: ${paths}`;
+    ? `${label} — used on ${layers}, e.g. ${paths}`
+    : `${label} — used on ${layers}: ${paths}`;
 }
 
 function exclusionLines(exclusions: ExclusionReport): string[] {
@@ -68,7 +111,7 @@ function exclusionLines(exclusions: ExclusionReport): string[] {
 }
 
 export function buildReadme({
-  frameNames,
+  frames,
   hasTokens,
   exclusions,
 }: ReadmeInput): string {
@@ -82,9 +125,7 @@ export function buildReadme({
     "- `prompt.md` — Coding instructions for Claude Code",
     "- `steering.md` — Pre-coding checklist, tasks, and rules",
     hasTokens ? "- `tokens.json` — Design tokens (W3C DTCG format)" : null,
-    ...frameNames.map(
-      (n) => `- \`${n}/\` — spec.json, screenshots, and assets for frame "${n}"`,
-    ),
+    ...frames.map(frameContentsLine),
     "",
     "## Not included in this export",
     "",
