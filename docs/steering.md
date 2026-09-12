@@ -755,11 +755,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: not suspended
-* **Date**: 2026-09-12
-* **Last completed**: G-5（Ph-7 完了）。T-1 はステップ1のみ完了、Figma 実機待ちで中断中。
-* **Next**: U-1 — Variables 提案チェックの削除と源泉・範囲告知の README 移設。
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。実使用フィードバックで Ph-8（U-1, U-2）を追加、T-1 の前提に組み込んだため T-1 は Ph-8 完了後に再開する。T-1 は Figma 実機必須のため自律実行不可（詳細は T-1 の「進行メモ」）。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
+* **Status**: paused
+* **Date**: 2026-09-13
+* **Last completed**: G-5（Ph-7 完了）。U-1 は作業ステップ全完了・レビュー4軸実施済みだが、未解決指摘の扱い待ちで未チェック。
+* **Next**: U-1 の決着 — 未解決指摘6件（詳細は U-1 の「進行メモ」）を潰すもう1ラウンドを回すか、U-1 を確定して U-2 へ進み残りを U-3 に寄せるかをユーザーが選ぶ。
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。U-1 は修正ラウンド上限3回を使い切った状態（最終レビューは QA/Craft/Verification PASS・Design FAIL、完了条件7項目は全員 OK）。実使用フィードバックで Ph-8（U-1, U-2）を追加し T-1 の前提に組み込んだため T-1 は Ph-8 完了後に再開。T-1 は Figma 実機必須のため自律実行不可。U-3（除外物の検出漏れ解消）は U-1 中に発見し新規追加。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
 
 ---
 
