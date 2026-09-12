@@ -7,7 +7,6 @@ import {
   collectExclusions,
   emptyExclusionReport,
   isExportedFrame,
-  MIXED_COLOR_STYLE_NAME,
 } from "../exclusions";
 import { resolveFrameFolderNames } from "../layerPath";
 import { buildReadme } from "../readmeBuilder";
@@ -42,9 +41,26 @@ function makeNode(overrides: Record<string, unknown> = {}): SceneNode {
   } as unknown as SceneNode;
 }
 
+/**
+ * Page-root segment names, for the detectors that take them. Empty here on
+ * purpose: these unit tests build nodes without a page-root frame, so every
+ * segment comes from the sibling rule. The page-root naming itself — and the
+ * fact that it is spelled like the zip folder — is pinned by the
+ * `collectExclusions` suites below, which is the only entry point production
+ * uses. The parameter is required (no default) so production cannot silently
+ * fall through to the raw frame name.
+ */
+const NO_ROOT_NAMES: ReadonlyMap<string, string> = new Map();
+
+const colorUsage = (nodes: SceneNode[]) => findColorStyleUsage(nodes, NO_ROOT_NAMES);
+const variableUsage = (nodes: SceneNode[]) =>
+  findStringBooleanVariableUsage(nodes, NO_ROOT_NAMES);
+const bareRootComponents = (nodes: SceneNode[]) =>
+  findBareRootComponents(nodes, NO_ROOT_NAMES);
+
 /** Layer paths of every grouped Color Style entry, in report order. */
 function colorPaths(nodes: SceneNode[]): string[] {
-  return findColorStyleUsage(nodes).flatMap((u) => u.examplePaths);
+  return colorUsage(nodes).flatMap((u) => u.examplePaths);
 }
 
 /** frame > child chain, rooted at the page, for layer-path assertions. */
@@ -96,41 +112,38 @@ describe("findColorStyleUsage", () => {
   });
 
   it("ignores a node with no fillStyleId", () => {
-    expect(findColorStyleUsage([makeNode({ fillStyleId: "" })])).toEqual([]);
+    expect(colorUsage([makeNode({ fillStyleId: "" })])).toEqual([]);
   });
 
   it("ignores a node without a fillStyleId field at all", () => {
     const node = makeNode();
     delete (node as unknown as Record<string, unknown>).fillStyleId;
-    expect(findColorStyleUsage([node])).toEqual([]);
+    expect(colorUsage([node])).toEqual([]);
   });
 
   it("detects a TextNode with mixed fillStyleId (partially Color-Style-styled characters)", () => {
     const node = makeNode({ name: "Label", fillStyleId: mixedSymbol });
-    expect(findColorStyleUsage([node])).toEqual([
-      { styleName: MIXED_COLOR_STYLE_NAME, examplePaths: ["Label"], layerCount: 1 },
+    expect(colorUsage([node])).toEqual([
+      { styleName: null, examplePaths: ["Label"], layerCount: 1 },
     ]);
   });
 
   it("keeps mixed-fill nodes in their own bucket, apart from single-style ones", () => {
     const mixed = makeNode({ id: "m", name: "Mixed", fillStyleId: mixedSymbol });
     const single = makeNode({ id: "s", name: "Single", fillStyleId: "S:1" });
-    expect(findColorStyleUsage([mixed, single]).map((u) => u.styleName)).toEqual([
-      MIXED_COLOR_STYLE_NAME,
-      "S:1",
-    ]);
+    expect(colorUsage([mixed, single]).map((u) => u.styleName)).toEqual([null, "S:1"]);
   });
 
   it("names the entry by the resolved Color Style name", () => {
     mockGetStyleById.mockReturnValue({ name: "brand/primary" });
     const node = makeNode({ name: "Title", fillStyleId: "S:1" });
-    expect(findColorStyleUsage([node])[0].styleName).toBe("brand/primary");
+    expect(colorUsage([node])[0].styleName).toBe("brand/primary");
   });
 
   it("falls back to the raw style id when the style cannot be resolved", () => {
     mockGetStyleById.mockReturnValue(null);
     const node = makeNode({ name: "Title", fillStyleId: "S:gone" });
-    expect(findColorStyleUsage([node])[0].styleName).toBe("S:gone");
+    expect(colorUsage([node])[0].styleName).toBe("S:gone");
   });
 
   it("survives a throwing getStyleById (Styles API unavailable)", () => {
@@ -138,7 +151,7 @@ describe("findColorStyleUsage", () => {
       throw new Error("no Styles API");
     });
     const node = makeNode({ name: "Title", fillStyleId: "S:1" });
-    expect(findColorStyleUsage([node])).toEqual([
+    expect(colorUsage([node])).toEqual([
       { styleName: "S:1", examplePaths: ["Title"], layerCount: 1 },
     ]);
   });
@@ -148,7 +161,7 @@ describe("findColorStyleUsage", () => {
     const nodes = ["a", "b", "c", "d", "e"].map((id) =>
       makeNode({ id, name: `Icon-${id}`, fillStyleId: "S:1" }),
     );
-    expect(findColorStyleUsage(nodes)).toEqual([
+    expect(colorUsage(nodes)).toEqual([
       {
         styleName: "brand/primary",
         examplePaths: ["Icon-a", "Icon-b", "Icon-c"],
@@ -160,7 +173,7 @@ describe("findColorStyleUsage", () => {
   it("keeps two distinct Color Styles as two entries", () => {
     const a = makeNode({ id: "a", name: "A", fillStyleId: "S:1" });
     const b = makeNode({ id: "b", name: "B", fillStyleId: "S:2" });
-    expect(findColorStyleUsage([a, b]).map((u) => u.styleName)).toEqual(["S:1", "S:2"]);
+    expect(colorUsage([a, b]).map((u) => u.styleName)).toEqual(["S:1", "S:2"]);
   });
 });
 
@@ -170,7 +183,7 @@ describe("findStringBooleanVariableUsage", () => {
     const node = makeNested(["Home", "Card"], {
       boundVariables: { characters: { type: "VARIABLE_ALIAS", id: "v1" } },
     });
-    expect(findStringBooleanVariableUsage([node])).toEqual([
+    expect(variableUsage([node])).toEqual([
       { variableName: "copy/label", examplePaths: ["Home > Card"], layerCount: 1 },
     ]);
   });
@@ -180,7 +193,7 @@ describe("findStringBooleanVariableUsage", () => {
     const node = makeNode({
       boundVariables: { visible: { type: "VARIABLE_ALIAS", id: "v2" } },
     });
-    expect(findStringBooleanVariableUsage([node])).toHaveLength(1);
+    expect(variableUsage([node])).toHaveLength(1);
   });
 
   it("detects a STRING/BOOLEAN binding inside an array field (e.g. fills)", () => {
@@ -188,7 +201,7 @@ describe("findStringBooleanVariableUsage", () => {
     const node = makeNode({
       boundVariables: { fills: [{ type: "VARIABLE_ALIAS", id: "v3" }] },
     });
-    expect(findStringBooleanVariableUsage([node])).toHaveLength(1);
+    expect(variableUsage([node])).toHaveLength(1);
   });
 
   it("ignores COLOR/FLOAT bound Variables", () => {
@@ -196,11 +209,11 @@ describe("findStringBooleanVariableUsage", () => {
     const node = makeNode({
       boundVariables: { fills: [{ type: "VARIABLE_ALIAS", id: "v4" }] },
     });
-    expect(findStringBooleanVariableUsage([node])).toEqual([]);
+    expect(variableUsage([node])).toEqual([]);
   });
 
   it("ignores a node with no boundVariables", () => {
-    expect(findStringBooleanVariableUsage([makeNode()])).toEqual([]);
+    expect(variableUsage([makeNode()])).toEqual([]);
   });
 
   it("survives a throwing getVariableById (Variables API unavailable)", () => {
@@ -210,7 +223,7 @@ describe("findStringBooleanVariableUsage", () => {
     const node = makeNode({
       boundVariables: { fills: [{ type: "VARIABLE_ALIAS", id: "v6" }] },
     });
-    expect(findStringBooleanVariableUsage([node])).toEqual([]);
+    expect(variableUsage([node])).toEqual([]);
   });
 
   it("counts a Variable bound on several fields of one node only once", () => {
@@ -222,7 +235,7 @@ describe("findStringBooleanVariableUsage", () => {
         fills: [{ type: "VARIABLE_ALIAS", id: "v1" }],
       },
     });
-    expect(findStringBooleanVariableUsage([node])).toEqual([
+    expect(variableUsage([node])).toEqual([
       { variableName: "copy/label", examplePaths: ["Label"], layerCount: 1 },
     ]);
   });
@@ -242,7 +255,7 @@ describe("findStringBooleanVariableUsage", () => {
         visible: { type: "VARIABLE_ALIAS", id: "v2" },
       },
     });
-    expect(findStringBooleanVariableUsage([node])).toEqual([
+    expect(variableUsage([node])).toEqual([
       { variableName: "copy/title", examplePaths: ["Label"], layerCount: 1 },
       { variableName: "copy/body", examplePaths: ["Label"], layerCount: 1 },
     ]);
@@ -257,7 +270,7 @@ describe("findStringBooleanVariableUsage", () => {
         boundVariables: { characters: { type: "VARIABLE_ALIAS", id: "v1" } },
       }),
     );
-    expect(findStringBooleanVariableUsage(nodes)).toEqual([
+    expect(variableUsage(nodes)).toEqual([
       {
         variableName: "copy/label",
         examplePaths: ["Label-a", "Label-b", "Label-c"],
@@ -271,29 +284,29 @@ describe("findStringBooleanVariableUsage", () => {
     const node = makeNode({
       boundVariables: { fills: [{ type: "VARIABLE_ALIAS", id: "gone" }] },
     });
-    expect(findStringBooleanVariableUsage([node])).toEqual([]);
+    expect(variableUsage([node])).toEqual([]);
   });
 });
 
 describe("findBareRootComponents", () => {
   it("reports the layer path of a COMPONENT placed directly on the page", () => {
     const node = makeNode({ name: "Button", type: "COMPONENT", parent: page });
-    expect(findBareRootComponents([node])).toEqual(["Button"]);
+    expect(bareRootComponents([node])).toEqual(["Button"]);
   });
 
   it("detects a COMPONENT_SET placed directly on the page", () => {
     const node = makeNode({ name: "Button Set", type: "COMPONENT_SET", parent: page });
-    expect(findBareRootComponents([node])).toEqual(["Button Set"]);
+    expect(bareRootComponents([node])).toEqual(["Button Set"]);
   });
 
   it("ignores a Component nested inside a frame", () => {
     const frame = { type: "FRAME", name: "Home", parent: page };
     const node = makeNode({ type: "COMPONENT", parent: frame });
-    expect(findBareRootComponents([node])).toEqual([]);
+    expect(bareRootComponents([node])).toEqual([]);
   });
 
   it("ignores non-Component node types at page root", () => {
-    expect(findBareRootComponents([makeNode({ type: "FRAME", parent: page })])).toEqual([]);
+    expect(bareRootComponents([makeNode({ type: "FRAME", parent: page })])).toEqual([]);
   });
 });
 
@@ -319,6 +332,22 @@ describe("findTypographyTokenCollisions", () => {
     const variable = makeVariable("color/brand-primary", "COLOR");
     const textStyle = makeTextStyle("brand-primary");
     expect(findTypographyTokenCollisions([variable], [textStyle])).toEqual([]);
+  });
+
+  it("requires typography/ to be the first path segment, not merely present", () => {
+    // `brand/typography/heading-md` occupies that exact slot in tokens.json,
+    // and Text Styles are only ever written under the *top-level* typography
+    // group — so no Text Style can overwrite it.
+    const nested = makeVariable("brand/typography/heading-md", "COLOR");
+    expect(
+      findTypographyTokenCollisions([nested], [makeTextStyle("heading-md")]),
+    ).toEqual([]);
+    // The same rule, on the input a substring test actually gets wrong: the
+    // sub-path after the prefix ("typography") does name a Text Style here.
+    const prefixed = makeVariable("brand/typography", "COLOR");
+    expect(
+      findTypographyTokenCollisions([prefixed], [makeTextStyle("typography")]),
+    ).toEqual([]);
   });
 
   it("ignores a typography/ Variable with no matching Text Style name", () => {
@@ -551,7 +580,7 @@ describe("collectExclusions", () => {
     const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
     const frame = makeContainer({ id: "f", name: "Home" }, [title]);
     makePage([frame]);
-    expect(findColorStyleUsage([title, title])).toEqual([
+    expect(colorUsage([title, title])).toEqual([
       { styleName: "S:1", examplePaths: ["Home > Title"], layerCount: 1 },
     ]);
   });
@@ -630,7 +659,7 @@ describe("collectExclusions rendered through buildReadme", () => {
     makePage([frame, button]);
 
     const readme = buildReadme({
-      frameNames: ["Home"],
+      frames: [{ name: "Home", hasScreenshots: true, hasAssets: true }],
       hasTokens: true,
       exclusions: collectExclusions({
         pageRootNodes: [frame, button],
@@ -646,5 +675,98 @@ describe("collectExclusions rendered through buildReadme", () => {
     expect(section).toContain(
       "  - `typography/heading-md` (Variable) vs `heading-md` (Text Style)",
     );
+  });
+});
+
+describe("page-root segment naming", () => {
+  // 4.5.2 / 4.7.2: every page-root sibling is named in one pass, so the README
+  // can never spell two different nodes the same way, nor claim that the frame
+  // owning a zip folder was not exported.
+  it("keeps the unsuffixed name on the frame and suffixes the bare Component", () => {
+    const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
+    const frame = makeContainer({ id: "f", name: "Home" }, [title]);
+    const component = makeNode({ id: "c", name: "Home", type: "COMPONENT" });
+    // Component first in page order: the frame still owns `Home/` in the zip.
+    makePage([component, frame]);
+
+    const report = collectExclusions({
+      pageRootNodes: [component, frame],
+      variables: [],
+      textStyles: [],
+    });
+    expect(report.colorStyles[0].examplePaths).toEqual(["Home > Title"]);
+    expect(report.bareRootComponents).toEqual(["Home-2"]);
+    expect(resolveFrameFolderNames([frame.name])).toEqual(["Home"]);
+  });
+
+  it("does not let a non-frame collide with a sanitized frame folder name", () => {
+    // `A/B` becomes folder `A-B`; a Component literally named `A-B` must not
+    // render as the same string, or one name would denote two different things.
+    const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
+    const frame = makeContainer({ id: "f", name: "A/B" }, [title]);
+    const component = makeNode({ id: "c", name: "A-B", type: "COMPONENT" });
+    makePage([frame, component]);
+
+    const report = collectExclusions({
+      pageRootNodes: [frame, component],
+      variables: [],
+      textStyles: [],
+    });
+    expect(report.colorStyles[0].examplePaths).toEqual(["A-B > Title"]);
+    expect(report.bareRootComponents).toEqual(["A-B-2"]);
+  });
+
+  it("keeps two same-named bare Components as two distinct entries", () => {
+    // Without the disambiguation these render identically, and a reader has no
+    // way to tell that two Components — not one — were left out.
+    const first = makeNode({ id: "b1", name: "Button", type: "COMPONENT" });
+    const second = makeNode({ id: "b2", name: "Button", type: "COMPONENT" });
+    makePage([first, second]);
+
+    expect(
+      collectExclusions({
+        pageRootNodes: [first, second],
+        variables: [],
+        textStyles: [],
+      }).bareRootComponents,
+    ).toEqual(["Button", "Button-2"]);
+  });
+});
+
+describe("layerCount counts layers, not rendered strings", () => {
+  it("counts two layers whose paths render identically as two", () => {
+    // Nothing neutralizes ` > ` inside a layer name, so a layer literally
+    // called "A > B" renders the same path as the layer B inside the frame A.
+    // The README states the count as a fact about layers.
+    const literal = makeNode({ id: "x", name: "A > B", fillStyleId: "S:1" });
+    const leaf = makeNode({ id: "y", name: "B", fillStyleId: "S:1" });
+    const middle = makeContainer({ id: "a", name: "A" }, [leaf]);
+    const frame = makeContainer({ id: "f", name: "Home" }, [literal, middle]);
+    makePage([frame]);
+
+    const [usage] = collectExclusions({
+      pageRootNodes: [frame],
+      variables: [],
+      textStyles: [],
+    }).colorStyles;
+    expect(usage.examplePaths).toEqual(["Home > A > B", "Home > A > B"]);
+    expect(usage.layerCount).toBe(2);
+  });
+});
+
+describe("token-collision dedupe", () => {
+  it("reports one line when two same-named Variables collide with one Text Style", () => {
+    // Variable names are unique per collection, not per file: two collections
+    // can both hold `typography/body`. tokens.json has one slot, so the Text
+    // Style overwrites once — one cause, one README line.
+    const inCollectionA = makeVariable("typography/body", "FLOAT", "v-a");
+    const inCollectionB = makeVariable("typography/body", "FLOAT", "v-b");
+    expect(
+      collectExclusions({
+        pageRootNodes: [],
+        variables: [inCollectionA, inCollectionB],
+        textStyles: [makeTextStyle("body")],
+      }).tokenNameCollisions,
+    ).toEqual([{ variableName: "typography/body", textStyleName: "body" }]);
   });
 });

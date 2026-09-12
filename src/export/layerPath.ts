@@ -57,6 +57,27 @@ export function determineType(
 }
 
 /**
+ * Sanitize one page-root node name into a path/folder segment (design doc
+ * 4.5.2 「path / ファイル名の一意性」): path separators are neutralized so a
+ * name can never spawn nested zip folders, surrounding whitespace is trimmed
+ * because a folder named `" Home "` is indistinguishable from `"Home"` to a
+ * reader, and an empty result falls back to a fixed stem so the segment is
+ * never the empty string.
+ */
+function baseSegment(raw: string): string {
+  return raw.replace(/[/\\]/g, "-").trim() || "frame";
+}
+
+/** Claim `base`, appending `-N` until it is unused (design doc 4.5.2). */
+function claimUnique(base: string, used: Set<string>): string {
+  let name = base;
+  let i = 2;
+  while (used.has(name)) name = `${base}-${i++}`;
+  used.add(name);
+  return name;
+}
+
+/**
  * Zip folder name per exported top-level frame (design doc 4.5.2
  * 「トップレベルフレーム名が重複する場合も、フォルダ名に同じ規則で接尾辞を付ける」).
  *
@@ -72,12 +93,34 @@ export function determineType(
  */
 export function resolveFrameFolderNames(names: readonly string[]): string[] {
   const used = new Set<string>();
-  return names.map((raw) => {
-    const base = raw.replace(/[/\\]/g, "-").trim() || "frame";
-    let name = base;
-    let i = 2;
-    while (used.has(name)) name = `${base}-${i++}`;
-    used.add(name);
-    return name;
-  });
+  return names.map((raw) => claimUnique(baseSegment(raw), used));
+}
+
+/**
+ * Segment name for *every* page-root sibling, frames and non-frames alike, in
+ * one pass over one `used` set (design doc 4.5.2 / 4.7.2).
+ *
+ * Two naming schemes over two separate sets used to run here, and they
+ * collided: page children `[COMPONENT "Home", FRAME "Home"]` produced a zip
+ * folder `Home/` *and* a README line saying `Home` was not exported at all,
+ * while `[FRAME "A/B", COMPONENT "A-B"]` spelled two different nodes `A-B`.
+ * Both contradict the one thing 4.7.2 demands of these paths: that the reader
+ * can reconcile them against the zip in front of them.
+ *
+ * Frames are named first, so an exported frame keeps the unsuffixed name — it
+ * owns the zip folder, and the names it takes here are byte-identical to
+ * `resolveFrameFolderNames(frames.map(f => f.name))`, which is what zipBuilder
+ * writes. A non-frame sharing a name is the side that yields and takes `-N`.
+ */
+export function resolvePageRootSegmentNames(
+  nodes: readonly SceneNode[],
+  ownsZipFolder: (node: SceneNode) => boolean,
+): Map<string, string> {
+  const used = new Set<string>();
+  const byNodeId = new Map<string, string>();
+  const claim = (node: SceneNode) =>
+    byNodeId.set(node.id, claimUnique(baseSegment(node.name), used));
+  for (const node of nodes) if (ownsZipFolder(node)) claim(node);
+  for (const node of nodes) if (!ownsZipFolder(node)) claim(node);
+  return byNodeId;
 }

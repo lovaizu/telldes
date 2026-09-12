@@ -3,6 +3,7 @@ import {
   buildLayerPath,
   layerPathToSlug,
   resolveFrameFolderNames,
+  resolvePageRootSegmentNames,
   uniqueChildName,
 } from "../layerPath";
 
@@ -58,5 +59,45 @@ describe("resolveFrameFolderNames", () => {
 
   it("falls back to 'frame' for a blank name", () => {
     expect(resolveFrameFolderNames(["   "])).toEqual(["frame"]);
+  });
+});
+
+describe("resolvePageRootSegmentNames", () => {
+  const node = (id: string, name: string, type = "FRAME") =>
+    ({ id, name, type }) as unknown as SceneNode;
+  const isFrame = (n: SceneNode) => n.type === "FRAME";
+  const names = (nodes: SceneNode[]) =>
+    [...resolvePageRootSegmentNames(nodes, isFrame).values()];
+
+  it("gives frames exactly the names resolveFrameFolderNames would", () => {
+    // The zip folders come from resolveFrameFolderNames over the frames alone;
+    // if these two disagreed, README paths would name folders that don't exist.
+    const frames = [node("f1", "Desktop / Home"), node("f2", "Desktop / Home")];
+    const map = resolvePageRootSegmentNames(frames, isFrame);
+    expect(frames.map((f) => map.get(f.id))).toEqual(
+      resolveFrameFolderNames(frames.map((f) => f.name)),
+    );
+  });
+
+  it("makes the non-frame yield when it shares a name with a frame", () => {
+    const nodes = [node("c", "Home", "COMPONENT"), node("f", "Home")];
+    const map = resolvePageRootSegmentNames(nodes, isFrame);
+    expect(map.get("f")).toBe("Home");
+    expect(map.get("c")).toBe("Home-2");
+  });
+
+  it("applies the frames' sanitisation to non-frames too", () => {
+    // One rule over one `used` set: a Component named `A/B` must not end up
+    // spelled like the folder a frame named `A/B` would own.
+    expect(names([node("a", "A/B", "COMPONENT"), node("b", "  A-B  ", "COMPONENT")])).toEqual([
+      "A-B",
+      "A-B-2",
+    ]);
+  });
+
+  it("disambiguates same-named non-frames among themselves", () => {
+    expect(
+      names([node("a", "Button", "COMPONENT"), node("b", "Button", "COMPONENT_SET")]),
+    ).toEqual(["Button", "Button-2"]);
   });
 });

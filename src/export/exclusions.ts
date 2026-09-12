@@ -1,5 +1,9 @@
 import { TYPOGRAPHY_TOKEN_PREFIX } from "../util/typography";
-import { buildLayerPath, resolveFrameFolderNames, uniqueChildName } from "./layerPath";
+import {
+  buildLayerPath,
+  resolvePageRootSegmentNames,
+  uniqueChildName,
+} from "./layerPath";
 import { collectAllNodes } from "../checks/traversal";
 
 // Design doc 4.7.2 「書き出し時の除外物告知（README出力）」: what this export
@@ -10,8 +14,13 @@ import { collectAllNodes } from "../checks/traversal";
 /** How many layer paths one grouped entry carries as examples. */
 const MAX_EXAMPLE_PATHS = 3;
 
-/** Name shown for a text node whose characters use more than one Color Style. */
-export const MIXED_COLOR_STYLE_NAME = "(multiple Color Styles on one text node)";
+/**
+ * Grouping key for text nodes whose characters use more than one Color Style.
+ * Never a style name — those entries carry `styleName: null`, and the wording
+ * the reader sees lives in readmeBuilder.ts with the rest of the README prose.
+ * A leading NUL cannot collide with a Figma style id.
+ */
+const MIXED_COLOR_STYLE_KEY = "\u0000mixed";
 
 /**
  * One Color Style in use, with examples of where. Grouped by the *style*, not
@@ -22,8 +31,12 @@ export const MIXED_COLOR_STYLE_NAME = "(multiple Color Styles on one text node)"
  * the report altogether (4.7.2 走査範囲).
  */
 export interface ColorStyleUsage {
-  /** Color Style name, or the raw style id when it cannot be resolved. */
-  styleName: string;
+  /**
+   * Color Style name, or the raw style id when it cannot be resolved; `null`
+   * for a text node styled with several Color Styles at once, which resolves
+   * to no single style (readmeBuilder.ts supplies that entry's wording).
+   */
+  styleName: string | null;
   /** Up to `MAX_EXAMPLE_PATHS` layer paths, so the designer can find one. */
   examplePaths: string[];
   /** Total layers using it — may exceed `examplePaths.length`. */
@@ -57,12 +70,17 @@ export interface ExclusionReport {
   colorStyles: ColorStyleUsage[];
   /** One entry per distinct STRING/BOOLEAN Variable bound inside them. */
   stringBooleanVariables: StringBooleanVariableUsage[];
-  /** Layer names (page-root) of bare Component/Component Set definitions. */
+  /** Layer paths (page-root) of bare Component/Component Set definitions. */
   bareRootComponents: string[];
   tokenNameCollisions: TokenNameCollision[];
 }
 
-/** An export with nothing excluded. */
+/**
+ * An export with nothing excluded. Test-only surface: production always builds
+ * the report by scanning (`collectExclusions`), and a defaulted empty report
+ * on the export path would be exactly the silent "nothing was excluded" claim
+ * 4.3.4 forbids. Kept because the zip/README tests need a clean baseline.
+ */
 export function emptyExclusionReport(): ExclusionReport {
   return {
     colorStyles: [],
@@ -83,32 +101,30 @@ export function isExportedFrame(node: SceneNode): boolean {
 }
 
 /**
- * Root path segment per page-root node: exported frames are named by their zip
- * folder name, everything else by sibling-disambiguated layer name.
+ * Root path segment per page-root node — frames and non-frames named in one
+ * pass, so a bare page-root Component can never be spelled like a frame's zip
+ * folder (layerPath.ts documents which side yields).
  *
- * 4.7.2 requires README entries to be reconcilable against the zip, so the
- * root of a layer path must be spelled exactly like the folder the reader will
- * open — `resolveFrameFolderNames` is the one function that decides that.
+ * 4.7.2 requires README entries to be reconcilable against the zip, so an
+ * exported frame's segment must be spelled exactly like the folder the reader
+ * opens; `resolvePageRootSegmentNames` guarantees that by naming the frames
+ * first, under the same rule `resolveFrameFolderNames` applies.
  */
 function resolveRootSegmentNames(
   pageRootNodes: readonly SceneNode[],
 ): Map<string, string> {
-  const frames = pageRootNodes.filter(isExportedFrame);
-  const folderNames = resolveFrameFolderNames(frames.map((f) => f.name));
-  const byNodeId = new Map<string, string>();
-  frames.forEach((frame, i) => byNodeId.set(frame.id, folderNames[i]));
-  return byNodeId;
+  return resolvePageRootSegmentNames(pageRootNodes, isExportedFrame);
 }
 
 /**
- * Name of `node` as a path segment. Page-root exported frames take their zip
- * folder name from `rootNames`; every other node is disambiguated against its
- * siblings the same way spec.json paths and exported filenames are (design doc
- * 4.5.2 「path / ファイル名の一意性」). Without the latter, two same-named
- * sibling INSTANCEs — deliberately exempt from the duplicate-name error —
- * would render as two byte-identical README lines pointing at different layers.
+ * Name of `node` as a path segment. Page-root nodes take theirs from
+ * `rootNames`; every deeper node is disambiguated against its siblings the
+ * same way spec.json paths and exported filenames are (design doc 4.5.2
+ * 「path / ファイル名の一意性」). Without the latter, two same-named sibling
+ * INSTANCEs — deliberately exempt from the duplicate-name error — would render
+ * as two byte-identical README lines pointing at different layers.
  */
-function segmentName(node: BaseNode, rootNames: Map<string, string>): string {
+function segmentName(node: BaseNode, rootNames: ReadonlyMap<string, string>): string {
   const fromRoot = rootNames.get(node.id);
   if (fromRoot !== undefined) return fromRoot;
   const parent = node.parent;
@@ -132,7 +148,7 @@ function segmentName(node: BaseNode, rootNames: Map<string, string>): string {
  * open that folder. The page name itself is not part of the path because it is
  * not a layer.
  */
-function layerPathOf(node: SceneNode, rootNames: Map<string, string>): string {
+function layerPathOf(node: SceneNode, rootNames: ReadonlyMap<string, string>): string {
   const names: string[] = [];
   let current: BaseNode | null = node;
   while (current && current.type !== "PAGE" && current.type !== "DOCUMENT") {
@@ -144,7 +160,7 @@ function layerPathOf(node: SceneNode, rootNames: Map<string, string>): string {
 
 /**
  * Accumulate layer paths per excluded thing (a Color Style, a Variable),
- * keeping insertion order, deduping repeat paths, and capping the examples.
+ * keeping insertion order, counting each layer once, and capping the examples.
  */
 class UsageGrouper<T extends { examplePaths: string[]; layerCount: number }> {
   private readonly entries = new Map<string, T>();
@@ -152,18 +168,23 @@ class UsageGrouper<T extends { examplePaths: string[]; layerCount: number }> {
 
   constructor(private readonly make: (key: string) => T) {}
 
-  add(key: string, path: string): void {
+  add(key: string, nodeId: string, path: string): void {
     let entry = this.entries.get(key);
     if (!entry) {
       entry = this.make(key);
       this.entries.set(key, entry);
       this.seen.set(key, new Set());
     }
-    const paths = this.seen.get(key)!;
-    // One node can reach the scan twice (a frame listed twice, a Variable
-    // bound on two fields of the same layer) — count each layer once.
-    if (paths.has(path)) return;
-    paths.add(path);
+    const nodes = this.seen.get(key)!;
+    // Keyed on the node id, not the rendered path: the README states
+    // `layerCount` as a count of layers, and a layer name may legitimately
+    // contain the ` > ` separator (unlike `/`, nothing neutralizes it), so two
+    // distinct layers can render one identical path string — keying on the
+    // string would silently under-count them. A node reaching `add` twice for
+    // the same key (a caller passing a list with repeats) still counts once,
+    // which is what "per layer" means.
+    if (nodes.has(nodeId)) return;
+    nodes.add(nodeId);
     entry.layerCount += 1;
     if (entry.examplePaths.length < MAX_EXAMPLE_PATHS) entry.examplePaths.push(path);
   }
@@ -195,10 +216,10 @@ function colorStyleName(styleId: string): string {
 // Color Style never becomes a token.
 export function findColorStyleUsage(
   nodes: readonly SceneNode[],
-  rootNames: Map<string, string> = new Map(),
+  rootNames: ReadonlyMap<string, string>,
 ): ColorStyleUsage[] {
   const grouper = new UsageGrouper<ColorStyleUsage>((key) => ({
-    styleName: key === MIXED_COLOR_STYLE_NAME ? key : colorStyleName(key),
+    styleName: key === MIXED_COLOR_STYLE_KEY ? null : colorStyleName(key),
     examplePaths: [],
     layerCount: 0,
   }));
@@ -210,9 +231,9 @@ export function findColorStyleUsage(
     // — that's still Color Style usage on part of the node, and there is no
     // single id to group by, so those share one bucket whose name says so.
     if (styleId === figma.mixed) {
-      grouper.add(MIXED_COLOR_STYLE_NAME, layerPathOf(node, rootNames));
+      grouper.add(MIXED_COLOR_STYLE_KEY, node.id, layerPathOf(node, rootNames));
     } else if (typeof styleId === "string" && styleId !== "") {
-      grouper.add(styleId, layerPathOf(node, rootNames));
+      grouper.add(styleId, node.id, layerPathOf(node, rootNames));
     }
   }
   return grouper.result();
@@ -246,7 +267,7 @@ function collectBoundVariableIds(node: SceneNode): string[] {
 // Record them so the designer knows they didn't make it into tokens.json.
 export function findStringBooleanVariableUsage(
   nodes: readonly SceneNode[],
-  rootNames: Map<string, string> = new Map(),
+  rootNames: ReadonlyMap<string, string>,
 ): StringBooleanVariableUsage[] {
   const names = new Map<string, string>();
   const grouper = new UsageGrouper<StringBooleanVariableUsage>((key) => ({
@@ -258,8 +279,8 @@ export function findStringBooleanVariableUsage(
     const ids = collectBoundVariableIds(node);
     if (ids.length === 0) continue;
     // One node can bind the same Variable on several fields (e.g. characters
-    // and fills); the grouper dedupes by path, so resolving each id once per
-    // node is enough.
+    // and fills); the grouper counts each layer once per Variable, so resolving
+    // each id once per node is enough.
     const seen = new Set<string>();
     for (const id of ids) {
       if (seen.has(id)) continue;
@@ -275,7 +296,7 @@ export function findStringBooleanVariableUsage(
       if (!variable) continue;
       if (variable.resolvedType === "STRING" || variable.resolvedType === "BOOLEAN") {
         names.set(id, variable.name);
-        grouper.add(id, layerPathOf(node, rootNames));
+        grouper.add(id, node.id, layerPathOf(node, rootNames));
       }
     }
   }
@@ -291,7 +312,7 @@ export function findStringBooleanVariableUsage(
 // outside them.
 export function findBareRootComponents(
   nodes: readonly SceneNode[],
-  rootNames: Map<string, string> = new Map(),
+  rootNames: ReadonlyMap<string, string>,
 ): string[] {
   const paths: string[] = [];
   for (const node of nodes) {
@@ -320,8 +341,8 @@ function isTokenBuilderSupported(variable: Variable): boolean {
 }
 
 export function findTypographyTokenCollisions(
-  variables: Variable[],
-  textStyles: TextStyle[],
+  variables: readonly Variable[],
+  textStyles: readonly TextStyle[],
 ): TokenNameCollision[] {
   const collisions: TokenNameCollision[] = [];
   const textStyleNames = new Set(textStyles.map((s) => s.name));
@@ -360,7 +381,12 @@ function collectExportedNodes(frames: readonly SceneNode[]): SceneNode[] {
   return nodes;
 }
 
-/** Drop repeat entries so one underlying cause yields one README line. */
+/**
+ * Drop repeat entries so one underlying cause yields one README line. Only
+ * token-name collisions can produce them: two Variables in different
+ * collections may share the name `typography/body`, and both collide with the
+ * one Text Style `body` — one overwrite, so one line.
+ */
 function dedupe<T>(items: T[], key: (item: T) => string): T[] {
   const seen = new Set<string>();
   return items.filter((item) => {
@@ -379,8 +405,8 @@ export interface ExclusionScanInput {
    * README entries are reconcilable against the zip built from the same page.
    */
   pageRootNodes: readonly SceneNode[];
-  variables: Variable[];
-  textStyles: TextStyle[];
+  variables: readonly Variable[];
+  textStyles: readonly TextStyle[];
 }
 
 /**
@@ -397,10 +423,11 @@ export function collectExclusions({
   return {
     colorStyles: findColorStyleUsage(exportedNodes, rootNames),
     stringBooleanVariables: findStringBooleanVariableUsage(exportedNodes, rootNames),
-    bareRootComponents: dedupe(
-      findBareRootComponents(pageRootNodes, rootNames),
-      (path) => path,
-    ),
+    // No dedupe pass here: every page-root sibling now gets a distinct segment
+    // from `resolveRootSegmentNames`, so two Components both named `Button`
+    // render as `Button` and `Button-2`. A dedupe would not merge duplicate
+    // causes, it would delete one of two genuine exclusions.
+    bareRootComponents: findBareRootComponents(pageRootNodes, rootNames),
     tokenNameCollisions: dedupe(
       findTypographyTokenCollisions(variables, textStyles),
       (c) => `${c.variableName} :: ${c.textStyleName}`,
