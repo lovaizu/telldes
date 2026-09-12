@@ -505,7 +505,7 @@ Ph-6: レスポンシブ対応＋統合テスト
 
 **目的**: 実際の LP デザインを使い、チェック→修正→書き出し→CC コーディングのフルフローを確認する。
 
-**前提**: Ph-5, R-1, Ph-7 完了
+**前提**: Ph-5, R-1, Ph-7, Ph-8 完了
 
 **作業内容**:
 - [x] テスト用 LP デザインを Figma で作成（最低限: header, hero, features, pricing, footer）
@@ -523,7 +523,7 @@ Ph-6: レスポンシブ対応＋統合テスト
 - [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
 
 **完了条件**:
-- テスト用 LP に対する Review がエラー0件で終了している状態であること（suggestion の残存は可、内訳が記録されていること）
+- テスト用 LP に対する Review がエラー0件で終了している状態であること
 - 出力 zip の全ファイル（spec.json / tokens.json / screenshots / assets / prompt.md / steering.md / README.md）が設計書 4.5 節のフォーマットに準拠している状態であること
 - CC が zip のみからコーディングした結果が、デザインカンプとレイアウト・色・サイズ・間隔の各観点で一致している状態であること
 - 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンのままであること、(b) 修正によって既存の出力フィールド・チェックの挙動が退行していないこと、(c) 書き出し時にノード単位のエクスポートエラーが発生していないこと
@@ -640,23 +640,94 @@ Ph-7: doc-first ギャップ解消
 
 ---
 
-State
------
+Ph-8: 実使用フィードバック対応
+------------------
 
-* **Status**: paused
-* **Date**: 2026-09-06
-* **Last completed**: R-1 まで全タスク完了（S-1〜R-1, G-1〜G-5）。T-1 のステップ1（テスト用 Figma デザイン作成）まで完了。
-* **Next**: T-1 のステップ2 — Figma で Review を実行し、検出エラーを全て潰してパスさせる。
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。T-1 は Figma 実機必須のため自律実行不可（詳細は T-1 タスクの「進行メモ」参照）。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
+ユーザーが Telldes を実際に Figma で使用した結果のフィードバック（2026-09-12）。2点。
+
+1. **Review の suggestion がノイズ**: Export をブロックしない助言が Review パネルに並び、本来の「error 0 にして Export する」という導線を埋もれさせている
+2. **Notes でどこに何を書いたか分からない**: Notes タブは選択中の単一ノードの note しか表示しないため、既に note が入っているレイヤーを一覧できない
+
+方針（ユーザー確認済み 2026-09-12）: Variables 提案5種は削除する。源泉・範囲の告知4種は Review からは外すが、これは助言ではなく「ツールが黙って落としている事実の通知」であり出力の正確性に直結するため、Export の README「除外物」セクションに実検出データとして移設して情報を保持する。
+
+### U-1: Variables 提案チェックの削除と源泉・範囲告知の README 移設
+
+**目的**: Review を error のみの構成にし、Variables 提案5種を削除したうえで、源泉・範囲の告知4種を Export の README「除外物」セクションに実検出データとして出力する。
+
+**前提**: G-3, G-4, G-5 完了
+
+**作業内容**:
+- [ ] `docs/telldes-design.md` を更新: 4.7.2 節の「Variablesチェック（提案）」節を削除し、「源泉・範囲チェック（提案／告知）」を Review の一部ではなく Export README への出力として位置づけ直す。4.3.4 の「チェック時に繰り返し使われている値を検出し『Variableにしませんか？』と提案する」「Reviewの提案（4.7.2）はこの語彙で命名を促す」、4.7.4 の「Reviewで告知する」、4.7.2 末尾の「エラーは書き出し前に解消必須。提案・告知は無視してもよい」も整合させる
+- [ ] `src/checks/variableChecks.ts` と `src/checks/__tests__/variableChecks.test.ts` を削除し、`src/code.ts` の `runVariableChecks` 呼び出しと import を削除
+- [ ] `src/checks/types.ts` の `CheckLevel` を `"error"` のみに変更する（改善方法テキストである `CheckResult.suggestion` フィールドは削除しない）
+- [ ] `src/checks/scopeChecks.ts` の `runScopeChecks` / `checkTypographyTokenCollisions` を、`CheckResult[]` ではなく除外物レポート（項目種別・レイヤーパス／トークン名・件数）を返す形に変更する
+- [ ] `src/code.ts`: 除外物レポートを Review 実行時ではなく Export 時に生成し、`export-data` メッセージに含めて UI へ渡す
+- [ ] `src/App.tsx`: Review タブの Suggestions セクションと `suggestions()` シグナル・関連 CSS（`.suggestion-label` / `.suggestion-item`）を削除する。`.result-suggestion`（error の改善方法表示）は残す
+- [ ] `src/App.tsx`: README 生成の「Not included in this export」セクションを、除外物レポートの実検出データで埋める（検出ゼロの項目は行を出さない）
+- [ ] テスト更新（`scopeChecks.test.ts` を新シグネチャに追従、README 生成のテストがあれば更新）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-1.md`）
+- [ ] QA エキスパートレビュー（subagent）
+- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Design エキスパートレビュー（subagent）
+
+**完了条件**:
+- `CheckLevel` 型が `"error"` のみであり、`level: "suggestion"` を生成するコードがリポジトリに存在しないこと
+- `src/checks/variableChecks.ts` とそのテストファイルが存在しないこと
+- Review タブの描画結果に Suggestions セクションが含まれないこと
+- 設計書 4.7.2 節に「Variablesチェック（提案）」節が存在せず、源泉・範囲の4項目が Export README への出力として記載されていること
+- 書き出した `README.md` の「Not included in this export」セクションに、Color Style 使用／STRING・BOOLEAN Variable 使用／ルート直下の裸 Component・Component Set／Variable-Text Style トークン名衝突のうち、実際に検出された項目のみが対象レイヤーパス（衝突はトークン名）付きで列挙されていること
+- 検出ゼロの項目については `README.md` に該当行が出力されないこと
+- 新たな問題が持ち込まれていないこと — 具体的には、(a) 残る既存テストが全グリーンであること、(b) error レベルのチェック（構造4種・サイジング1種）の検出挙動と改善方法メッセージが変わっていないこと、(c) Export のブロック条件（error 1件以上で中止）が変わっていないこと
 
 ---
 
-現在の状態（2026-09-05時点）
+### U-2: Notes 一覧表示
+
+**目的**: ページ内で note が設定済みの全レイヤーを Notes タブに一覧表示し、レイヤーを1つずつ選択しなくても「どこに何を書いたか」を把握できるようにする。
+
+**前提**: N-1 完了
+
+**作業内容**:
+- [ ] `docs/telldes-design.md` 4.7.3 節に note 一覧の仕様を追記する（一覧に出す情報＝レイヤーパス＋note 本文、クリックで該当ノードを選択、更新タイミング）
+- [ ] `src/code.ts`: ページ内の全ノードを走査して `getPluginData("note")` が非空のノードを集め、`{ nodeId, layerPath, note }` の配列を `notes-list` メッセージで UI に送る関数を追加する。レイヤーパスは `src/export/layerPath.ts` の `buildLayerPath` を再利用する
+- [ ] `src/code.ts`: プラグイン起動時・note 保存時（削除＝空文字保存を含む）に `notes-list` を再送する
+- [ ] `src/App.tsx`: Notes タブに一覧セクションを追加する。各項目はレイヤーパスと note 本文を表示し、クリックで既存の `select-node` メッセージを送る。0件時は空状態メッセージを出す
+- [ ] `src/App.tsx`: 選択中ノードのエディタは一覧の上に残し、ノード未選択時も一覧は表示されるようにする
+- [ ] テスト作成（note 収集ロジックの単体テスト）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-2.md`）
+- [ ] QA エキスパートレビュー（subagent）
+- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Design エキスパートレビュー（subagent）
+
+**完了条件**:
+- ノードを1つも選択していない状態で Notes タブを開いたとき、note 設定済みレイヤーの一覧が表示されること
+- 一覧の各項目に、ルートからのレイヤーパスと note 本文の両方が表示されること
+- 一覧項目をクリックすると該当ノードが選択され、ビューポートがそのノードへスクロールすること
+- note を保存したあと一覧が再描画され、追加・変更・削除（空文字保存）が反映されること
+- note が1件も設定されていないページでは、空状態メッセージが表示されること
+- 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンであること、(b) 選択中ノードの note 編集・保存の挙動が変わっていないこと
+
+---
+
+State
+-----
+
+* **Status**: not suspended
+* **Date**: 2026-09-12
+* **Last completed**: G-5（Ph-7 完了）。T-1 はステップ1のみ完了、Figma 実機待ちで中断中。
+* **Next**: U-1 — Variables 提案チェックの削除と源泉・範囲告知の README 移設。
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。実使用フィードバックで Ph-8（U-1, U-2）を追加、T-1 の前提に組み込んだため T-1 は Ph-8 完了後に再開する。T-1 は Figma 実機必須のため自律実行不可（詳細は T-1 の「進行メモ」）。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
+
+---
+
+現在の状態（2026-09-12時点）
 -----
 
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **次タスク**: T-1（統合テスト）— ユーザーが Figma でテスト用デザインを作成し、フルフロー確認
+* **次タスク**: U-1（Ph-8: 実使用フィードバック対応）— suggestion 廃止と告知の README 移設。T-1 は Ph-8 完了後に再開
 * **完了済み**:
   - S-1: プロジェクト初期化 ✅
   - C-1: ノード走査＋構造チェック（4チェック） ✅
