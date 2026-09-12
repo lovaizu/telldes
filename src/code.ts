@@ -1,7 +1,7 @@
 import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
-import { runScopeChecks } from "./checks/scopeChecks";
+import { collectExclusions } from "./export/exclusions";
 import type { CheckResult } from "./checks/types";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
@@ -50,7 +50,7 @@ function fetchVariablesAndTextStyles(): { vars: Variable[]; textStyles: TextStyl
 // Review is errors-only (design doc 4.7.2) — every result here blocks Export.
 // Scope/source exclusions are deliberately NOT part of this: they are not
 // fixable violations, so they are collected at export time and recorded in the
-// export README instead (scopeChecks.ts).
+// export README instead (export/exclusions.ts).
 function runAllChecks(nodes: SceneNode[]): CheckResult[] {
   return [...runStructureChecks(nodes), ...checkSizing(nodes)];
 }
@@ -91,31 +91,46 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
   }
 
   if (msg.type === "run-export") {
-    const { vars, textStyles } = fetchVariablesAndTextStyles();
-    const nodes = collectAllNodes(figma.currentPage);
-    // Every check result is an error (CheckLevel is error-only), so the count
-    // of results is the count of blockers — no level filter needed.
-    const errors = runAllChecks(nodes);
-    if (errors.length > 0) {
-      figma.ui.postMessage({
-        type: "export-error",
-        message: `${errors.length} error(s) must be fixed before export`,
-      });
-      return;
-    }
-
-    // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
-    // Reuses the Variables/Text Styles already fetched above.
-    const exclusions = runScopeChecks(nodes, vars, textStyles);
-
+    // Everything from here on runs inside the try: a throw in the checks or in
+    // the exclusion scan must still reach the UI as an `export-error`,
+    // otherwise the Export tab stays pinned on "Exporting..." forever (the UI
+    // only clears that flag on export-error / export-data).
     try {
       const page = figma.currentPage;
+      const { vars, textStyles } = fetchVariablesAndTextStyles();
+
+      // CheckLevel is error-only today, so this filter passes everything
+      // through. It is a deliberate guard, not redundancy: if a non-blocking
+      // level is ever reintroduced (design doc 4.7.2), the Export gate must
+      // keep blocking on errors alone rather than silently promoting the new
+      // level to a blocker. Do not remove.
+      const errors = runAllChecks(collectAllNodes(page)).filter(
+        (result) => result.level === "error",
+      );
+      if (errors.length > 0) {
+        figma.ui.postMessage({
+          type: "export-error",
+          message: `${errors.length} error(s) must be fixed before export`,
+        });
+        return;
+      }
 
       const tokens = buildTokens(vars, textStyles);
 
       const topFrames = page.children.filter(
         (n) => n.type === "FRAME" || n.type === "SECTION",
       );
+
+      // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
+      // Collected after the error gate, and scoped to the frames actually
+      // exported (plus page-root nodes for the bare-Component category), so
+      // every README entry is reconcilable against the zip.
+      const exclusions = collectExclusions({
+        exportedFrames: topFrames,
+        pageRootNodes: page.children,
+        variables: vars,
+        textStyles,
+      });
 
       type ExportFile = { path: string; data: Uint8Array };
       const frames: {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { buildReadme, emptyExclusionReport } from "../readmeBuilder";
-import type { ExclusionReport } from "../../checks/scopeChecks";
+import { buildReadme } from "../readmeBuilder";
+import { emptyExclusionReport, type ExclusionReport } from "../exclusions";
 
 function makeExclusions(overrides: Partial<ExclusionReport> = {}): ExclusionReport {
   return { ...emptyExclusionReport(), ...overrides };
@@ -18,6 +18,12 @@ function excludedSection(readme: string): string {
   return readme.slice(idx);
 }
 
+function contentsSection(readme: string): string {
+  const start = readme.indexOf("## Contents");
+  expect(start).toBeGreaterThan(-1);
+  return readme.slice(start, readme.indexOf("## Not included in this export"));
+}
+
 describe("buildReadme", () => {
   it("lists the contents, including tokens.json and one line per frame folder", () => {
     const readme = buildReadme({ ...base, frameNames: ["Home", "Pricing"] });
@@ -32,7 +38,18 @@ describe("buildReadme", () => {
   });
 
   it("omits the tokens.json line when no tokens were produced", () => {
-    expect(buildReadme({ ...base, hasTokens: false })).not.toContain("tokens.json");
+    // Scoped to Contents: the token-collision bullet legitimately mentions
+    // `tokens.json`, so a whole-document assertion would false-fail as soon as
+    // a collision is present.
+    expect(contentsSection(buildReadme({ ...base, hasTokens: false }))).not.toContain(
+      "tokens.json",
+    );
+  });
+
+  it("lists no frame folders when the page has no exportable frames", () => {
+    const readme = buildReadme({ ...base, frameNames: [] });
+    expect(contentsSection(readme)).not.toContain("spec.json, screenshots");
+    expect(contentsSection(readme)).toContain("- `prompt.md`");
   });
 
   it("always states that the template files are not derived from design nodes", () => {
@@ -103,6 +120,36 @@ describe("buildReadme", () => {
       }),
     );
     expect(section).toContain("`tokens.json`");
+    expect(section).toContain(
+      "  - `typography/heading-md` (Variable) vs `heading-md` (Text Style)",
+    );
+  });
+
+  it("renders all four categories at once, in a stable order", () => {
+    const section = excludedSection(
+      buildReadme({
+        ...base,
+        exclusions: {
+          colorStyles: ["Home > Title"],
+          stringBooleanVariables: [{ path: "Home > Card", variableName: "copy/label" }],
+          bareRootComponents: ["Button"],
+          tokenNameCollisions: [
+            { variableName: "typography/heading-md", textStyleName: "heading-md" },
+          ],
+        },
+      }),
+    );
+    const order = [
+      "Color Styles are not exported",
+      "STRING/BOOLEAN Variables are not exported",
+      "Component/Component Set definitions placed directly on the page",
+      "Token names collide in `tokens.json`",
+    ].map((lead) => section.indexOf(lead));
+    expect(order.every((i) => i > -1)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(section).toContain("  - `Home > Title`");
+    expect(section).toContain('  - `Home > Card` (Variable "copy/label")');
+    expect(section).toContain("  - `Button`");
     expect(section).toContain(
       "  - `typography/heading-md` (Variable) vs `heading-md` (Text Style)",
     );

@@ -1,4 +1,4 @@
-import type { ExclusionReport } from "../checks/scopeChecks";
+import type { ExclusionReport } from "./exclusions";
 
 /**
  * README.md for the exported zip (design doc 4.7.4 output #8).
@@ -6,7 +6,7 @@ import type { ExclusionReport } from "../checks/scopeChecks";
  * Its "Not included in this export" section is the record of what telldes
  * dropped from *this* export: the design doc's 4.3.4 stance forbids silent
  * drops/skips, and Review reports errors only, so the exclusions detected at
- * export time (scopeChecks.ts) are reported here instead. A category with no
+ * export time (exclusions.ts) are reported here instead. A category with no
  * detections produces no output at all — the section states facts about this
  * export, not a checklist of things that might happen.
  */
@@ -15,16 +15,6 @@ export interface ReadmeInput {
   frameNames: string[];
   hasTokens: boolean;
   exclusions: ExclusionReport;
-}
-
-/** An export with nothing excluded — also the fallback if the report is absent. */
-export function emptyExclusionReport(): ExclusionReport {
-  return {
-    colorStyles: [],
-    stringBooleanVariables: [],
-    bareRootComponents: [],
-    tokenNameCollisions: [],
-  };
 }
 
 /** `- <lead>` followed by one indented `  - <item>` line per detection. */

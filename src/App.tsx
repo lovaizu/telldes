@@ -2,8 +2,8 @@ import { createSignal, For, Show, type Component } from "solid-js";
 import promptTemplate from "./templates/prompt.md?raw";
 import steeringTemplate from "./templates/steering.md?raw";
 import type { CheckResult } from "./checks/types";
-import type { ExclusionReport } from "./checks/scopeChecks";
-import { buildReadme, emptyExclusionReport } from "./export/readmeBuilder";
+import type { ExclusionReport } from "./export/exclusions";
+import { buildReadme } from "./export/readmeBuilder";
 
 type Tab = "check" | "note" | "export";
 
@@ -28,8 +28,14 @@ interface ExportFrame {
 interface ExportData {
   frames: ExportFrame[];
   tokens: unknown;
-  /** What this export left out — rendered into README.md (design doc 4.7.2). */
-  exclusions?: ExclusionReport;
+  /**
+   * What this export left out — rendered into README.md (design doc 4.7.2).
+   * Required, not optional: code.ts and this UI ship from one build, so an
+   * optional field would buy no safety and would instead turn "the plugin
+   * failed to report" into a README asserting that nothing was excluded —
+   * exactly the silent drop 4.3.4 forbids. A mismatch must be a compile error.
+   */
+  exclusions: ExclusionReport;
 }
 
 const App: Component = () => {
@@ -135,7 +141,7 @@ const App: Component = () => {
         buildReadme({
           frameNames,
           hasTokens: Boolean(msg.tokens),
-          exclusions: msg.exclusions ?? emptyExclusionReport(),
+          exclusions: msg.exclusions,
         }),
       );
 
@@ -167,8 +173,11 @@ const App: Component = () => {
     parent.postMessage({ pluginMessage: { type: "select-node", nodeId } }, "*");
   };
 
-  // Every result is an error (CheckLevel is error-only, design doc 4.7.2).
-  const errors = results;
+  // CheckLevel is error-only today, so this filter passes everything through.
+  // It is a deliberate guard, not redundancy: if a non-blocking level is ever
+  // reintroduced (design doc 4.7.2), the Review list must keep showing errors
+  // as errors rather than silently promoting the new level. Do not remove.
+  const errors = () => results().filter((r) => r.level === "error");
 
   const runExport = () => {
     setExporting(true);
@@ -221,28 +230,26 @@ const App: Component = () => {
 
             <Show when={hasRun()}>
               <Show
-                when={results().length > 0}
+                when={errors().length > 0}
                 fallback={<div class="pass">All checks passed</div>}
               >
-                <Show when={errors().length > 0}>
-                  <div class="section-label error-label">
-                    Errors ({errors().length})
-                  </div>
-                  <ul class="result-list">
-                    <For each={errors()}>
-                      {(item) => (
-                        <li
-                          class="result-item error-item"
-                          onClick={() => selectNode(item.nodeId)}
-                        >
-                          <div class="result-node">{item.nodeName}</div>
-                          <div class="result-message">{item.message}</div>
-                          <div class="result-suggestion">{item.suggestion}</div>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
+                <div class="section-label error-label">
+                  Errors ({errors().length})
+                </div>
+                <ul class="result-list">
+                  <For each={errors()}>
+                    {(item) => (
+                      <li
+                        class="result-item error-item"
+                        onClick={() => selectNode(item.nodeId)}
+                      >
+                        <div class="result-node">{item.nodeName}</div>
+                        <div class="result-message">{item.message}</div>
+                        <div class="result-suggestion">{item.suggestion}</div>
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </Show>
             </Show>
           </div>
