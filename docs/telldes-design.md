@@ -135,14 +135,14 @@ Figma現行のベストプラクティスに合わせ、トークンの源泉を
 | **Variables（COLOR）** | カラー | `tokens.json` に named token として出力 |
 | **Variables（FLOAT/number）** | スペーシング・サイズ等の数値 | `tokens.json` に named token として出力 |
 | **Text Style** | タイポグラフィ（font-family/size/weight/line-height） | named typography token として出力し、spec から参照 |
-| **Color Style** | カラー | 非推奨。Reviewで「Variable化しませんか」と誘導（Figma本体もVariables推奨） |
-| Variables（STRING/BOOLEAN） | — | トークン対象外。使用時はReviewで「未対応」を警告 |
+| **Color Style** | カラー | 非推奨。トークン源泉として扱わず、使用時は書き出し時のREADMEに除外物として記録（Figma本体もVariables推奨） |
+| Variables（STRING/BOOLEAN） | — | トークン対象外。使用時は書き出し時のREADMEに除外物として記録 |
 
-カラーは **Variables に一本化**する。Color Style はトークン源泉として扱わず、Variableへの移行をReviewで促す。
+カラーは **Variables に一本化**する。Color Style はトークン源泉として扱わず、使用していた場合は書き出し時にREADMEで告知する（4.7.2）。
 
-Variablesの使用そのものは必須ではない。使わない場合、CCはspec.jsonの解決済み値（`resolvedValue`）から直接CSSを生成する（同じ値が複数箇所でも個別値として出力）。チェック時に繰り返し使われている値を検出し「Variableにしませんか？」と提案する。
+Variablesの使用そのものは必須ではない。使わない場合、CCはspec.jsonの解決済み値（`resolvedValue`）から直接CSSを生成する（同じ値が複数箇所でも個別値として出力）。出力の正しさは変わらないため、Variable化はデザイナーの判断に委ね、ツールは促さない。
 
-命名規約は自由。ただし意味の一貫性のため、以下の**推奨トークン体系**を指針とする。Reviewの提案（4.7.2）はこの語彙で命名を促す。**telldesは値をどのスロットに割り当てるかを自動判定しない**（誤検知を避けるため）。「この値はトークン化を推奨。命名はこの体系から選ぶ」までを案内し、具体的なスロット選択はデザイナーが行う。
+命名規約は自由。ただし意味の一貫性のため、以下の**推奨トークン体系**を本ドキュメント上の指針として示す（プラグインが命名を促すことはしない）。**telldesは値をどのスロットに割り当てるかを自動判定しない**（誤検知を避けるため）。「トークン化する値の命名はこの体系から選ぶ」という共通語彙の提示までが本書の役割で、トークン化の要否と具体的なスロット選択はデザイナーが行う。
 
 ```
 Color（Variables COLOR）
@@ -159,7 +159,7 @@ Elevation（Effect Style / drop shadow）
   shadow-sm / shadow-md / shadow-lg
 ```
 
-Elevation（ドロップシャドウ）の命名指針はReviewで案内する。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である（Effect Style を named token として tokens.json に出す対応は Text Style トークンと同じく別途）。
+Elevation（ドロップシャドウ）の命名指針も本体系に含めるが、プラグインが命名を促すことはしない。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である（Effect Style を named token として tokens.json に出す対応は Text Style トークンと同じく別途）。
 
 #### 4.3.5 背景の扱い
 
@@ -575,20 +575,13 @@ Telldesプラグインは以下の3つの機能を提供する。
 **サイジングチェック（エラー）:**
 - Hug/Fill/Fixed以外の曖昧なサイジング → 「Hug/Fill/Fixedのいずれかに設定してください」
 
-**Variablesチェック（提案）:** いずれも命名は推奨トークン体系（4.3.4）から選ぶよう案内する。値→スロットの自動判定はしない。
-- 同じ色が3箇所以上使用 → 「この色をVariableに登録しませんか？（命名は color 体系: brand / neutral / status から）」
-- 同じspacing/padding値が複数箇所 → 「この間隔をVariableに登録しませんか？（命名は spacing スケール: xs〜2xl から）」
-- 同じfont-size値が複数箇所 → 「Text Style にまとめませんか？（命名は typography スケール: display〜label から）」
-- 同じcorner radius値が複数箇所 → 「この角丸をVariableに登録しませんか？（命名は radius スケール: sm / md / lg / full から）」
-- 同じdrop shadowが複数箇所 → 「この影を Effect Style にまとめませんか？（命名は elevation スケール: shadow-sm / md / lg から）」
+Reviewが報告するのはエラーのみとする。エラーは書き出し前に解消必須であり、Reviewの結果はすべて書き出しのブロッカーである。「直せるものだけを出す」ことで、デザイナーは「エラーをゼロにして書き出す」という一本の流れに集中できる。
 
-**源泉・範囲チェック（提案／告知）:**「予測できない動き」を防ぐため、ツールが対象外にするものは黙って捨てずReviewで知らせる。
-- Color Styleを使用 → 「Variableに移行しませんか？（カラーはVariablesに一本化）」（4.3.4）
-- STRING/BOOLEAN Variableを使用 → 「これらはトークン出力対象外です」と告知
-- ページ直下に裸で置かれたComponent/Component Set定義 → 「書き出し対象外です。画面フレーム内にインスタンスとして配置するか、ライブラリページへ」（4.7.4の範囲方針）
-- Variableのフルパスが `typography/<name>` に一致し、同名のText Styleが存在（tokens.jsonの`typography`グループで衝突し、後に書き出されるText Style側が上書きする。4.5.1） → 「トークン名が衝突しています（VariableとText Styleが同じ名前）。tokens.jsonでは片方が上書きされます。名前を変更してください」
-
-エラーは書き出し前に解消必須。提案・告知は無視してもよい。
+**書き出し時の除外物告知（README出力）:** ツールが対象外にするもの（＝デザイナーに直す義務はないが、黙って捨ててはいけないもの）は、Reviewではなく書き出し時に検出し、zip内 `README.md` の「Not included in this export」セクションに**実際に検出された項目のみ**を対象レイヤーパス（トークン名の衝突はトークン名）付きで記録する。検出ゼロの項目は行を出さない。「予測できない動き」を防ぐ基本姿勢（4.3.4）を、Reviewのノイズではなく書き出し結果の事実記録として担保する。
+- Color Styleを使用 → カラーはVariablesに一本化するためトークン化されない（4.3.4）。使用レイヤーを列挙する
+- STRING/BOOLEAN Variableを使用 → トークン出力対象外（COLOR/FLOATのみ出力）。使用レイヤーとVariable名を列挙する
+- ページ直下に裸で置かれたComponent/Component Set定義 → 書き出し対象外（4.7.4の範囲方針）。該当レイヤーと、画面フレーム内にインスタンスとして配置するか、ライブラリページへ移す旨を記録する
+- Variableのフルパスが `typography/<name>` に一致し、同名のText Styleが存在（tokens.jsonの`typography`グループで衝突し、後に書き出されるText Style側が上書きする。4.5.1） → 衝突したトークン名の組を記録する
 
 #### 4.7.3 note入力UI
 
@@ -600,9 +593,9 @@ Telldesプラグインは以下の3つの機能を提供する。
 
 #### 4.7.4 書き出し
 
-エラーゼロの状態でのみ実行可能（提案は無視可）。
+エラーゼロの状態でのみ実行可能。
 
-**書き出し範囲の方針**: 出力単位は「画面フレーム」とする。具体的にはページ直下の `FRAME` および `SECTION` を対象とし、各フレームを1ページ/ビューポートとして書き出す。再利用部品は、画面フレーム内に配置された**インスタンスを展開してspec/スクリーンショットに含める**（コード化の単一の真実はレンダリング結果）。ページ直下に裸で置かれたComponent/Component Set定義そのものは書き出し対象外で、Reviewで告知する（4.7.2）。デザイナーの定石どおり、主コンポーネントはライブラリとして別ページ/別エリアにまとめ、画面はフレームで構成する運用を前提とする。
+**書き出し範囲の方針**: 出力単位は「画面フレーム」とする。具体的にはページ直下の `FRAME` および `SECTION` を対象とし、各フレームを1ページ/ビューポートとして書き出す。再利用部品は、画面フレーム内に配置された**インスタンスを展開してspec/スクリーンショットに含める**（コード化の単一の真実はレンダリング結果）。ページ直下に裸で置かれたComponent/Component Set定義そのものは書き出し対象外で、書き出し時に `README.md` の除外物セクションへ記録する（4.7.2）。デザイナーの定石どおり、主コンポーネントはライブラリとして別ページ/別エリアにまとめ、画面はフレームで構成する運用を前提とする。
 
 出力物をzipにまとめてダウンロード:
 1. `prompt.md` — CCプロンプト
@@ -612,7 +605,7 @@ Telldesプラグインは以下の3つの機能を提供する。
 5. `screenshots/` — セクション＋ブロック単位のPNG画像
 6. `assets/images/` — ラスター画像（PNG 2x）
 7. `assets/icons/` — ベクターアセット（SVG）
-8. `README.md` — zip内容の説明
+8. `README.md` — zip内容の説明＋今回の書き出しの除外物（4.7.2）
 
 zip生成にはJSZipライブラリを使用。プラグインUI内でBlobを生成しダウンロードリンクを表示する。
 

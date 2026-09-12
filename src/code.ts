@@ -1,8 +1,7 @@
 import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
-import { runVariableChecks } from "./checks/variableChecks";
-import { runScopeChecks, checkTypographyTokenCollisions } from "./checks/scopeChecks";
+import { runScopeChecks } from "./checks/scopeChecks";
 import type { CheckResult } from "./checks/types";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
@@ -48,16 +47,12 @@ function fetchVariablesAndTextStyles(): { vars: Variable[]; textStyles: TextStyl
   return { vars, textStyles };
 }
 
-function runAllChecks(vars: Variable[], textStyles: TextStyle[]): CheckResult[] {
-  const page = figma.currentPage;
-  const nodes = collectAllNodes(page);
-  return [
-    ...runStructureChecks(nodes),
-    ...checkSizing(nodes),
-    ...runVariableChecks(nodes),
-    ...runScopeChecks(nodes),
-    ...checkTypographyTokenCollisions(vars, textStyles),
-  ];
+// Review is errors-only (design doc 4.7.2) — every result here blocks Export.
+// Scope/source exclusions are deliberately NOT part of this: they are not
+// fixable violations, so they are collected at export time and recorded in the
+// export README instead (scopeChecks.ts).
+function runAllChecks(nodes: SceneNode[]): CheckResult[] {
+  return [...runStructureChecks(nodes), ...checkSizing(nodes)];
 }
 
 sendSelectionNote();
@@ -68,8 +63,7 @@ figma.on("selectionchange", () => {
 
 figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string }) => {
   if (msg.type === "run-checks") {
-    const { vars, textStyles } = fetchVariablesAndTextStyles();
-    const results = runAllChecks(vars, textStyles);
+    const results = runAllChecks(collectAllNodes(figma.currentPage));
     figma.ui.postMessage({ type: "check-results", results });
   }
 
@@ -98,8 +92,10 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
 
   if (msg.type === "run-export") {
     const { vars, textStyles } = fetchVariablesAndTextStyles();
-    const checks = runAllChecks(vars, textStyles);
-    const errors = checks.filter((c) => c.level === "error");
+    const nodes = collectAllNodes(figma.currentPage);
+    // Every check result is an error (CheckLevel is error-only), so the count
+    // of results is the count of blockers — no level filter needed.
+    const errors = runAllChecks(nodes);
     if (errors.length > 0) {
       figma.ui.postMessage({
         type: "export-error",
@@ -107,6 +103,10 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       });
       return;
     }
+
+    // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
+    // Reuses the Variables/Text Styles already fetched above.
+    const exclusions = runScopeChecks(nodes, vars, textStyles);
 
     try {
       const page = figma.currentPage;
@@ -148,6 +148,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         type: "export-data",
         frames,
         tokens,
+        exclusions,
       });
     } catch (err) {
       figma.ui.postMessage({

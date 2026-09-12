@@ -1,50 +1,76 @@
-import type { CheckResult } from "./types";
 import { TYPOGRAPHY_TOKEN_PREFIX } from "../util/typography";
+import { buildLayerPath } from "../export/layerPath";
 
-// Design doc 4.7.2 「源泉・範囲チェック（提案／告知）」: things telldes
-// intentionally excludes from tokens.json / export. Never blocks Export —
-// surfaced pre-export so the designer isn't surprised by silently-dropped
-// data ("予測できない動き" per the design doc's own framing).
+// Design doc 4.7.2 「書き出し時の除外物告知（README 出力）」: things telldes
+// intentionally excludes from tokens.json / the export. These are not Review
+// findings — they never block Export and there is nothing for the designer to
+// "fix" — so they are recorded in the exported README.md instead, as a factual
+// record of what this particular export left out. The design doc's stance
+// (4.3.4「ツールが無視・変換するものは必ず利用者に告知する（暗黙のドロップ/スキップ禁止）」)
+// requires that information to survive somewhere; the README is where it lives.
 
-function suggestionResult(
-  node: SceneNode,
-  message: string,
-  suggestion: string,
-): CheckResult {
-  return {
-    level: "suggestion",
-    nodeId: node.id,
-    nodeName: node.name,
-    message,
-    suggestion,
-  };
+/** A STRING/BOOLEAN Variable binding: which layer, and which Variable. */
+export interface StringBooleanVariableUsage {
+  /** Layer path, ` > `-joined (design doc 4.5.2 `path` convention). */
+  path: string;
+  variableName: string;
+}
+
+/** A Variable whose tokens.json slot is overwritten by a same-named Text Style. */
+export interface TokenNameCollision {
+  variableName: string;
+  textStyleName: string;
+}
+
+/**
+ * What this export leaves out, per category. Item lists are render-ready
+ * enough to name the affected layer (or, for collisions, the token names) and
+ * empty lists let the README omit a category entirely. Deliberately structured
+ * rather than pre-formatted strings so the README wording lives in one place
+ * (readmeBuilder.ts), and independent of CheckResult, which is error-only.
+ */
+export interface ExclusionReport {
+  /** Layer paths using a Color Style. */
+  colorStyles: string[];
+  stringBooleanVariables: StringBooleanVariableUsage[];
+  /** Layer paths (page-root names) of bare Component/Component Set definitions. */
+  bareRootComponents: string[];
+  tokenNameCollisions: TokenNameCollision[];
+}
+
+/**
+ * Layer path from the page down to `node`, e.g. `Home > Header > Title`. The
+ * page name itself is not part of the path — the path names layers as the
+ * designer sees them in the Figma layer tree, so they can find the item.
+ */
+function nodeLayerPath(node: SceneNode): string {
+  const names: string[] = [];
+  let current: BaseNode | null = node;
+  while (current && current.type !== "PAGE" && current.type !== "DOCUMENT") {
+    names.unshift(current.name);
+    current = current.parent;
+  }
+  return names.reduce((path, name) => buildLayerPath(path, name), "");
 }
 
 // Color Styles (fillStyleId) and Variables (boundVariables.fills) are
 // mutually-exclusive binding mechanisms in the Figma API — a fill bound to a
 // Style never also sets boundVariables, so this can't double-count a
-// Variable-bound fill.
-export function checkColorStyleUsage(nodes: SceneNode[]): CheckResult[] {
-  const results: CheckResult[] = [];
+// Variable-bound fill. Color is sourced from Variables only (4.3.4), so a
+// Color Style never becomes a token.
+export function checkColorStyleUsage(nodes: SceneNode[]): string[] {
+  const paths: string[] = [];
   for (const node of nodes) {
     if (!("fillStyleId" in node)) continue;
     const styleId = (node as MinimalFillsMixin).fillStyleId;
     // TextNodes can report fillStyleId === figma.mixed when some characters
     // are styled via a Color Style and others aren't (@figma/plugin-typings)
-    // — that's still Color Style usage on part of the node, so flag it too.
+    // — that's still Color Style usage on part of the node, so record it too.
     const usesColorStyle =
       (typeof styleId === "string" && styleId !== "") || styleId === figma.mixed;
-    if (usesColorStyle) {
-      results.push(
-        suggestionResult(
-          node,
-          "Color Styleを使用",
-          "Variableに移行しませんか？（カラーはVariablesに一本化）",
-        ),
-      );
-    }
+    if (usesColorStyle) paths.push(nodeLayerPath(node));
   }
-  return results;
+  return paths;
 }
 
 // boundVariables values are either a single VariableAlias (scalar-bound
@@ -72,9 +98,11 @@ function collectBoundVariableIds(node: SceneNode): string[] {
 // tokensBuilder.ts only emits COLOR/FLOAT Variables (the documented
 // tokens.json schema, 4.5.1) — STRING/BOOLEAN Variables are silently dropped
 // there (same resolvedType check as tokensBuilder's `supported` filter).
-// Warn here so the designer knows before export rather than after.
-export function checkStringBooleanVariableUsage(nodes: SceneNode[]): CheckResult[] {
-  const results: CheckResult[] = [];
+// Record them so the designer knows they didn't make it into tokens.json.
+export function checkStringBooleanVariableUsage(
+  nodes: SceneNode[],
+): StringBooleanVariableUsage[] {
+  const usages: StringBooleanVariableUsage[] = [];
   for (const node of nodes) {
     const ids = collectBoundVariableIds(node);
     if (ids.length === 0) continue;
@@ -90,62 +118,35 @@ export function checkStringBooleanVariableUsage(nodes: SceneNode[]): CheckResult
       }
       if (!variable) continue;
       if (variable.resolvedType === "STRING" || variable.resolvedType === "BOOLEAN") {
-        results.push(
-          suggestionResult(
-            node,
-            `STRING/BOOLEAN Variable「${variable.name}」を使用`,
-            "これらはトークン出力対象外です",
-          ),
-        );
+        usages.push({ path: nodeLayerPath(node), variableName: variable.name });
       }
     }
   }
-  return results;
+  return usages;
 }
 
 // Design doc 4.7.4: export units are page-root FRAME/SECTION only; reusable
 // parts get expanded from instances placed inside them. A Component /
 // Component Set placed bare at page root (not wrapped as an instance inside
-// a screen frame) is therefore never reached by the exporter — flag it
+// a screen frame) is therefore never reached by the exporter — record it
 // rather than silently skip it.
-export function checkBareRootComponents(nodes: SceneNode[]): CheckResult[] {
-  const results: CheckResult[] = [];
+export function checkBareRootComponents(nodes: SceneNode[]): string[] {
+  const paths: string[] = [];
   for (const node of nodes) {
     if (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET") continue;
-    if (node.parent && node.parent.type === "PAGE") {
-      results.push(
-        suggestionResult(
-          node,
-          "ページ直下に裸で置かれたComponent/Component Set定義",
-          "書き出し対象外です。画面フレーム内にインスタンスとして配置するか、ライブラリページへ",
-        ),
-      );
-    }
+    if (node.parent && node.parent.type === "PAGE") paths.push(nodeLayerPath(node));
   }
-  return results;
-}
-
-export function runScopeChecks(nodes: SceneNode[]): CheckResult[] {
-  return [
-    ...checkColorStyleUsage(nodes),
-    ...checkStringBooleanVariableUsage(nodes),
-    ...checkBareRootComponents(nodes),
-  ];
+  return paths;
 }
 
 // Not node-scoped — operates on Variables/Text Styles directly, so it can't
-// share the (nodes: SceneNode[]) => CheckResult[] shape above. There is no
-// single SceneNode to point at, so nodeId/nodeName use "" as a sentinel:
-// App.tsx's selectNode() still round-trips safely, since code.ts's
-// select-node handler guards with `if (msg.type === "select-node" && msg.nodeId)`
-// — an empty-string nodeId is falsy, so the whole block (including the
-// figma.getNodeById call) is skipped entirely and is a no-op.
+// share the (nodes: SceneNode[]) shape above.
 //
 // tokensBuilder.ts injects Variables first, then Text Styles under the same
 // TYPOGRAPHY_TOKEN_PREFIX group (setNested) — so when a Variable's full path
 // is literally "typography/<name>" and a Text Style is also named "<name>",
 // the Text Style (written second) silently overwrites the Variable's value
-// in tokens.json. Warn about the collision pre-export instead.
+// in tokens.json. Record the collision so the overwrite isn't invisible.
 //
 // Only COLOR/FLOAT Variables ever reach tokens.json (tokensBuilder.ts's
 // `supported` filter) — STRING/BOOLEAN Variables are dropped before
@@ -158,8 +159,8 @@ function isTokenBuilderSupported(variable: Variable): boolean {
 export function checkTypographyTokenCollisions(
   variables: Variable[],
   textStyles: TextStyle[],
-): CheckResult[] {
-  const results: CheckResult[] = [];
+): TokenNameCollision[] {
+  const collisions: TokenNameCollision[] = [];
   const textStyleNames = new Set(textStyles.map((s) => s.name));
 
   for (const variable of variables) {
@@ -168,14 +169,24 @@ export function checkTypographyTokenCollisions(
     if (parts[0] !== TYPOGRAPHY_TOKEN_PREFIX) continue;
     const rest = parts.slice(1).join("/");
     if (!rest || !textStyleNames.has(rest)) continue;
-    results.push({
-      level: "suggestion",
-      nodeId: "",
-      nodeName: variable.name,
-      message: `トークン名が衝突しています（Variable「${variable.name}」とText Style「${rest}」が同じ名前）`,
-      suggestion:
-        "tokens.jsonでは片方が上書きされます。名前を変更してください",
-    });
+    collisions.push({ variableName: variable.name, textStyleName: rest });
   }
-  return results;
+  return collisions;
+}
+
+/**
+ * Collect every exclusion for one export run. Called at export time only —
+ * never from Review, which reports errors exclusively (4.7.2).
+ */
+export function runScopeChecks(
+  nodes: SceneNode[],
+  variables: Variable[],
+  textStyles: TextStyle[],
+): ExclusionReport {
+  return {
+    colorStyles: checkColorStyleUsage(nodes),
+    stringBooleanVariables: checkStringBooleanVariableUsage(nodes),
+    bareRootComponents: checkBareRootComponents(nodes),
+    tokenNameCollisions: checkTypographyTokenCollisions(variables, textStyles),
+  };
 }

@@ -2,6 +2,8 @@ import { createSignal, For, Show, type Component } from "solid-js";
 import promptTemplate from "./templates/prompt.md?raw";
 import steeringTemplate from "./templates/steering.md?raw";
 import type { CheckResult } from "./checks/types";
+import type { ExclusionReport } from "./checks/scopeChecks";
+import { buildReadme, emptyExclusionReport } from "./export/readmeBuilder";
 
 type Tab = "check" | "note" | "export";
 
@@ -26,6 +28,8 @@ interface ExportFrame {
 interface ExportData {
   frames: ExportFrame[];
   tokens: unknown;
+  /** What this export left out — rendered into README.md (design doc 4.7.2). */
+  exclusions?: ExclusionReport;
 }
 
 const App: Component = () => {
@@ -126,24 +130,14 @@ const App: Component = () => {
       root.file("steering.md", steeringTemplate
         .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
         .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
-      const readmeContent = [
-        "# Telldes Export",
-        "",
-        "This zip was exported by the Telldes Figma plugin.",
-        "",
-        "## Contents",
-        "",
-        "- `prompt.md` — Coding instructions for Claude Code",
-        "- `steering.md` — Pre-coding checklist, tasks, and rules",
-        msg.tokens ? "- `tokens.json` — Design tokens (W3C DTCG format)" : null,
-        ...frameNames.map((n: string) => `- \`${n}/\` — spec.json, screenshots, and assets for frame "${n}"`),
-        "",
-        "## Not included in this export",
-        "",
-        "- `prompt.md`, `steering.md`, and this `README.md` are generated from templates, not derived from design nodes — only `spec.json`, `screenshots/`, and `assets/` map 1:1 to Figma nodes.",
-        "- Component/Component Set definitions placed directly on the page (outside any frame) are excluded — they're flagged as a suggestion during Review. Move them into a frame as an instance, or onto a separate library page, to include them.",
-      ].filter((line): line is string => line !== null).join("\n");
-      root.file("README.md", readmeContent);
+      root.file(
+        "README.md",
+        buildReadme({
+          frameNames,
+          hasTokens: Boolean(msg.tokens),
+          exclusions: msg.exclusions ?? emptyExclusionReport(),
+        }),
+      );
 
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
@@ -173,8 +167,8 @@ const App: Component = () => {
     parent.postMessage({ pluginMessage: { type: "select-node", nodeId } }, "*");
   };
 
-  const errors = () => results().filter((r) => r.level === "error");
-  const suggestions = () => results().filter((r) => r.level === "suggestion");
+  // Every result is an error (CheckLevel is error-only, design doc 4.7.2).
+  const errors = results;
 
   const runExport = () => {
     setExporting(true);
@@ -239,26 +233,6 @@ const App: Component = () => {
                       {(item) => (
                         <li
                           class="result-item error-item"
-                          onClick={() => selectNode(item.nodeId)}
-                        >
-                          <div class="result-node">{item.nodeName}</div>
-                          <div class="result-message">{item.message}</div>
-                          <div class="result-suggestion">{item.suggestion}</div>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
-
-                <Show when={suggestions().length > 0}>
-                  <div class="section-label suggestion-label">
-                    Suggestions ({suggestions().length})
-                  </div>
-                  <ul class="result-list">
-                    <For each={suggestions()}>
-                      {(item) => (
-                        <li
-                          class="result-item suggestion-item"
                           onClick={() => selectNode(item.nodeId)}
                         >
                           <div class="result-node">{item.nodeName}</div>
@@ -410,9 +384,6 @@ const App: Component = () => {
         .error-label {
           color: #f24822;
         }
-        .suggestion-label {
-          color: #7b61ff;
-        }
         .result-list {
           list-style: none;
         }
@@ -429,9 +400,6 @@ const App: Component = () => {
         }
         .error-item {
           border-left-color: #f24822;
-        }
-        .suggestion-item {
-          border-left-color: #7b61ff;
         }
         .result-node {
           font-weight: 600;
