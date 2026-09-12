@@ -43,3 +43,16 @@ export interface ExportDataMessage {
    */
   exclusions: ExclusionReport;
 }
+
+/**
+ * Payload of the `check-error` message: Review could not finish.
+ *
+ * The Review tab clears its "Running..." flag on `check-results` or this — a
+ * throw with no message would leave the tab pinned on "Running..." with
+ * nothing to tell the user why (the same hazard `export-error` covers for the
+ * export path).
+ */
+export interface CheckErrorMessage {
+  type: "check-error";
+  message: string;
+}

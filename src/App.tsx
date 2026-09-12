@@ -18,6 +18,7 @@ const App: Component = () => {
   const [results, setResults] = createSignal<CheckResult[]>([]);
   const [hasRun, setHasRun] = createSignal(false);
   const [running, setRunning] = createSignal(false);
+  const [checkError, setCheckError] = createSignal("");
   const [selectionNote, setSelectionNote] = createSignal<SelectionNote | null>(null);
   const [noteText, setNoteText] = createSignal("");
   const [noteSaved, setNoteSaved] = createSignal(false);
@@ -31,6 +32,13 @@ const App: Component = () => {
     if (msg.type === "check-results") {
       setResults(msg.results);
       setHasRun(true);
+      setRunning(false);
+      setCheckError("");
+    }
+    if (msg.type === "check-error") {
+      // Review threw. Clear "Running..." on this path too, or the tab stays
+      // pinned on it forever (code.ts posts this from the run-checks catch).
+      setCheckError(msg.message);
       setRunning(false);
     }
     if (msg.type === "selection-note") {
@@ -81,6 +89,7 @@ const App: Component = () => {
 
   const runChecks = () => {
     setRunning(true);
+    setCheckError("");
     parent.postMessage({ pluginMessage: { type: "run-checks" } }, "*");
   };
 
@@ -142,6 +151,10 @@ const App: Component = () => {
             <button class="run-btn" onClick={runChecks} disabled={running()}>
               {running() ? "Running..." : "Run Review"}
             </button>
+
+            <Show when={checkError()}>
+              <div class="export-error">{checkError()}</div>
+            </Show>
 
             <Show when={hasRun()}>
               {/*

@@ -51,7 +51,12 @@ function makeFrame(
  * the module must be re-evaluated per test. The assigned onmessage handler is
  * what the tests drive.
  */
-async function loadPlugin(page: PageNode, variables: Variable[] = []) {
+async function loadPlugin(
+  page: PageNode,
+  variables: Variable[] = [],
+  /** Overrides merged over the stub, for tests that break a Figma API. */
+  figmaOverrides: Record<string, unknown> = {},
+) {
   const posted: PluginMessage[] = [];
   const ui = {
     postMessage: (msg: PluginMessage) => posted.push(msg),
@@ -71,6 +76,7 @@ async function loadPlugin(page: PageNode, variables: Variable[] = []) {
     },
     getLocalTextStyles: () => [],
     getStyleById: (id: string) => ({ name: id }),
+    ...figmaOverrides,
   });
 
   vi.resetModules();
@@ -236,6 +242,57 @@ describe("run-export", () => {
     }
   });
 
+  it("exports the page-root frames only, not every frame in the subtree", async () => {
+    // Export units are page-root FRAME/SECTION (design doc 4.7.4). A scan over
+    // the whole subtree would silently turn a nested frame into its own
+    // top-level zip folder, duplicating it inside its parent's spec.json.
+    const inner = makeFrame({ id: "i", name: "Inner" });
+    const frame = makeFrame({ id: "f", name: "Home" }, [inner]);
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "run-export" });
+
+    const data = posted.find((m) => m.type === "export-data");
+    expect((data?.frames as { name: string }[]).map((f) => f.name)).toEqual(["Home"]);
+  });
+
+  it("still exports when the Variables API is unavailable", async () => {
+    // fetchVariablesAndTextStyles runs inside the run-export try, so dropping
+    // its own catch would silently turn "export anyway" into "Export failed".
+    const frame = makeFrame({ id: "f", name: "Home" });
+    const { posted, send } = await loadPlugin(makePage([frame]), [], {
+      variables: {
+        getLocalVariables: () => {
+          throw new Error("no Variables API");
+        },
+        getVariableById: () => null,
+      },
+    });
+
+    await send({ type: "run-export" });
+
+    expect(posted.filter((m) => m.type === "export-error")).toHaveLength(0);
+    const data = posted.find((m) => m.type === "export-data");
+    expect((data?.exclusions as { tokenNameCollisions: unknown[] }).tokenNameCollisions)
+      .toEqual([]);
+  });
+
+  it("still exports when the Text Styles API is unavailable", async () => {
+    const frame = makeFrame({ id: "f", name: "Home" });
+    const { posted, send } = await loadPlugin(makePage([frame]), [], {
+      getLocalTextStyles: () => {
+        throw new Error("no Text Styles API");
+      },
+    });
+
+    await send({ type: "run-export" });
+
+    expect(posted.filter((m) => m.type === "export-error")).toHaveLength(0);
+    const data = posted.find((m) => m.type === "export-data");
+    expect((data?.exclusions as { tokenNameCollisions: unknown[] }).tokenNameCollisions)
+      .toEqual([]);
+  });
+
   it("reports an export failure instead of leaving the UI stuck", async () => {
     // A throw anywhere in the export path (here: collecting nodes) must still
     // reach the UI — it only clears "Exporting..." on export-error/export-data.
@@ -312,5 +369,23 @@ describe("run-checks", () => {
       ]),
     );
     expect(results).toHaveLength(2);
+  });
+
+  it("reports a check failure instead of leaving the Review tab stuck", async () => {
+    // The Review tab clears "Running..." on check-results or check-error only.
+    const page = makePage([]);
+    Object.defineProperty(page, "children", {
+      get() {
+        throw new Error("boom");
+      },
+    });
+    const { posted, send } = await loadPlugin(page);
+
+    await send({ type: "run-checks" });
+
+    expect(posted.filter((m) => m.type === "check-results")).toHaveLength(0);
+    expect(posted.find((m) => m.type === "check-error")?.message).toContain(
+      "Review failed",
+    );
   });
 });

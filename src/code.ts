@@ -3,7 +3,7 @@ import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
 import { collectExclusions, isExportedFrame } from "./export/exclusions";
 import type { CheckResult } from "./checks/types";
-import type { ExportDataMessage, ExportFile } from "./messages";
+import type { ExportDataMessage, ExportFrame } from "./messages";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
@@ -65,8 +65,16 @@ figma.on("selectionchange", () => {
 
 figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string }) => {
   if (msg.type === "run-checks") {
-    const results = runAllChecks(collectAllNodes(figma.currentPage));
-    figma.ui.postMessage({ type: "check-results", results });
+    // Same containment as run-export below: the Review tab only clears its
+    // "Running..." flag on check-results / check-error, so a throw inside the
+    // checks (a Figma API that rejects a node, a malformed tree) would pin the
+    // tab on "Running..." with nothing to tell the user why.
+    try {
+      const results = runAllChecks(collectAllNodes(figma.currentPage));
+      figma.ui.postMessage({ type: "check-results", results });
+    } catch (err) {
+      figma.ui.postMessage({ type: "check-error", message: `Review failed: ${err}` });
+    }
   }
 
   if (msg.type === "select-node" && msg.nodeId) {
@@ -134,12 +142,10 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         textStyles,
       });
 
-      const frames: {
-        name: string;
-        spec: object;
-        screenshots: ExportFile[];
-        assets: ExportFile[];
-      }[] = [];
+      // Typed by the shared payload declaration rather than restated here: a
+      // field added to ExportFrame and forgotten on this side must be a type
+      // error, not an invisible omission laundered through a cast.
+      const frames: ExportFrame[] = [];
 
       for (const frame of topFrames) {
         const mockPage = {
@@ -164,7 +170,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       // two ends of postMessage are not restating the payload separately.
       const message: ExportDataMessage = {
         type: "export-data",
-        frames: frames as ExportDataMessage["frames"],
+        frames,
         tokens,
         exclusions,
       };
