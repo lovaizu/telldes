@@ -755,11 +755,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: paused
+* **Status**: not suspended
 * **Date**: 2026-09-13
-* **Last completed**: G-5（Ph-7 完了）。U-1 は作業ステップ全完了・レビュー4軸実施済みだが、未解決指摘の扱い待ちで未チェック。
-* **Next**: U-1 の決着 — 未解決指摘6件（詳細は U-1 の「進行メモ」）を潰すもう1ラウンドを回すか、U-1 を確定して U-2 へ進み残りを U-3 に寄せるかをユーザーが選ぶ。
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。U-1 は修正ラウンド上限3回を使い切った状態（最終レビューは QA/Craft/Verification PASS・Design FAIL、完了条件7項目は全員 OK）。実使用フィードバックで Ph-8（U-1, U-2）を追加し T-1 の前提に組み込んだため T-1 は Ph-8 完了後に再開。T-1 は Figma 実機必須のため自律実行不可。U-3（除外物の検出漏れ解消）は U-1 中に発見し新規追加。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。U-1 は作業ステップ全完了だが未解決指摘6件（U-1「進行メモ」参照）の扱いがユーザー判断待ちで未チェック。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
 
 ---
 
@@ -789,7 +789,7 @@ State
   - G-3: 告知チェック4種（suggestion）実装 ✅
   - G-4: Export README 除外物明記 ✅
   - G-5: tokens.json 出力条件の更新 ✅
-* **テスト**: 151テスト全パス
+* **テスト**: 217テスト全パス
 * **UI ラベル**: Review / Notes / Export（英語、デザイナー向け）
 * **出力構造**: フレーム名ごとにフォルダ分け（LP 1フレームでも HP 複数フレームでも同じ構造）
 * **設計書との整合**: 確認済み（2026-05-29）
