@@ -657,19 +657,31 @@ Ph-8: 実使用フィードバック対応
 **前提**: G-3, G-4, G-5 完了
 
 **作業内容**:
-- [ ] `docs/telldes-design.md` を更新: 4.7.2 節の「Variablesチェック（提案）」節を削除し、「源泉・範囲チェック（提案／告知）」を Review の一部ではなく Export README への出力として位置づけ直す。4.3.4 の「チェック時に繰り返し使われている値を検出し『Variableにしませんか？』と提案する」「Reviewの提案（4.7.2）はこの語彙で命名を促す」、4.7.4 の「Reviewで告知する」、4.7.2 末尾の「エラーは書き出し前に解消必須。提案・告知は無視してもよい」も整合させる
-- [ ] `src/checks/variableChecks.ts` と `src/checks/__tests__/variableChecks.test.ts` を削除し、`src/code.ts` の `runVariableChecks` 呼び出しと import を削除
-- [ ] `src/checks/types.ts` の `CheckLevel` を `"error"` のみに変更する（改善方法テキストである `CheckResult.suggestion` フィールドは削除しない）
-- [ ] `src/checks/scopeChecks.ts` の `runScopeChecks` / `checkTypographyTokenCollisions` を、`CheckResult[]` ではなく除外物レポート（項目種別・レイヤーパス／トークン名・件数）を返す形に変更する
-- [ ] `src/code.ts`: 除外物レポートを Review 実行時ではなく Export 時に生成し、`export-data` メッセージに含めて UI へ渡す
-- [ ] `src/App.tsx`: Review タブの Suggestions セクションと `suggestions()` シグナル・関連 CSS（`.suggestion-label` / `.suggestion-item`）を削除する。`.result-suggestion`（error の改善方法表示）は残す
-- [ ] `src/App.tsx`: README 生成の「Not included in this export」セクションを、除外物レポートの実検出データで埋める（検出ゼロの項目は行を出さない）
-- [ ] テスト更新（`scopeChecks.test.ts` を新シグネチャに追従、README 生成のテストがあれば更新）
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-1.md`）
-- [ ] QA エキスパートレビュー（subagent）
-- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
-- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
-- [ ] Design エキスパートレビュー（subagent）
+- [x] `docs/telldes-design.md` を更新: 4.7.2 節の「Variablesチェック（提案）」節を削除し、「源泉・範囲チェック（提案／告知）」を Review の一部ではなく Export README への出力として位置づけ直す。4.3.4 の「チェック時に繰り返し使われている値を検出し『Variableにしませんか？』と提案する」「Reviewの提案（4.7.2）はこの語彙で命名を促す」、4.7.4 の「Reviewで告知する」、4.7.2 末尾の「エラーは書き出し前に解消必須。提案・告知は無視してもよい」も整合させる
+- [x] `src/checks/variableChecks.ts` と `src/checks/__tests__/variableChecks.test.ts` を削除し、`src/code.ts` の `runVariableChecks` 呼び出しと import を削除
+- [x] `src/checks/types.ts` の `CheckLevel` を `"error"` のみに変更する（改善方法テキストである `CheckResult.suggestion` フィールドは削除しない）
+- [x] `src/checks/scopeChecks.ts` の `runScopeChecks` / `checkTypographyTokenCollisions` を、`CheckResult[]` ではなく除外物レポート（項目種別・レイヤーパス／トークン名・件数）を返す形に変更する
+- [x] `src/code.ts`: 除外物レポートを Review 実行時ではなく Export 時に生成し、`export-data` メッセージに含めて UI へ渡す
+- [x] `src/App.tsx`: Review タブの Suggestions セクションと `suggestions()` シグナル・関連 CSS（`.suggestion-label` / `.suggestion-item`）を削除する。`.result-suggestion`（error の改善方法表示）は残す
+- [x] `src/App.tsx`: README 生成の「Not included in this export」セクションを、除外物レポートの実検出データで埋める（検出ゼロの項目は行を出さない）
+- [x] テスト更新（`scopeChecks.test.ts` を新シグネチャに追従、README 生成のテストがあれば更新）
+- [x] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-1.md`）
+- [x] QA エキスパートレビュー（subagent）
+- [x] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [x] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [x] Design エキスパートレビュー（subagent）
+
+**進行メモ（2026-09-13 時点）**:
+- 作業ステップは全完了。実装は3コミット＋修正3ラウンド（計7コミット、`3cf5307`…`20282da`）。テスト 151 → 217、両ビルド green
+- 最終レビュー: QA / Craft / Verification **PASS**、Design のみ **FAIL**。完了条件7項目は4名全員 OK。修正ラウンドは rn の上限3回を使い切っている
+- **未解決の指摘**（いずれも小さく局所的。U-1 の完了条件は満たしている）:
+  1. 出力精度: README の Contents 行 `for frame "X"` にフォルダ名を入れているため、`Desktop / Home` が `for frame "Desktop - Home"` になる。Figma に該当名のフレームは存在しない。`ExportFrame` に生名を併せて載せれば解消
+  2. 堅牢性: フォルダ名と README パスの一致が「同一関数」ではなく、`code.ts` がページ順・生名でフレームを積むという明文化されていない慣習＋テストで担保されている（設計書 4.7.2 は「同一の関数で生成」と記載）。`ExportFrame` に `folderName` を載せ `zipBuilder` 側の `resolveFrameFolderNames` 呼び出しを廃すれば構造的に保証される
+  3. 契約: `src/messages.ts` の `CheckErrorMessage` がどこからも参照されていない（`code.ts` は型注釈なしのリテラルを post している）
+  4. UI: `check-error` 受信時に `results()` / `hasRun()` を消さないため、失敗バナーの下に前回の結果が残る。また `<Show>` 二重ゲートが「結果あり・エラー0件」で空パネルを描く（現状到達不能のデッドパス）
+  5. テスト: 0フレーム書き出し、`typography/a/b` の多段サブパス衝突、DOCUMENT 終端のレイヤーパスが未カバー
+  6. スタイル: 新規モジュールのコメント密度が既存の3〜8倍（40〜55% 対 5〜13%）。過去の不具合の経緯を語る段落が複数あり、コミットメッセージと設計書に寄せるべき
+- **ユーザー判断待ち**: もう1ラウンド回して上記を潰すか、U-1 をここで確定して U-2 / T-1 へ進み残りを U-3 とまとめるか
 
 **完了条件**:
 - `CheckLevel` 型が `"error"` のみであり、`level: "suggestion"` を生成するコードがリポジトリに存在しないこと
@@ -708,6 +720,35 @@ Ph-8: 実使用フィードバック対応
 - note を保存したあと一覧が再描画され、追加・変更・削除（空文字保存）が反映されること
 - note が1件も設定されていないページでは、空状態メッセージが表示されること
 - 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンであること、(b) 選択中ノードの note 編集・保存の挙動が変わっていないこと
+
+---
+
+### U-3: 書き出し除外物の検出漏れ解消
+
+**目的**: README の「除外物」セクションが書き出し対象外を網羅すると謳っている以上、現在検出できていない除外物を検出対象に加える。
+
+**前提**: U-1 完了
+
+**作業内容**:
+- [ ] `docs/telldes-design.md` 4.7.2 に追加する検出カテゴリを追記する
+- [ ] ページ直下に裸で置かれた `GROUP` / `INSTANCE` / `TEXT` / `RECTANGLE` 等（`FRAME`・`SECTION` 以外）が無記録で書き出しから落ちている件を検出・記録する
+- [ ] `strokeStyleId` に束縛された Color Style を検出する（現状 `fillStyleId` のみ）
+- [ ] インスタンスの component properties 経由（`instance.componentProperties[k].boundVariables.value`）で束縛された STRING Variable を検出する
+- [ ] 同名 Variable が別コレクションに存在し `tokens.json` で相互に上書きされる件を検出する
+- [ ] テスト作成
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-3.md`）
+- [ ] QA エキスパートレビュー（subagent）
+- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Design エキスパートレビュー（subagent）
+
+**完了条件**:
+- ページ直下の `FRAME`・`SECTION` 以外のノードが書き出しから落ちる場合、`README.md` の除外物セクションに該当レイヤーが記録されること
+- `strokeStyleId` に Color Style を束縛したレイヤーが Color Style 使用として記録されること
+- component properties 経由で束縛された STRING Variable が記録されること
+- 別コレクションの同名 Variable が `tokens.json` で衝突する場合に記録されること
+- 検出ゼロの項目については `README.md` に該当行が出力されないこと
+- 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンであること、(b) U-1 で確立した走査範囲・グルーピング規約が変わっていないこと
 
 ---
 
