@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
+import type { CheckResult } from "../checks/types";
 
 // The plugin-sandbox entry point (code.ts) is the seam between Review, the
 // Export error gate and the exclusion scan. Everything that actually talks to
@@ -69,6 +70,7 @@ async function loadPlugin(page: PageNode, variables: Variable[] = []) {
       getVariableById: (id: string) => variables.find((v) => v.id === id) ?? null,
     },
     getLocalTextStyles: () => [],
+    getStyleById: (id: string) => ({ name: id }),
   });
 
   vi.resetModules();
@@ -90,9 +92,24 @@ describe("run-export", () => {
   it("blocks the export and posts no data when a check finds an error", async () => {
     // Auto-Layout-less frame with children = one structure error. The
     // Color-Style node is an exclusion, not an error — it must not affect this.
+    // No trap here on purpose: with one, deleting the gate's `return` still
+    // produced an export-error (from the trap) and no export-data, so the
+    // assertions held and the test proved nothing about the gate.
     const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
-    // `trap` blows up the moment the exclusion scan touches it, so a scan that
-    // ran before the error gate would surface as "Export failed" instead.
+    const frame = makeFrame({ id: "f", name: "Home", layoutMode: "NONE" }, [title]);
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "run-export" });
+
+    const errorMsg = posted.find((m) => m.type === "export-error");
+    expect(errorMsg?.message).toBe("1 error(s) must be fixed before export");
+    expect(posted.filter((m) => m.type === "export-data")).toHaveLength(0);
+  });
+
+  it("runs the exclusion scan only after the error gate has passed", async () => {
+    // `trap` blows up the moment the exclusion scan touches it: if the scan
+    // ran before the gate, the message would be "Export failed: ..." instead
+    // of the error count.
     const trap = makeNode({ id: "x", name: "Trap" });
     Object.defineProperty(trap, "fillStyleId", {
       enumerable: true,
@@ -100,13 +117,31 @@ describe("run-export", () => {
         throw new Error("scanned before the error gate");
       },
     });
-    const frame = makeFrame({ id: "f", name: "Home", layoutMode: "NONE" }, [title, trap]);
+    const frame = makeFrame({ id: "f", name: "Home", layoutMode: "NONE" }, [trap]);
     const { posted, send } = await loadPlugin(makePage([frame]));
 
     await send({ type: "run-export" });
 
-    const errorMsg = posted.find((m) => m.type === "export-error");
-    expect(errorMsg?.message).toBe("1 error(s) must be fixed before export");
+    expect(posted.find((m) => m.type === "export-error")?.message).toBe(
+      "1 error(s) must be fixed before export",
+    );
+  });
+
+  it("blocks the export on a sizing error, not just a structure error", async () => {
+    const loose = makeNode({
+      id: "s",
+      name: "Loose",
+      layoutSizingHorizontal: "SCALE",
+      layoutSizingVertical: "FIXED",
+    });
+    const frame = makeFrame({ id: "f", name: "Home" }, [loose]);
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "run-export" });
+
+    expect(posted.find((m) => m.type === "export-error")?.message).toBe(
+      "1 error(s) must be fixed before export",
+    );
     expect(posted.filter((m) => m.type === "export-data")).toHaveLength(0);
   });
 
@@ -120,11 +155,85 @@ describe("run-export", () => {
     const data = posted.filter((m) => m.type === "export-data");
     expect(data).toHaveLength(1);
     expect(data[0].exclusions).toEqual({
-      colorStyles: ["Home > Title"],
+      colorStyles: [
+        { styleName: "S:1", examplePaths: ["Home > Title"], layerCount: 1 },
+      ],
       stringBooleanVariables: [],
       bareRootComponents: [],
       tokenNameCollisions: [],
     });
+  });
+
+  it("scans the exported frames for node categories and the page root for bare Components", async () => {
+    // Pins which node list reaches which part of the scan: a scan over all
+    // page children would put the loose Banner and the Button's Label into the
+    // Color Style list (neither appears in any zip folder), while a bare-
+    // Component scan over the exported frames alone would drop Button.
+    const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
+    const frame = makeFrame({ id: "f", name: "Home" }, [title]);
+    const banner = makeNode({ id: "bn", name: "Banner", fillStyleId: "S:2" });
+    const buttonLabel = makeNode({ id: "bl", name: "Label", fillStyleId: "S:3" });
+    const button = makeFrame({ id: "b", name: "Button", type: "COMPONENT" }, [
+      buttonLabel,
+    ]);
+    const { posted, send } = await loadPlugin(makePage([frame, banner, button]));
+
+    await send({ type: "run-export" });
+
+    const data = posted.find((m) => m.type === "export-data");
+    expect(data?.exclusions).toEqual({
+      colorStyles: [
+        { styleName: "S:1", examplePaths: ["Home > Title"], layerCount: 1 },
+      ],
+      stringBooleanVariables: [],
+      bareRootComponents: ["Button"],
+      tokenNameCollisions: [],
+    });
+  });
+
+  it("exports a page-root SECTION as a frame and scans inside it", async () => {
+    // SECTION is an export unit alongside FRAME (design doc 4.7.4).
+    const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
+    const section = makeFrame({ id: "s", name: "Band", type: "SECTION" }, [title]);
+    const { posted, send } = await loadPlugin(makePage([section]));
+
+    await send({ type: "run-export" });
+
+    const data = posted.find((m) => m.type === "export-data");
+    expect((data?.frames as { name: string }[]).map((f) => f.name)).toEqual(["Band"]);
+    expect(data?.exclusions).toMatchObject({
+      colorStyles: [
+        { styleName: "S:1", examplePaths: ["Band > Title"], layerCount: 1 },
+      ],
+    });
+  });
+
+  it("does not let a non-error check result block the export", async () => {
+    // The gate filters on level === "error" so that reintroducing a
+    // non-blocking level (design doc 4.7.2) cannot silently promote it to a
+    // blocker. CheckLevel is a one-member union today, hence the cast.
+    vi.doMock("../checks/structureChecks", () => ({
+      runStructureChecks: () => [
+        {
+          level: "suggestion",
+          nodeId: "n",
+          nodeName: "node",
+          message: "advisory",
+          suggestion: "advice",
+        } as unknown as CheckResult,
+      ],
+    }));
+    try {
+      const frame = makeFrame({ id: "f", name: "Home" });
+      const { posted, send } = await loadPlugin(makePage([frame]));
+
+      await send({ type: "run-export" });
+
+      expect(posted.filter((m) => m.type === "export-data")).toHaveLength(1);
+      expect(posted.filter((m) => m.type === "export-error")).toHaveLength(0);
+    } finally {
+      vi.doUnmock("../checks/structureChecks");
+    }
   });
 
   it("reports an export failure instead of leaving the UI stuck", async () => {
@@ -167,5 +276,41 @@ describe("run-checks", () => {
 
     const results = posted.find((m) => m.type === "check-results")?.results;
     expect(results).toEqual([]);
+  });
+
+  it("reports the structure and sizing errors it does find, with their fix messages", async () => {
+    // Without this, a handler that always posted [] would pass the suite.
+    const loose = makeNode({
+      id: "s",
+      name: "Loose",
+      layoutSizingHorizontal: "SCALE",
+      layoutSizingVertical: "FIXED",
+    });
+    const frame = makeFrame({ id: "f", name: "Home", layoutMode: "NONE" }, [loose]);
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "run-checks" });
+
+    const results = posted.find((m) => m.type === "check-results")
+      ?.results as CheckResult[];
+    expect(results).toEqual(
+      expect.arrayContaining([
+        {
+          level: "error",
+          nodeId: "f",
+          nodeName: "Home",
+          message: "Auto Layout未適用のフレーム",
+          suggestion: "Auto Layoutを適用してください",
+        },
+        {
+          level: "error",
+          nodeId: "s",
+          nodeName: "Loose",
+          message: "横方向のサイジングが不明確（SCALE）",
+          suggestion: "Hug/Fill/Fixedのいずれかに設定してください",
+        },
+      ]),
+    );
+    expect(results).toHaveLength(2);
   });
 });

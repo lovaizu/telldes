@@ -55,3 +55,29 @@ export function determineType(
     return "block";
   return "element";
 }
+
+/**
+ * Zip folder name per exported top-level frame (design doc 4.5.2
+ * 「トップレベルフレーム名が重複する場合も、フォルダ名に同じ規則で接尾辞を付ける」).
+ *
+ * Path separators inside a frame name are neutralized so they cannot spawn
+ * nested zip folders, and duplicates get a `-N` suffix so two frames sharing a
+ * name (e.g. responsive desktop/mobile copies) don't clobber each other.
+ *
+ * Single source of truth: the exported README names the root of every layer
+ * path with this same function (exclusions.ts), because 4.7.2 requires README
+ * entries to be reconcilable against the zip the reader is holding. A second
+ * implementation would drift — `Desktop / Home` would land in folder
+ * `Desktop - Home/` while the README pointed at `Desktop / Home > Title`.
+ */
+export function resolveFrameFolderNames(names: readonly string[]): string[] {
+  const used = new Set<string>();
+  return names.map((raw) => {
+    const base = raw.replace(/[/\\]/g, "-").trim() || "frame";
+    let name = base;
+    let i = 2;
+    while (used.has(name)) name = `${base}-${i++}`;
+    used.add(name);
+    return name;
+  });
+}

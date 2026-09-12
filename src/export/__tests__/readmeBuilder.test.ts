@@ -64,33 +64,81 @@ describe("buildReadme", () => {
     expect(section).not.toContain("Token name");
   });
 
-  it("lists detected Color Style usage with layer paths", () => {
+  it("lists each detected Color Style once, with its layer count and examples", () => {
     const section = excludedSection(
       buildReadme({
         ...base,
         exclusions: makeExclusions({
-          colorStyles: ["Home > Header > Title", "Home > Footer"],
+          colorStyles: [
+            {
+              styleName: "brand/primary",
+              examplePaths: ["Home > Card > Icon", "Home > Card-2 > Icon"],
+              layerCount: 10,
+            },
+          ],
         }),
       }),
     );
     expect(section).toContain("Color Style");
-    expect(section).toContain("  - `Home > Header > Title`");
-    expect(section).toContain("  - `Home > Footer`");
+    expect(section).toContain(
+      "  - `brand/primary` — used on 10 layers, e.g. `Home > Card > Icon`, `Home > Card-2 > Icon`",
+    );
   });
 
-  it("lists detected STRING/BOOLEAN Variable usage with layer path and Variable name", () => {
+  it("does not imply there are more layers when the examples cover them all", () => {
+    const section = excludedSection(
+      buildReadme({
+        ...base,
+        exclusions: makeExclusions({
+          colorStyles: [
+            {
+              styleName: "brand/primary",
+              examplePaths: ["Home > Title", "Home > Footer"],
+              layerCount: 2,
+            },
+          ],
+        }),
+      }),
+    );
+    expect(section).toContain(
+      "  - `brand/primary` — used on 2 layers: `Home > Title`, `Home > Footer`",
+    );
+    expect(section).not.toContain("e.g.");
+  });
+
+  it("uses the singular for a style used on exactly one layer", () => {
+    const section = excludedSection(
+      buildReadme({
+        ...base,
+        exclusions: makeExclusions({
+          colorStyles: [
+            { styleName: "brand/primary", examplePaths: ["Home > Title"], layerCount: 1 },
+          ],
+        }),
+      }),
+    );
+    expect(section).toContain("  - `brand/primary` — used on 1 layer: `Home > Title`");
+  });
+
+  it("lists detected STRING/BOOLEAN Variable usage by Variable, with examples", () => {
     const section = excludedSection(
       buildReadme({
         ...base,
         exclusions: makeExclusions({
           stringBooleanVariables: [
-            { path: "Home > Card", variableName: "copy/label" },
+            {
+              variableName: "copy/label",
+              examplePaths: ["Home > Card", "Home > Card-2"],
+              layerCount: 7,
+            },
           ],
         }),
       }),
     );
     expect(section).toContain("STRING/BOOLEAN Variables");
-    expect(section).toContain('  - `Home > Card` (Variable "copy/label")');
+    expect(section).toContain(
+      "  - `copy/label` — used on 7 layers, e.g. `Home > Card`, `Home > Card-2`",
+    );
   });
 
   it("lists bare page-root Components with layer paths", () => {
@@ -130,8 +178,12 @@ describe("buildReadme", () => {
       buildReadme({
         ...base,
         exclusions: {
-          colorStyles: ["Home > Title"],
-          stringBooleanVariables: [{ path: "Home > Card", variableName: "copy/label" }],
+          colorStyles: [
+            { styleName: "brand/primary", examplePaths: ["Home > Title"], layerCount: 1 },
+          ],
+          stringBooleanVariables: [
+            { variableName: "copy/label", examplePaths: ["Home > Card"], layerCount: 1 },
+          ],
           bareRootComponents: ["Button"],
           tokenNameCollisions: [
             { variableName: "typography/heading-md", textStyleName: "heading-md" },
@@ -147,8 +199,8 @@ describe("buildReadme", () => {
     ].map((lead) => section.indexOf(lead));
     expect(order.every((i) => i > -1)).toBe(true);
     expect([...order].sort((a, b) => a - b)).toEqual(order);
-    expect(section).toContain("  - `Home > Title`");
-    expect(section).toContain('  - `Home > Card` (Variable "copy/label")');
+    expect(section).toContain("  - `brand/primary` — used on 1 layer: `Home > Title`");
+    expect(section).toContain("  - `copy/label` — used on 1 layer: `Home > Card`");
     expect(section).toContain("  - `Button`");
     expect(section).toContain(
       "  - `typography/heading-md` (Variable) vs `heading-md` (Text Style)",
@@ -159,12 +211,14 @@ describe("buildReadme", () => {
     const readme = buildReadme({
       ...base,
       exclusions: makeExclusions({
-        colorStyles: ["Home > Title"],
+        colorStyles: [
+          { styleName: "brand/primary", examplePaths: ["Home > Title"], layerCount: 1 },
+        ],
         bareRootComponents: ["Button"],
       }),
     });
     const section = excludedSection(readme);
-    expect(section).toContain("  - `Home > Title`");
+    expect(section).toContain("  - `brand/primary` — used on 1 layer: `Home > Title`");
     expect(section).toContain("  - `Button`");
     expect(section).not.toContain("STRING/BOOLEAN");
     expect(readme.trimEnd().endsWith("`Button`")).toBe(true);

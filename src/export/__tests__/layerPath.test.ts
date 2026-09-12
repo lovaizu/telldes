@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildLayerPath, layerPathToSlug, uniqueChildName } from "../layerPath";
+import {
+  buildLayerPath,
+  layerPathToSlug,
+  resolveFrameFolderNames,
+  uniqueChildName,
+} from "../layerPath";
 
 describe("layerPathToSlug", () => {
   it("joins ` > ` as `--` and neutralizes path separators", () => {
@@ -28,5 +33,30 @@ describe("uniqueChildName", () => {
     expect(uniqueChildName(sibs, 0)).toBe("item");
     expect(uniqueChildName(sibs, 1)).toBe("item-2");
     expect(uniqueChildName(sibs, 2)).toBe("item-2-2");
+  });
+});
+
+describe("resolveFrameFolderNames", () => {
+  it("keeps a plain frame name as the folder name", () => {
+    expect(resolveFrameFolderNames(["Home", "Pricing"])).toEqual(["Home", "Pricing"]);
+  });
+
+  it("suffixes duplicate frame names so folders cannot clobber each other", () => {
+    expect(resolveFrameFolderNames(["Home", "Home", "Home"])).toEqual([
+      "Home",
+      "Home-2",
+      "Home-3",
+    ]);
+  });
+
+  it("neutralizes path separators so a name cannot spawn nested folders", () => {
+    expect(resolveFrameFolderNames(["Desktop / Home", "a\\b"])).toEqual([
+      "Desktop - Home",
+      "a-b",
+    ]);
+  });
+
+  it("falls back to 'frame' for a blank name", () => {
+    expect(resolveFrameFolderNames(["   "])).toEqual(["frame"]);
   });
 });

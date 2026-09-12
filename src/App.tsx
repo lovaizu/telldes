@@ -2,8 +2,8 @@ import { createSignal, For, Show, type Component } from "solid-js";
 import promptTemplate from "./templates/prompt.md?raw";
 import steeringTemplate from "./templates/steering.md?raw";
 import type { CheckResult } from "./checks/types";
-import type { ExclusionReport } from "./export/exclusions";
-import { buildReadme } from "./export/readmeBuilder";
+import type { ExportDataMessage } from "./messages";
+import { buildExportZip } from "./export/zipBuilder";
 
 type Tab = "check" | "note" | "export";
 
@@ -11,31 +11,6 @@ interface SelectionNote {
   nodeId: string;
   nodeName: string;
   note: string;
-}
-
-interface ExportFile {
-  path: string;
-  data: Uint8Array;
-}
-
-interface ExportFrame {
-  name: string;
-  spec: { children?: { name: string }[]; viewport?: { width: number } };
-  screenshots: ExportFile[];
-  assets: ExportFile[];
-}
-
-interface ExportData {
-  frames: ExportFrame[];
-  tokens: unknown;
-  /**
-   * What this export left out — rendered into README.md (design doc 4.7.2).
-   * Required, not optional: code.ts and this UI ship from one build, so an
-   * optional field would buy no safety and would instead turn "the plugin
-   * failed to report" into a README asserting that nothing was excluded —
-   * exactly the silent drop 4.3.4 forbids. A mismatch must be a compile error.
-   */
-  exclusions: ExclusionReport;
 }
 
 const App: Component = () => {
@@ -76,75 +51,15 @@ const App: Component = () => {
     }
   };
 
-  const generateSectionTasks = (sections: { name: string }[]) =>
-    sections
-      .map((s) => `- [ ] Code section: **${s.name}**\n  - [ ] Layout and structure\n  - [ ] Visual styles\n  - [ ] Assets and images\n  - [ ] Notes and interactions\n  - [ ] Compare with screenshot`)
-      .join("\n") || "- [ ] (no sections found)";
-
-  const addFilesToFolder = (
-    folder: { file: (path: string, data: Uint8Array) => void },
-    screenshots: ExportFile[],
-    assets: ExportFile[],
-  ) => {
-    for (const ss of screenshots) {
-      folder.file(ss.path, ss.data);
-    }
-    for (const asset of assets) {
-      folder.file(asset.path, asset.data);
-    }
-  };
-
-  // Top-level frame names become zip folder names. Neutralize path separators
-  // (so they can't spawn nested folders) and suffix duplicates so two frames
-  // sharing a name (e.g. responsive desktop/mobile copies) don't clobber.
-  const resolveFrameFolderNames = (names: string[]): string[] => {
-    const used = new Set<string>();
-    return names.map((raw) => {
-      const base = raw.replace(/[/\\]/g, "-").trim() || "frame";
-      let name = base;
-      let i = 2;
-      while (used.has(name)) name = `${base}-${i++}`;
-      used.add(name);
-      return name;
-    });
-  };
-
-  const handleExportData = async (msg: ExportData) => {
+  const handleExportData = async (msg: ExportDataMessage) => {
     try {
-      const { default: JSZip } = await import("jszip");
-      const zip = new JSZip();
-      const root = zip.folder("telldes-export")!;
-
-      if (msg.tokens) {
-        root.file("tokens.json", JSON.stringify(msg.tokens, null, 2));
-      }
-
-      const allSections: { name: string }[] = [];
-      // Primary viewport = the first frame's width (not whichever frame is last).
-      const primaryWidth = msg.frames[0]?.spec?.viewport?.width ?? 1440;
-      const frameNames = resolveFrameFolderNames(msg.frames.map((f) => f.name));
-
-      msg.frames.forEach((frame, idx) => {
-        const folder = root.folder(frameNames[idx])!;
-        folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
-        addFilesToFolder(folder, frame.screenshots, frame.assets);
-        allSections.push(...(frame.spec?.children ?? []));
+      // Zip assembly lives in export/zipBuilder.ts so it can be tested without
+      // a DOM; this component only turns the result into a download.
+      const zip = await buildExportZip({
+        data: msg,
+        promptTemplate,
+        steeringTemplate,
       });
-
-      const sectionTasks = generateSectionTasks(allSections);
-      root.file("prompt.md", promptTemplate.replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth)));
-      root.file("steering.md", steeringTemplate
-        .replace(/\{\{VIEWPORT_WIDTH\}\}/g, String(primaryWidth))
-        .replace(/\{\{SECTION_TASKS\}\}/g, sectionTasks));
-      root.file(
-        "README.md",
-        buildReadme({
-          frameNames,
-          hasTokens: Boolean(msg.tokens),
-          exclusions: msg.exclusions,
-        }),
-      );
-
       const blob = await zip.generateAsync({ type: "blob" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -229,27 +144,36 @@ const App: Component = () => {
             </button>
 
             <Show when={hasRun()}>
+              {/*
+                Outer gate on every result, inner gate on errors. CheckLevel is
+                error-only today so the two coincide, but the moment a
+                non-blocking level returns (design doc 4.7.2) a single gate on
+                errors alone would render "All checks passed" while non-error
+                results existed — the silent drop 4.3.4 forbids.
+              */}
               <Show
-                when={errors().length > 0}
+                when={results().length > 0}
                 fallback={<div class="pass">All checks passed</div>}
               >
-                <div class="section-label error-label">
-                  Errors ({errors().length})
-                </div>
-                <ul class="result-list">
-                  <For each={errors()}>
-                    {(item) => (
-                      <li
-                        class="result-item error-item"
-                        onClick={() => selectNode(item.nodeId)}
-                      >
-                        <div class="result-node">{item.nodeName}</div>
-                        <div class="result-message">{item.message}</div>
-                        <div class="result-suggestion">{item.suggestion}</div>
-                      </li>
-                    )}
-                  </For>
-                </ul>
+                <Show when={errors().length > 0}>
+                  <div class="section-label error-label">
+                    Errors ({errors().length})
+                  </div>
+                  <ul class="result-list">
+                    <For each={errors()}>
+                      {(item) => (
+                        <li
+                          class="result-item error-item"
+                          onClick={() => selectNode(item.nodeId)}
+                        >
+                          <div class="result-node">{item.nodeName}</div>
+                          <div class="result-message">{item.message}</div>
+                          <div class="result-suggestion">{item.suggestion}</div>
+                        </li>
+                      )}
+                    </For>
+                  </ul>
+                </Show>
               </Show>
             </Show>
           </div>

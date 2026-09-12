@@ -1,8 +1,9 @@
 import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
-import { collectExclusions } from "./export/exclusions";
+import { collectExclusions, isExportedFrame } from "./export/exclusions";
 import type { CheckResult } from "./checks/types";
+import type { ExportDataMessage, ExportFile } from "./messages";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
@@ -27,8 +28,9 @@ function sendSelectionNote() {
 }
 
 // Variables/Text Styles APIs may not be available in all Figma file types
-// (e.g. some starter/free files) — swallow and fall back to empty so a check
-// run or export never hard-fails just because this data is unavailable.
+// (e.g. some starter/free files) — swallow and fall back to empty so the
+// export never hard-fails just because this data is unavailable. Only the
+// export path calls this: Review is errors-only and reads no token sources.
 function fetchVariablesAndTextStyles(): { vars: Variable[]; textStyles: TextStyle[] } {
   let vars: Variable[] = [];
   try {
@@ -117,22 +119,21 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
 
       const tokens = buildTokens(vars, textStyles);
 
-      const topFrames = page.children.filter(
-        (n) => n.type === "FRAME" || n.type === "SECTION",
-      );
+      // Export units are the page-root FRAME/SECTION nodes (design doc 4.7.4).
+      // The same predicate decides the exclusion scan's scope, so the two
+      // cannot disagree about what "inside the export" means.
+      const topFrames = page.children.filter(isExportedFrame);
 
       // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
-      // Collected after the error gate, and scoped to the frames actually
-      // exported (plus page-root nodes for the bare-Component category), so
-      // every README entry is reconcilable against the zip.
+      // Collected after the error gate. It takes the page-root children and
+      // derives the exported frames itself, so every README entry is
+      // reconcilable against the zip built from the same list.
       const exclusions = collectExclusions({
-        exportedFrames: topFrames,
         pageRootNodes: page.children,
         variables: vars,
         textStyles,
       });
 
-      type ExportFile = { path: string; data: Uint8Array };
       const frames: {
         name: string;
         spec: object;
@@ -159,12 +160,15 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         });
       }
 
-      figma.ui.postMessage({
+      // Shape declared once in messages.ts and read by App.tsx too, so the
+      // two ends of postMessage are not restating the payload separately.
+      const message: ExportDataMessage = {
         type: "export-data",
-        frames,
+        frames: frames as ExportDataMessage["frames"],
         tokens,
         exclusions,
-      });
+      };
+      figma.ui.postMessage(message);
     } catch (err) {
       figma.ui.postMessage({
         type: "export-error",
