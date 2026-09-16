@@ -40,37 +40,3 @@ export function determineType(
     return "block";
   return "element";
 }
-
-const RESERVED_ROOT_NAMES = ["README.md", "prompt.md", "steering.md", "tokens.json"];
-
-function baseSegment(raw: string): string {
-  const cleaned = raw.replace(/[/\\]/g, "-").trim();
-  // Dots alone are path navigation, not a name: `..` escapes the export root.
-  if (cleaned === "" || /^\.+$/.test(cleaned)) return "frame";
-  return cleaned;
-}
-
-function claimUnique(base: string, used: Set<string>): string {
-  let name = base;
-  let i = 2;
-  while (used.has(name)) name = `${base}-${i++}`;
-  used.add(name);
-  return name;
-}
-
-/** Every page-root sibling named in one pass over one `used` set (4.5.2/4.7.2). */
-export function resolvePageRootSegmentNames(
-  nodes: readonly SceneNode[],
-  /** Frames go first: the one owning the zip folder keeps the unsuffixed name. */
-  ownsZipFolder: (node: SceneNode) => boolean,
-): Map<string, string> {
-  // Seeded with the zip root's own filenames, so a frame named `README.md`
-  // takes `-N` rather than standing a folder beside the file of that name.
-  const used = new Set<string>(RESERVED_ROOT_NAMES);
-  const byNodeId = new Map<string, string>();
-  const claim = (node: SceneNode) =>
-    byNodeId.set(node.id, claimUnique(baseSegment(node.name), used));
-  for (const node of nodes) if (ownsZipFolder(node)) claim(node);
-  for (const node of nodes) if (!ownsZipFolder(node)) claim(node);
-  return byNodeId;
-}

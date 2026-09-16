@@ -6,20 +6,26 @@ import {
   findTypographyTokenCollisions,
   collectExclusions,
   emptyExclusionReport,
-  type ExclusionScanInput,
 } from "../exclusions";
-import { resolvePageRootNames } from "../exportScope";
+import { resolveExportScope } from "../exportScope";
 import { buildReadme } from "../readmeBuilder";
 
 /**
- * Production hands `collectExclusions` the page-root names code.ts already
- * resolved, so the scan cannot compute a second, drifting set (design doc
- * 4.7.2). These tests resolve them the same way, from the same nodes.
+ * Production hands `collectExclusions` the very scope the zip folders are
+ * named from, so the scan cannot derive a second, drifting one (design doc
+ * 4.7.2). These tests resolve it the same way, from the same nodes.
  */
-function scanExclusions(input: Omit<ExclusionScanInput, "rootNames">) {
+interface ScanInput {
+  pageRootNodes: readonly SceneNode[];
+  variables: readonly Variable[];
+  textStyles: readonly TextStyle[];
+}
+
+function scanExclusions({ pageRootNodes, variables, textStyles }: ScanInput) {
   return collectExclusions({
-    ...input,
-    rootNames: resolvePageRootNames(input.pageRootNodes),
+    scope: resolveExportScope(pageRootNodes),
+    variables,
+    textStyles,
   });
 }
 
@@ -455,7 +461,7 @@ describe("layer paths (via findColorStyleUsage)", () => {
 });
 
 describe("collectExclusions", () => {
-  function scan(overrides: Partial<Omit<ExclusionScanInput, "rootNames">> = {}) {
+  function scan(overrides: Partial<ScanInput> = {}) {
     return scanExclusions({
       pageRootNodes: [],
       variables: [],

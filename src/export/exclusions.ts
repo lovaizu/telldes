@@ -2,7 +2,7 @@
 // never a blocker, but 4.3.4 forbids dropping it silently (readmeBuilder.ts).
 import { TYPOGRAPHY_TOKEN_PREFIX } from "../util/typography";
 import { buildLayerPath, uniqueChildName } from "./layerPath";
-import { isExportedFrame } from "./exportScope";
+import type { ExportScope } from "./exportScope";
 import { collectAllNodes } from "../checks/traversal";
 
 const MAX_EXAMPLE_PATHS = 3;
@@ -45,7 +45,8 @@ export function emptyExclusionReport(): ExclusionReport {
   };
 }
 
-// Deeper nodes are disambiguated against siblings like spec.json paths (4.5.2).
+// `rootNames` holds every page-root child, so a miss is a node below one of
+// them: those are disambiguated against siblings like spec.json paths (4.5.2).
 function segmentName(node: BaseNode, rootNames: ReadonlyMap<string, string>): string {
   const fromRoot = rootNames.get(node.id);
   if (fromRoot !== undefined) return fromRoot;
@@ -248,30 +249,29 @@ function dedupe<T>(items: T[], key: (item: T) => string): T[] {
 }
 
 export interface ExclusionScanInput {
-  /** Every page-root child; `isExportedFrame` derives the exported frames. */
-  pageRootNodes: readonly SceneNode[];
   /**
-   * `resolvePageRootNames(pageRootNodes)`: passed in, not recomputed, because
-   * code.ts stamps this same map onto the zip folders (design doc 4.7.2).
+   * The frames, the page-root nodes and their names as one value: code.ts
+   * stamps these same names onto the zip folders, and a scan taking the two
+   * halves separately could be handed a pair that disagrees (design doc 4.7.2).
    */
-  rootNames: ReadonlyMap<string, string>;
+  scope: ExportScope;
   variables: readonly Variable[];
   textStyles: readonly TextStyle[];
 }
 
 export function collectExclusions({
-  pageRootNodes,
-  rootNames,
+  scope,
   variables,
   textStyles,
 }: ExclusionScanInput): ExclusionReport {
-  const exportedNodes = collectExportedNodes(pageRootNodes.filter(isExportedFrame));
+  const { rootNames } = scope;
+  const exportedNodes = collectExportedNodes(scope.frames);
   return {
     colorStyles: findColorStyleUsage(exportedNodes, rootNames),
     stringBooleanVariables: findStringBooleanVariableUsage(exportedNodes, rootNames),
-    // No dedupe: `resolvePageRootNames` already gives two Components named
-    // `Button` distinct segments, so a dedupe would delete a real exclusion.
-    bareRootComponents: findBareRootComponents(pageRootNodes, rootNames),
+    // No dedupe: the scope already gives two Components named `Button` distinct
+    // segments, so a dedupe would delete a real exclusion.
+    bareRootComponents: findBareRootComponents(scope.pageRootNodes, rootNames),
     tokenNameCollisions: dedupe(
       findTypographyTokenCollisions(variables, textStyles),
       (c) => `${c.variableName} :: ${c.textStyleName}`,

@@ -273,7 +273,13 @@ describe("run-export", () => {
         await vi.importActual<typeof import("../export/exportScope")>(
           "../export/exportScope",
         );
-      return { ...actual, resolvePageRootNames: () => new Map<string, string>() };
+      return {
+        ...actual,
+        resolveExportScope: (nodes: readonly SceneNode[]) => ({
+          ...actual.resolveExportScope(nodes),
+          rootNames: new Map<string, string>(),
+        }),
+      };
     });
     try {
       const frame = makeFrame({ id: "f", name: "Home" });

@@ -2,13 +2,17 @@ import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
 import { collectExclusions } from "./export/exclusions";
-import { isExportedFrame, resolvePageRootNames } from "./export/exportScope";
+import { folderNameOf, resolveExportScope } from "./export/exportScope";
 import type { CheckResult } from "./checks/types";
 import type {
   CheckErrorMessage,
   CheckResultsMessage,
   ExportDataMessage,
+  ExportErrorMessage,
   ExportFrame,
+  NoteSavedMessage,
+  SelectionNote,
+  SelectionNoteMessage,
 } from "./messages";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
@@ -17,7 +21,7 @@ import { exportAssets } from "./export/assetExporter";
 
 figma.showUI(__html__, { width: 360, height: 480 });
 
-function getSelectedNote(): { nodeId: string; nodeName: string; note: string } | null {
+function getSelectedNote(): SelectionNote | null {
   const sel = figma.currentPage.selection;
   if (sel.length !== 1) return null;
   const node = sel[0];
@@ -30,7 +34,8 @@ function getSelectedNote(): { nodeId: string; nodeName: string; note: string } |
 
 function sendSelectionNote() {
   const data = getSelectedNote();
-  figma.ui.postMessage({ type: "selection-note", data });
+  const message: SelectionNoteMessage = { type: "selection-note", data };
+  figma.ui.postMessage(message);
 }
 
 // Variables/Text Styles APIs may not be available in all Figma file types
@@ -107,7 +112,8 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       } else {
         sceneNode.setRelaunchData({});
       }
-      figma.ui.postMessage({ type: "note-saved", nodeId: msg.nodeId });
+      const message: NoteSavedMessage = { type: "note-saved", nodeId: msg.nodeId };
+      figma.ui.postMessage(message);
     }
   }
 
@@ -129,33 +135,27 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         (result) => result.level === "error",
       );
       if (errors.length > 0) {
-        figma.ui.postMessage({
+        const message: ExportErrorMessage = {
           type: "export-error",
           message: `${errors.length} error(s) must be fixed before export`,
-        });
+        };
+        figma.ui.postMessage(message);
         return;
       }
 
       const tokens = buildTokens(vars, textStyles);
 
-      // Export units are the page-root FRAME/SECTION nodes (design doc 4.7.4).
-      // The same predicate decides the exclusion scan's scope, so the two
-      // cannot disagree about what "inside the export" means.
-      const topFrames = page.children.filter(isExportedFrame);
-
-      // The one naming pass over every page-root child (design doc 4.5.2). A
-      // frame's segment is its zip folder name, and this very map is handed to
-      // the exclusion scan below to root its README layer paths — not a second,
-      // equivalent one, which could drift from it (4.7.2).
-      const rootNames = resolvePageRootNames(page.children);
+      // The export units and their names, decided once from the page-root
+      // children (design doc 4.7.4/4.5.2). Everything below reads this one
+      // value, so the zip folders, the README and the exclusion scan cannot
+      // disagree about what is in the export or what it is called (4.7.2).
+      const scope = resolveExportScope(page.children);
 
       // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
-      // Collected after the error gate. It takes the page-root children and
-      // derives the exported frames itself, so every README entry is
-      // reconcilable against the zip built from the same list.
+      // Collected after the error gate, off the same scope, so every README
+      // entry is reconcilable against the zip built from it.
       const exclusions = collectExclusions({
-        pageRootNodes: page.children,
-        rootNames,
+        scope,
         variables: vars,
         textStyles,
       });
@@ -165,7 +165,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       // error, not an invisible omission laundered through a cast.
       const frames: ExportFrame[] = [];
 
-      for (const frame of topFrames) {
+      for (const frame of scope.frames) {
         const mockPage = {
           name: page.name,
           children: [frame],
@@ -176,16 +176,10 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         const screenshots = await exportScreenshots(frame);
         const assets = await exportAssets(frame);
 
-        // No fallback and no `!`: `root.folder(undefined)` returns the export
-        // root itself, so a missing name would pile every frame's spec.json
-        // into it under a README naming folders the zip has not got (4.3.4).
-        const folderName = rootNames.get(frame.id);
-        if (folderName === undefined) {
-          throw new Error(`no folder name for frame ${frame.id}`);
-        }
-
         frames.push({
-          folderName,
+          // Throws rather than fall back: an unnamed frame would land its
+          // spec.json in the export root (design doc 4.3.4, exportScope.ts).
+          folderName: folderNameOf(scope, frame),
           name: frame.name,
           spec,
           screenshots,
@@ -203,10 +197,11 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       };
       figma.ui.postMessage(message);
     } catch (err) {
-      figma.ui.postMessage({
+      const message: ExportErrorMessage = {
         type: "export-error",
         message: `Export failed: ${err}`,
-      });
+      };
+      figma.ui.postMessage(message);
     }
   }
 };
