@@ -71,3 +71,42 @@ export interface CheckErrorMessage {
   type: "check-error";
   message: string;
 }
+
+/** The note the plugin read off the one selected layer (design doc 4.7.3). */
+export interface SelectionNote {
+  nodeId: string;
+  nodeName: string;
+  note: string;
+}
+
+/** Payload of `selection-note`: `null` when the selection is not one layer. */
+export interface SelectionNoteMessage {
+  type: "selection-note";
+  data: SelectionNote | null;
+}
+
+/** Payload of `note-saved`: which layer's note reached the file. */
+export interface NoteSavedMessage {
+  type: "note-saved";
+  nodeId: string;
+}
+
+/**
+ * Payload of `export-error`: the export could not finish, or was refused.
+ *
+ * Same hazard as `check-error`: the Export tab clears "Exporting..." on this
+ * or on `export-data` alone.
+ */
+export interface ExportErrorMessage {
+  type: "export-error";
+  message: string;
+}
+
+/** Every message the UI can receive, so its handler can branch on one type. */
+export type PluginMessage =
+  | CheckResultsMessage
+  | CheckErrorMessage
+  | SelectionNoteMessage
+  | NoteSavedMessage
+  | ExportErrorMessage
+  | ExportDataMessage;

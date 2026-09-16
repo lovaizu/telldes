@@ -6,6 +6,8 @@ import type {
   CheckErrorMessage,
   CheckResultsMessage,
   ExportDataMessage,
+  PluginMessage,
+  SelectionNote,
 } from "./messages";
 import { buildExportZip } from "./export/zipBuilder";
 
@@ -46,14 +48,54 @@ interface ReviewSetters {
  * the `check-error` branch (the tab pinned on "Running...", no reason shown)
  * or any one setter was invisible.
  */
-export function applyReviewOutcome(msg: { type: string }, setters: ReviewSetters): void {
+export function applyReviewOutcome(msg: PluginMessage, setters: ReviewSetters): void {
   if (msg.type !== "check-results" && msg.type !== "check-error") return;
-  const outcome = reviewOutcome(msg as CheckResultsMessage | CheckErrorMessage);
+  const outcome = reviewOutcome(msg);
   setters.setResults(outcome.results);
   setters.setHasRun(outcome.hasRun);
   setters.setCheckError(outcome.error);
   // Both paths clear "Running...", or the tab stays pinned on it forever.
   setters.setRunning(false);
+}
+
+/** The signals `window.onmessage` writes, plus the one reading it needs. */
+interface MessageHandlers extends ReviewSetters {
+  setSelectionNote: (note: SelectionNote | null) => void;
+  setNoteText: (text: string) => void;
+  setNoteSaved: (saved: boolean) => void;
+  setExportError: (message: string) => void;
+  setExporting: (exporting: boolean) => void;
+  /** The layer the Notes tab is on, so a stale `note-saved` can be ignored. */
+  selectedNodeId: () => string | undefined;
+  startExport: (msg: ExportDataMessage) => void;
+}
+
+/**
+ * Everything `window.onmessage` does, one step above the signals: the branch
+ * per message type. The component keeps only the wiring, so a branch dropped
+ * here — the export tab left on "Exporting...", the Review tab on
+ * "Running..." — is a failing test rather than a plugin that hangs.
+ */
+export function handlePluginMessage(
+  msg: PluginMessage,
+  handlers: MessageHandlers,
+): void {
+  applyReviewOutcome(msg, handlers);
+  if (msg.type === "selection-note") {
+    handlers.setSelectionNote(msg.data);
+    handlers.setNoteText(msg.data?.note ?? "");
+    handlers.setNoteSaved(false);
+  }
+  if (msg.type === "note-saved" && msg.nodeId === handlers.selectedNodeId()) {
+    // Ignore a late ack for a node the user has already navigated away from.
+    handlers.setNoteSaved(true);
+  }
+  if (msg.type === "export-error") {
+    handlers.setExportError(msg.message);
+    handlers.setExporting(false);
+  }
+  // The zip build is async and clears "Exporting..." itself.
+  if (msg.type === "export-data") handlers.startExport(msg);
 }
 
 /** One heading per level, its results beneath it, groups in first-seen order. */
@@ -75,12 +117,6 @@ export function groupResultsByLevel(
 // what is listed under it, instead of vanishing or inflating the error count.
 const LEVEL_HEADINGS: Partial<Record<CheckLevel, string>> = { error: "Errors" };
 
-interface SelectionNote {
-  nodeId: string;
-  nodeName: string;
-  note: string;
-}
-
 const App: Component = () => {
   const [activeTab, setActiveTab] = createSignal<Tab>("note");
   const [results, setResults] = createSignal<CheckResult[]>([]);
@@ -97,23 +133,19 @@ const App: Component = () => {
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
     if (!msg) return;
-    applyReviewOutcome(msg, { setResults, setHasRun, setCheckError, setRunning });
-    if (msg.type === "selection-note") {
-      setSelectionNote(msg.data);
-      setNoteText(msg.data?.note ?? "");
-      setNoteSaved(false);
-    }
-    if (msg.type === "note-saved" && msg.nodeId === selectionNote()?.nodeId) {
-      // Ignore a late ack for a node the user has already navigated away from.
-      setNoteSaved(true);
-    }
-    if (msg.type === "export-error") {
-      setExportError(msg.message);
-      setExporting(false);
-    }
-    if (msg.type === "export-data") {
-      handleExportData(msg);
-    }
+    handlePluginMessage(msg, {
+      setResults,
+      setHasRun,
+      setCheckError,
+      setRunning,
+      setSelectionNote,
+      setNoteText,
+      setNoteSaved,
+      setExportError,
+      setExporting,
+      selectedNodeId: () => selectionNote()?.nodeId,
+      startExport: handleExportData,
+    });
   };
 
   const handleExportData = async (msg: ExportDataMessage) => {
