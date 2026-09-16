@@ -821,11 +821,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-09-16
-* **Last completed**: U-1（Ph-8）。U-4 は作業ステップ・レビュー4軸とも完了、修正ラウンド1まで実施済みで未チェック。
-* **Next**: U-4 の修正ラウンド2 — U-4「再開時の作業」の4件（1: `rootNames` 無検証3軸一致 / 2: 大小文字衝突 / 3: `App.tsx` 呼び出し行 / 4: tsc エラー2件）を潰し、該当軸を再レビューして check off。
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `9544e2d`、テスト 243 全パス・両ビルド green。修正ラウンドは1回使用・残り2回。U-4 中に判明した範囲外の指摘は U-5 に積んだ。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。範囲内の指摘は rn の手順どおり Valid/Invalid で自分が判定し、エスカレーションしない。
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
 
 ---
 
