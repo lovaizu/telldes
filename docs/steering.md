@@ -752,16 +752,32 @@ Ph-8: 実使用フィードバック対応
 **前提**: U-1 完了
 
 **作業内容**:
-- [ ] `ExportFrame` にフレームの生名と zip フォルダ名の両方を載せ、README の Contents 行 `for frame "X"` が生名を出すようにする（現状フォルダ名を出すため `Desktop / Home` が存在しない `Desktop - Home` として現れる）
-- [ ] `zipBuilder` 側の `resolveFrameFolderNames` 呼び出しを廃し、フォルダ名は `code.ts` が載せた `ExportFrame.folderName` を使う形にして、フォルダ名と README パスの一致を暗黙の慣習でなく構造で保証する（設計書 4.7.2「同一の関数で生成」に実装を合わせる）
-- [ ] `src/messages.ts` の `CheckErrorMessage` を `code.ts` の post 箇所で型注釈として使う（現状どこからも参照されていない）
-- [ ] `src/App.tsx`: `check-error` 受信時に `results()` / `hasRun()` をクリアし、失敗バナーの下に前回の結果が残らないようにする。あわせて Review パネルの `<Show>` 二重ゲートのデッドパス（結果あり・エラー0件で空パネル）を解消する
-- [ ] テスト追加: 0フレーム書き出し、`typography/a/b` の多段サブパス衝突、DOCUMENT 終端のレイヤーパス
-- [ ] 新規モジュール（`src/export/exclusions.ts` / `readmeBuilder.ts` / `zipBuilder.ts` / `layerPath.ts`）のコメントを既存コードの密度（5〜13%）に揃える。過去の不具合の経緯を語る段落は削り、必要な背景は設計書側に置く
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-4.md`）
-- [ ] QA エキスパートレビュー（subagent）
-- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
-- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [x] `ExportFrame` にフレームの生名と zip フォルダ名の両方を載せ、README の Contents 行 `for frame "X"` が生名を出すようにする（現状フォルダ名を出すため `Desktop / Home` が存在しない `Desktop - Home` として現れる）
+- [x] `zipBuilder` 側の `resolveFrameFolderNames` 呼び出しを廃し、フォルダ名は `code.ts` が載せた `ExportFrame.folderName` を使う形にして、フォルダ名と README パスの一致を暗黙の慣習でなく構造で保証する（設計書 4.7.2「同一の関数で生成」に実装を合わせる）
+- [x] `src/messages.ts` の `CheckErrorMessage` を `code.ts` の post 箇所で型注釈として使う（現状どこからも参照されていない）
+- [x] `src/App.tsx`: `check-error` 受信時に `results()` / `hasRun()` をクリアし、失敗バナーの下に前回の結果が残らないようにする。あわせて Review パネルの `<Show>` 二重ゲートのデッドパス（結果あり・エラー0件で空パネル）を解消する
+- [x] テスト追加: 0フレーム書き出し、`typography/a/b` の多段サブパス衝突、DOCUMENT 終端のレイヤーパス
+- [x] 新規モジュール（`src/export/exclusions.ts` / `readmeBuilder.ts` / `zipBuilder.ts` / `layerPath.ts`）のコメントを既存コードの密度（5〜13%）に揃える。過去の不具合の経緯を語る段落は削り、必要な背景は設計書側に置く
+- [x] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-4.md`）
+- [x] QA エキスパートレビュー（subagent）
+- [x] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [x] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [x] Design エキスパートレビュー（subagent）
+- [ ] 修正ラウンド2: 下記「再開時の作業」4件を潰し、該当軸を再レビュー
+
+
+**進行メモ（2026-09-16 時点）**:
+- 実装 `9daf778` → レビュー4軸 → 修正ラウンド1 `9544e2d` → 再レビュー4軸。テスト 217 → 243、両ビルド green
+- 再レビュー: QA **pass** / Craft **fail** / Verification・Design **条件付き pass**。完了条件7項目は4軸とも OK
+- 修正ラウンドは1回使用、残り2回
+
+**再開時の作業（修正ラウンド2で潰す4件）**:
+1. **`rootNames` が無検証の引数**（Craft C-3 = Design D1 = Verification NG-1、3軸一致）。修正ラウンド1で「命名パスを1回にする」よう指示した結果、`collectExclusions` が `pageRootNodes` と `rootNames` という一致必須の2引数を取る形になり、一致を検証するものがない。`code.ts:150` を `resolvePageRootNames(page.children.filter(isExportedFrame))` に変える変異で **243件全パス**、かつフォルダ名と裸 Component が同一文字列になる（設計書 4.5.2 が「原理的に起こらない」と名指しした自己矛盾）。例外方針も割れている ― `code.ts:184` は throw、`exclusions.ts:50-59` は黙って `uniqueChildName` へフォールバック。**対応**: `exportScope.ts` に `resolveExportScope(pageRootNodes) → { frames, rootNames, pageRootNodes }` を置き、ペアがズレる余地を型で消す（Design 推奨案 a。`RESERVED_ROOT_NAMES` の置き場所 D2 も同時に解消する）
+2. **大小文字の衝突**（Craft C-1 = Design D4、2軸一致）。`claimUnique` の `used` が素の `Set<string>` なので、`[FRAME "Home", FRAME "home"]` が2フォルダになり、`readme.md` が予約名ガードをすり抜ける。macOS(APFS既定)/Windows では同一パスに解決し `spec.json` が黙って上書きされる。`zipBuilder` の重複ガードも大小文字を区別するため発火しない。**対応**: 照合を `toLowerCase()` で行う（返す綴りは原名のまま）。`layerPath.test.ts:119` が現挙動を正として固定しているので期待値を反転。設計書 4.5.2-4 に「照合は大文字小文字を区別しない」を追記
+3. **`App.tsx` の残りカス**（QA F1 = Verification NG-2、2軸一致）。`applyReviewOutcome(...)` の**呼び出し行を丸ごと消しても 243 全パス**（Review タブが「Running...」で永久に固まる退行）。描画層も `<Show when={hasRun()}>` → `when={true}` の変異が生存。**対応**: `handlePluginMessage(msg, handlers)` としてハンドラ本体をもう一段上で切り出し、`export-error` / `note-saved` / `selection-note` の未カバー分岐もまとめて閉じる。描画層は jsdom 不在のため既知の残存リスクとして記録
+4. **tsc エラー2件の新規増加**（Craft C-2 = Design D5b、2軸一致）。`applyReviewOutcome(msg: { type: string })` が狭すぎて `App.test.ts:63,74` が TS2353。ベースライン `ad80720` では当該ファイル 0 件で、本タスクで増えたもの。完了条件「新たな問題を持ち込んでいない」に抵触
+
+**修正指示の書き方（今回の反省）**: レビュアーが当てた変異そのものを指示に書き、それが落ちることを確認させる。修正ラウンド1では「命名パスを1回にしろ」とだけ指示し、引数化後の不整合をどう防ぐかまで書かなかったため、実装者のセルフチェックは自分が想定した変異（別の Map を渡す）しか当てず、レビュアーが当てた変異（Map の作り方を変える）を素通しした。
 
 **完了条件**:
 - `README.md` の Contents 行 `for frame "X"` の `X` が Figma 上の生のフレーム名と一致すること（フォルダ名にサニタイズや `-N` が入ったケースでも生名が出ること）
@@ -774,14 +790,42 @@ Ph-8: 実使用フィードバック対応
 
 ---
 
+### U-5: U-4 で範囲外とした指摘の解消
+
+**目的**: U-4 のレビューで挙がったが完了条件の外にあった指摘を解消する。
+
+**前提**: U-4 完了
+
+**作業内容**:
+- [ ] 裸 root Component の除外物行に Figma 上の生名を併記する（Design D3）。`A/B` という名の Component が README に `A-B` と出るが、フレームと違って Contents 行のような対応表がないため、デザイナーは README の指示を実行する対象を特定できない。`findBareRootComponents` の戻り値を `{ path, rawName }[]` にし、正規化後と生名が異なるときだけ併記する。設計書 4.7.2 に1文追記
+- [ ] `tsc --noEmit` をゲートにする（Design F7）。現状79件のエラーで通らず、postMessage の型契約が build 時に一切検証されていない。`src/vite-env.d.ts` の追加（`*.md?raw` の宣言欠如）と solid-js の JSX 型解決を片付け、`package.json` の test スクリプトに `tsc --noEmit` を足す
+- [ ] `RESERVED_ROOT_NAMES` と `zipBuilder` が実際に書くルートファイルの一致を固定するテスト（Craft C-4）。現状 `RESERVED_ROOT_NAMES` に `notes.md` を足しても全グリーンで、zip ルートにファイルが増えても誰も気づかない
+- [ ] `zipBuilder` の境界ガードを揃える（Craft C-5 / Design D6）。重複 `folderName` だけ throw し、空文字（ルート直置き）と `/` を含む値（ルート外へ書き出し）は素通し。3つ守るか0にするかを決める
+- [ ] `baseSegment` のバックスラッシュ無害化のテスト（Verification NG-3）。`raw.replace(/[/\\]/g, "-")` を `/[/]/` に変えても全グリーンで、`\` を含むフレーム名の例が1件もない
+- [ ] `reviewOutcome` と `applyReviewOutcome` の二段構えを1関数に畳む（Design D5a）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-5.md`）
+- [ ] QA エキスパートレビュー（subagent）
+- [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
+
+**完了条件**:
+- 正規化で綴りが変わった裸 root Component について、`README.md` の除外物行に Figma 上の生名が併記されていること
+- `bun run test` が `tsc --noEmit` を含み、型エラー0で通ること
+- `RESERVED_ROOT_NAMES` から1件削ったとき、または `zipBuilder` のルートファイルを1件増やしたときに落ちるテストが存在すること
+- `zipBuilder` が受け取る `folderName` の不正値（空文字・パス区切りを含む）について、throw するか型で防ぐかの方針が1つに揃っていること
+- フレーム名に `\` を含むケースのテストが存在し、パスすること
+- 新たな問題が持ち込まれていないこと — (a) 既存テストが全グリーンであること、(b) U-4 で確立したフォルダ名と README パスの一致が変わっていないこと
+
+---
+
 State
 -----
 
-* **Status**: not suspended
+* **Status**: paused
 * **Date**: 2026-09-16
-* **Last completed**: #N description
-* **Next**: #N description
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。U-1 は作業ステップ全完了だが未解決指摘6件（U-1「進行メモ」参照）の扱いがユーザー判断待ちで未チェック。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
+* **Last completed**: U-1（Ph-8）。U-4 は作業ステップ・レビュー4軸とも完了、修正ラウンド1まで実施済みで未チェック。
+* **Next**: U-4 の修正ラウンド2 — U-4「再開時の作業」の4件（1: `rootNames` 無検証3軸一致 / 2: 大小文字衝突 / 3: `App.tsx` 呼び出し行 / 4: tsc エラー2件）を潰し、該当軸を再レビューして check off。
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `9544e2d`、テスト 243 全パス・両ビルド green。修正ラウンドは1回使用・残り2回。U-4 中に判明した範囲外の指摘は U-5 に積んだ。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。範囲内の指摘は rn の手順どおり Valid/Invalid で自分が判定し、エスカレーションしない。
 
 ---
 
