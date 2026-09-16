@@ -763,19 +763,24 @@ Ph-8: 実使用フィードバック対応
 - [x] Craft エキスパートレビュー（subagent、コーディング媒体）
 - [x] Verification エキスパートレビュー（subagent、コーディング媒体）
 - [x] Design エキスパートレビュー（subagent）
-- [ ] 修正ラウンド2: 下記「再開時の作業」4件を潰し、該当軸を再レビュー
+- [ ] 修正ラウンド2: 3軸一致・2軸一致の未解決4件を潰し（実装済み）、該当軸を再レビュー（**未実施**）
 
 
 **進行メモ（2026-09-16 時点）**:
-- 実装 `9daf778` → レビュー4軸 → 修正ラウンド1 `9544e2d` → 再レビュー4軸。テスト 217 → 243、両ビルド green
-- 再レビュー: QA **pass** / Craft **fail** / Verification・Design **条件付き pass**。完了条件7項目は4軸とも OK
-- 修正ラウンドは1回使用、残り2回
+- 実装 `9daf778` → レビュー4軸 → 修正ラウンド1 `9544e2d` → 再レビュー4軸 → 修正ラウンド2 `9175683` `c569202`。テスト 217 → 243 → 257、両ビルド green、tsc エラー 84 → 82（`App.test.ts` 分は 2 → 0）
+- 修正ラウンド1の再レビュー: QA **pass** / Craft **fail** / Verification・Design **条件付き pass**。完了条件7項目は4軸とも OK
+- 修正ラウンド2で、3軸一致・2軸一致の未解決4件をすべて解消済み（下記）。**修正ラウンドは2回使用、残り1回**
+- 修正ラウンド2の再レビュー4軸は発注したがセッション中断で結果を回収できていない。**再開時にやり直す**
 
-**再開時の作業（修正ラウンド2で潰す4件）**:
-1. **`rootNames` が無検証の引数**（Craft C-3 = Design D1 = Verification NG-1、3軸一致）。修正ラウンド1で「命名パスを1回にする」よう指示した結果、`collectExclusions` が `pageRootNodes` と `rootNames` という一致必須の2引数を取る形になり、一致を検証するものがない。`code.ts:150` を `resolvePageRootNames(page.children.filter(isExportedFrame))` に変える変異で **243件全パス**、かつフォルダ名と裸 Component が同一文字列になる（設計書 4.5.2 が「原理的に起こらない」と名指しした自己矛盾）。例外方針も割れている ― `code.ts:184` は throw、`exclusions.ts:50-59` は黙って `uniqueChildName` へフォールバック。**対応**: `exportScope.ts` に `resolveExportScope(pageRootNodes) → { frames, rootNames, pageRootNodes }` を置き、ペアがズレる余地を型で消す（Design 推奨案 a。`RESERVED_ROOT_NAMES` の置き場所 D2 も同時に解消する）
-2. **大小文字の衝突**（Craft C-1 = Design D4、2軸一致）。`claimUnique` の `used` が素の `Set<string>` なので、`[FRAME "Home", FRAME "home"]` が2フォルダになり、`readme.md` が予約名ガードをすり抜ける。macOS(APFS既定)/Windows では同一パスに解決し `spec.json` が黙って上書きされる。`zipBuilder` の重複ガードも大小文字を区別するため発火しない。**対応**: 照合を `toLowerCase()` で行う（返す綴りは原名のまま）。`layerPath.test.ts:119` が現挙動を正として固定しているので期待値を反転。設計書 4.5.2-4 に「照合は大文字小文字を区別しない」を追記
-3. **`App.tsx` の残りカス**（QA F1 = Verification NG-2、2軸一致）。`applyReviewOutcome(...)` の**呼び出し行を丸ごと消しても 243 全パス**（Review タブが「Running...」で永久に固まる退行）。描画層も `<Show when={hasRun()}>` → `when={true}` の変異が生存。**対応**: `handlePluginMessage(msg, handlers)` としてハンドラ本体をもう一段上で切り出し、`export-error` / `note-saved` / `selection-note` の未カバー分岐もまとめて閉じる。描画層は jsdom 不在のため既知の残存リスクとして記録
-4. **tsc エラー2件の新規増加**（Craft C-2 = Design D5b、2軸一致）。`applyReviewOutcome(msg: { type: string })` が狭すぎて `App.test.ts:63,74` が TS2353。ベースライン `ad80720` では当該ファイル 0 件で、本タスクで増えたもの。完了条件「新たな問題を持ち込んでいない」に抵触
+**修正ラウンド2で解消した4件（コーディネーターが実機確認済み）**:
+1. `rootNames` 無検証（3軸一致）→ `src/export/exportScope.ts` に `ExportScope { frames, rootNames, pageRootNodes }` と `resolveExportScope(pageRootNodes)` を新設。`collectExclusions` は `{ scope, variables, textStyles }` を受け取る形になり、一致必須の2引数が消滅。例外方針は `folderNameOf(scope, frame)` の throw に一本化。`RESERVED_ROOT_NAMES` とページ直下命名一式も `layerPath.ts` から移設（D2）。**変異 `resolveExportScope(page.children.filter(isExportedFrame))` で `code.test.ts` 2件が落ちることを確認**（ラウンド1では同種の変異が全パスだった）
+2. 大小文字の衝突（2軸一致）→ `claimUnique` の照合を `toLowerCase()` に。綴りは原名のまま（`Home` / `home-2`）。設計書 4.5.2 に規約5として追記
+3. `App.tsx` の残りカス（2軸一致）→ `handlePluginMessage(msg, handlers)` を切り出し、`export-error` / `note-saved` / `selection-note` / `export-data` の全分岐を DOM なしでテスト。**変異「`applyReviewOutcome` の呼び出し行を丸ごと削除」で `App.test.ts` 2件が落ちることを確認**
+4. tsc エラー2件（2軸一致）→ `messages.ts` に `PluginMessage` union を追加し、`applyReviewOutcome` / `handlePluginMessage` のパラメータ型に使用
+
+**残存リスク（今回は閉じない）**: 描画層の `<Show when={hasRun()}>` → `when={true}` の変異は生存する。jsdom 未導入で DOM テストが書けないため。jsdom の追加は環境変更にあたりユーザー確認が必要なので、`docs/checks/U-4.md` に既知リスクとして記録するに留めた
+
+**再開時の作業**: 修正ラウンド2の成果（`c2cfada..HEAD`）に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off する。レビュー発注時は成果物の差分・完了条件の逐語コピー・各軸のチェックリストのみを渡し、セルフチェックファイルや実装者のサマリ、期待する判定は渡さないこと
 
 **修正指示の書き方（今回の反省）**: レビュアーが当てた変異そのものを指示に書き、それが落ちることを確認させる。修正ラウンド1では「命名パスを1回にしろ」とだけ指示し、引数化後の不整合をどう防ぐかまで書かなかったため、実装者のセルフチェックは自分が想定した変異（別の Map を渡す）しか当てず、レビュアーが当てた変異（Map の作り方を変える）を素通しした。
 
@@ -821,11 +826,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: not suspended
-* **Date**: YYYY-MM-DD
-* **Last completed**: #N description
-* **Next**: #N description
-* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+* **Status**: paused
+* **Date**: 2026-09-16
+* **Last completed**: U-1（Ph-8）。U-4 は修正ラウンド2の実装まで完了（`9175683` `c569202`）、再レビュー未実施で未チェック。
+* **Next**: U-4 の修正ラウンド2 再レビュー — `c2cfada..HEAD` に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off。詳細は U-4 の「再開時の作業」。
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `c569202`、テスト 257 全パス・両ビルド green・tsc 82（着手時 84）。**修正ラウンドは2回使用・残り1回**。中断時に再レビュー4軸を発注済みだったが結果を回収できずに停止したため、再開時はレビューからやり直す。未コミットの `docs/checks/U-4.md` は wip コミット済み（レビュー判定欄は空のまま＝コーディネーターが再レビュー後に埋める）。描画層の残存リスク（jsdom 未導入）は U-4.md に記録済みで今回は閉じない。U-5 は U-4 のレビューで挙がった範囲外指摘を積んだもの。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。範囲内の指摘は rn の手順どおり Valid/Invalid で自分が判定し、エスカレーションしない。
 
 ---
 
