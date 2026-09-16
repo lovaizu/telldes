@@ -1,8 +1,7 @@
-import type { ExclusionReport } from "./exclusions";
-
 // README.md for the exported zip (design doc 4.7.4 output #8). Its "Not
 // included in this export" section states what this export left out (4.7.2),
 // facts only: a category with no detections produces no line at all.
+import type { ExclusionReport } from "./exclusions";
 
 export interface ReadmeFrame {
   /** Frame name as Figma spells it, so the designer can find it on the page. */

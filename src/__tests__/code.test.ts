@@ -240,6 +240,68 @@ describe("run-export", () => {
     expect(exclusions.bareRootComponents).toEqual(["Library"]);
   });
 
+  it("roots the README layer paths at the very names it stamps on the folders", async () => {
+    // Two distinct frame names that sanitize to one folder name: which frame
+    // takes the `-N` depends on the order the naming pass walks them, so a
+    // second, equivalent pass elsewhere could hand the README a root belonging
+    // to the other frame's folder (design doc 4.7.2).
+    const a = makeNode({ id: "a", name: "Title", fillStyleId: "S:1" });
+    const b = makeNode({ id: "b", name: "Title", fillStyleId: "S:2" });
+    const first = makeFrame({ id: "f1", name: "Home / A" }, [a]);
+    const second = makeFrame({ id: "f2", name: "Home - A" }, [b]);
+    const { posted, send } = await loadPlugin(makePage([first, second]));
+
+    await send({ type: "run-export" });
+
+    const data = posted.find((m) => m.type === "export-data");
+    const folders = (data?.frames as { folderName: string }[]).map(
+      (f) => f.folderName,
+    );
+    const roots = (
+      data?.exclusions as { colorStyles: { examplePaths: string[] }[] }
+    ).colorStyles.map((u) => u.examplePaths[0].split(" > ")[0]);
+    expect(folders).toEqual(["Home - A", "Home - A-2"]);
+    expect(roots).toEqual(folders);
+  });
+
+  it("fails the export rather than piling every frame into the export root", async () => {
+    // `root.folder(undefined)` is the export root itself, so a frame missing
+    // from the naming map would land its spec.json there, last one winning,
+    // under a README naming folders the zip does not hold (design doc 4.3.4).
+    vi.doMock("../export/exportScope", async () => {
+      const actual =
+        await vi.importActual<typeof import("../export/exportScope")>(
+          "../export/exportScope",
+        );
+      return { ...actual, resolvePageRootNames: () => new Map<string, string>() };
+    });
+    try {
+      const frame = makeFrame({ id: "f", name: "Home" });
+      const { posted, send } = await loadPlugin(makePage([frame]));
+
+      await send({ type: "run-export" });
+
+      expect(posted.filter((m) => m.type === "export-data")).toHaveLength(0);
+      expect(posted.find((m) => m.type === "export-error")?.message).toContain(
+        "Export failed",
+      );
+    } finally {
+      vi.doUnmock("../export/exportScope");
+    }
+  });
+
+  it("names a frame Figma left blank by the fallback, keeping the raw name", async () => {
+    // The folder falls back to `frame` (design doc 4.5.2) while the README
+    // still quotes the name as Figma spells it — here, the empty string.
+    const frame = makeFrame({ id: "f", name: "" });
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "run-export" });
+
+    const data = posted.find((m) => m.type === "export-data");
+    expect(data?.frames).toMatchObject([{ name: "", folderName: "frame" }]);
+  });
+
   it("still posts an export when the page holds no exportable frame", async () => {
     // Nothing to export is not a failure: the zip's templates and README are
     // still worth producing, and the UI only leaves "Exporting..." on

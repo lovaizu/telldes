@@ -6,9 +6,22 @@ import {
   findTypographyTokenCollisions,
   collectExclusions,
   emptyExclusionReport,
-  isExportedFrame,
+  type ExclusionScanInput,
 } from "../exclusions";
+import { resolvePageRootNames } from "../exportScope";
 import { buildReadme } from "../readmeBuilder";
+
+/**
+ * Production hands `collectExclusions` the page-root names code.ts already
+ * resolved, so the scan cannot compute a second, drifting set (design doc
+ * 4.7.2). These tests resolve them the same way, from the same nodes.
+ */
+function scanExclusions(input: Omit<ExclusionScanInput, "rootNames">) {
+  return collectExclusions({
+    ...input,
+    rootNames: resolvePageRootNames(input.pageRootNodes),
+  });
+}
 
 const mockGetVariableById = vi.fn();
 const mockGetStyleById = vi.fn();
@@ -86,18 +99,6 @@ function makeVariable(name: string, resolvedType: string, id = name): Variable {
 function makeTextStyle(name: string): TextStyle {
   return { name } as unknown as TextStyle;
 }
-
-describe("isExportedFrame", () => {
-  it("accepts the page-root FRAME/SECTION nodes the export turns into folders", () => {
-    expect(isExportedFrame(makeNode({ type: "FRAME" }))).toBe(true);
-    expect(isExportedFrame(makeNode({ type: "SECTION" }))).toBe(true);
-  });
-
-  it("rejects every other page-root node type", () => {
-    expect(isExportedFrame(makeNode({ type: "COMPONENT" }))).toBe(false);
-    expect(isExportedFrame(makeNode({ type: "RECTANGLE" }))).toBe(false);
-  });
-});
 
 describe("findColorStyleUsage", () => {
   it("reports the layer path of a fill bound to a Color Style", () => {
@@ -454,8 +455,8 @@ describe("layer paths (via findColorStyleUsage)", () => {
 });
 
 describe("collectExclusions", () => {
-  function scan(overrides: Partial<Parameters<typeof collectExclusions>[0]> = {}) {
-    return collectExclusions({
+  function scan(overrides: Partial<Omit<ExclusionScanInput, "rootNames">> = {}) {
+    return scanExclusions({
       pageRootNodes: [],
       variables: [],
       textStyles: [],
@@ -608,7 +609,7 @@ describe("collectExclusions", () => {
   });
 });
 
-describe("layer-path roots agree with the zip folder names", () => {
+describe("layer-path roots use the page-root segment names", () => {
   // 4.7.2 「読み手がzipの中身と突き合わせられるものでなければならない」: the root
   // of a README layer path must be spelled exactly like the folder the reader
   // opens, or the report contradicts the zip sitting next to it.
@@ -620,7 +621,7 @@ describe("layer-path roots agree with the zip folder names", () => {
     // "Home-2" while the zip still writes a folder called "Home".
     makePage([component, frame]);
 
-    const report = collectExclusions({
+    const report = scanExclusions({
       pageRootNodes: [component, frame],
       variables: [],
       textStyles: [],
@@ -635,7 +636,7 @@ describe("layer-path roots agree with the zip folder names", () => {
     const frame = makeContainer({ id: "f", name: "Desktop / Home" }, [title]);
     makePage([frame]);
 
-    const report = collectExclusions({
+    const report = scanExclusions({
       pageRootNodes: [frame],
       variables: [],
       textStyles: [],
@@ -650,7 +651,7 @@ describe("layer-path roots agree with the zip folder names", () => {
     const second = makeContainer({ id: "f2", name: "Home" }, [b]);
     makePage([first, second]);
 
-    const report = collectExclusions({
+    const report = scanExclusions({
       pageRootNodes: [first, second],
       variables: [],
       textStyles: [],
@@ -681,7 +682,7 @@ describe("collectExclusions rendered through buildReadme", () => {
         { name: "Home", folderName: "Home", hasScreenshots: true, hasAssets: true },
       ],
       hasTokens: true,
-      exclusions: collectExclusions({
+      exclusions: scanExclusions({
         pageRootNodes: [frame, button],
         variables: [makeVariable("typography/heading-md", "COLOR")],
         textStyles: [makeTextStyle("heading-md")],
@@ -709,7 +710,7 @@ describe("page-root segment naming", () => {
     // Component first in page order: the frame still owns `Home/` in the zip.
     makePage([component, frame]);
 
-    const report = collectExclusions({
+    const report = scanExclusions({
       pageRootNodes: [component, frame],
       variables: [],
       textStyles: [],
@@ -726,7 +727,7 @@ describe("page-root segment naming", () => {
     const component = makeNode({ id: "c", name: "A-B", type: "COMPONENT" });
     makePage([frame, component]);
 
-    const report = collectExclusions({
+    const report = scanExclusions({
       pageRootNodes: [frame, component],
       variables: [],
       textStyles: [],
@@ -743,7 +744,7 @@ describe("page-root segment naming", () => {
     makePage([first, second]);
 
     expect(
-      collectExclusions({
+      scanExclusions({
         pageRootNodes: [first, second],
         variables: [],
         textStyles: [],
@@ -763,7 +764,7 @@ describe("layerCount counts layers, not rendered strings", () => {
     const frame = makeContainer({ id: "f", name: "Home" }, [literal, middle]);
     makePage([frame]);
 
-    const [usage] = collectExclusions({
+    const [usage] = scanExclusions({
       pageRootNodes: [frame],
       variables: [],
       textStyles: [],
@@ -781,7 +782,7 @@ describe("token-collision dedupe", () => {
     const inCollectionA = makeVariable("typography/body", "FLOAT", "v-a");
     const inCollectionB = makeVariable("typography/body", "FLOAT", "v-b");
     expect(
-      collectExclusions({
+      scanExclusions({
         pageRootNodes: [],
         variables: [inCollectionA, inCollectionB],
         textStyles: [makeTextStyle("body")],

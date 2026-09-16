@@ -51,9 +51,17 @@ export async function buildExportZip({
   // Primary viewport = the first frame's width (not whichever frame is last).
   const primaryWidth = data.frames[0]?.spec?.viewport?.width ?? 1440;
 
+  const takenFolders = new Set<string>();
+
   for (const frame of data.frames) {
-    // Folder name as code.ts decided it: deriving a second one here is what
-    // let the folders and the README's layer paths drift (design doc 4.7.2).
+    // Folder name as code.ts decided it (design doc 4.7.2). A duplicate is
+    // unreachable from there and silent if it ever arrived: JSZip merges
+    // same-named folders, so the later spec.json would quietly win (4.3.4).
+    if (takenFolders.has(frame.folderName)) {
+      throw new Error(`two frames share the zip folder "${frame.folderName}"`);
+    }
+    takenFolders.add(frame.folderName);
+
     const folder = root.folder(frame.folderName)!;
     folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
     addFilesToFolder(folder, frame.screenshots, frame.assets);

@@ -242,6 +242,31 @@ describe("buildExportZip", () => {
     expect(steering).toContain("Code section: **footer**");
   });
 
+  it("fails loudly rather than folding two frames into one folder", async () => {
+    // JSZip merges same-named folders, so the second spec.json would overwrite
+    // the first while the README listed the folder twice. code.ts keeps the
+    // names unique; nothing else would notice if it stopped (design doc 4.3.4).
+    const data = makeData({
+      frames: [
+        makeFrame({ name: "Home", folderName: "Home" }),
+        makeFrame({ name: "Home (copy)", folderName: "Home" }),
+      ],
+    });
+    await expect(buildFiles(data)).rejects.toThrow(/Home/);
+  });
+
+  it("writes a nameless frame under the fallback folder, naming it as Figma does", async () => {
+    // An unnamed frame gets the `frame` folder (design doc 4.5.2), and the
+    // Contents line still quotes the raw name — here, the empty string.
+    const files = await buildFiles(
+      makeData({ frames: [makeFrame({ name: "", folderName: "frame" })] }),
+    );
+    expect(files["telldes-export/frame/spec.json"]).toBeDefined();
+    expect(files["telldes-export/README.md"]).toContain(
+      '- `frame/` — spec.json for frame ""',
+    );
+  });
+
   it("says so explicitly when no frame yielded a section", async () => {
     const files = await buildFiles(makeData({ frames: [makeFrame()] }));
     expect(files["telldes-export/steering.md"]).toContain("- [ ] (no sections found)");

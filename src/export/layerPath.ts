@@ -12,6 +12,8 @@ export function uniqueChildName(
 ): string {
   const used = new Set<string>();
   let result = "";
+  // Replayed from 0, not counted: a generated `-N` must not land on a real
+  // sibling (`["item","item","item-2"]` → `item`, `item-2`, `item-2-2`).
   for (let i = 0; i <= index; i++) {
     const base = siblings[i].name;
     let name = base;
@@ -39,8 +41,13 @@ export function determineType(
   return "element";
 }
 
+const RESERVED_ROOT_NAMES = ["README.md", "prompt.md", "steering.md", "tokens.json"];
+
 function baseSegment(raw: string): string {
-  return raw.replace(/[/\\]/g, "-").trim() || "frame";
+  const cleaned = raw.replace(/[/\\]/g, "-").trim();
+  // Dots alone are path navigation, not a name: `..` escapes the export root.
+  if (cleaned === "" || /^\.+$/.test(cleaned)) return "frame";
+  return cleaned;
 }
 
 function claimUnique(base: string, used: Set<string>): string {
@@ -51,13 +58,15 @@ function claimUnique(base: string, used: Set<string>): string {
   return name;
 }
 
-// Every page-root sibling named in one pass over one `used` set (4.5.2/4.7.2).
-// Frames go first: the frame owning the zip folder keeps the unsuffixed name.
+/** Every page-root sibling named in one pass over one `used` set (4.5.2/4.7.2). */
 export function resolvePageRootSegmentNames(
   nodes: readonly SceneNode[],
+  /** Frames go first: the one owning the zip folder keeps the unsuffixed name. */
   ownsZipFolder: (node: SceneNode) => boolean,
 ): Map<string, string> {
-  const used = new Set<string>();
+  // Seeded with the zip root's own filenames, so a frame named `README.md`
+  // takes `-N` rather than standing a folder beside the file of that name.
+  const used = new Set<string>(RESERVED_ROOT_NAMES);
   const byNodeId = new Map<string, string>();
   const claim = (node: SceneNode) =>
     byNodeId.set(node.id, claimUnique(baseSegment(node.name), used));

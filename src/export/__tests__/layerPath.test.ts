@@ -81,3 +81,45 @@ describe("resolvePageRootSegmentNames", () => {
     ).toEqual(["Button", "Button-2"]);
   });
 });
+
+describe("resolvePageRootSegmentNames — names that are not usable as folders", () => {
+  const node = (id: string, name: string, type = "FRAME") =>
+    ({ id, name, type }) as unknown as SceneNode;
+  const isFrame = (n: SceneNode) => n.type === "FRAME";
+  const names = (nodes: SceneNode[]) =>
+    [...resolvePageRootSegmentNames(nodes, isFrame).values()];
+
+  it("falls back to 'frame' for a name made only of dots", () => {
+    // `..` as a folder name escapes the export root on extraction, and `.`
+    // resolves back to it — neither is a name (design doc 4.5.2).
+    expect(names([node("f1", "."), node("f2", ".."), node("f3", "...")])).toEqual([
+      "frame",
+      "frame-2",
+      "frame-3",
+    ]);
+  });
+
+  it("trims before deciding a name is only dots", () => {
+    expect(names([node("f1", "  ..  ")])).toEqual(["frame"]);
+  });
+
+  it("keeps a dot inside a real name", () => {
+    expect(names([node("f1", "v1.2")])).toEqual(["v1.2"]);
+  });
+
+  it("suffixes a frame named like a file the zip root already holds", () => {
+    // Otherwise the zip carries both a `README.md` file and a `README.md/`
+    // folder at its root (design doc 4.5.2).
+    expect(names([node("f1", "README.md")])).toEqual(["README.md-2"]);
+    expect(names([node("f1", "prompt.md")])).toEqual(["prompt.md-2"]);
+    expect(names([node("f1", "steering.md")])).toEqual(["steering.md-2"]);
+    expect(names([node("f1", "tokens.json")])).toEqual(["tokens.json-2"]);
+  });
+
+  it("leaves a name that merely resembles a reserved one alone", () => {
+    expect(names([node("f1", "readme.md"), node("f2", "README")])).toEqual([
+      "readme.md",
+      "README",
+    ]);
+  });
+});

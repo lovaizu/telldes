@@ -1,13 +1,9 @@
-import { TYPOGRAPHY_TOKEN_PREFIX } from "../util/typography";
-import {
-  buildLayerPath,
-  resolvePageRootSegmentNames,
-  uniqueChildName,
-} from "./layerPath";
-import { collectAllNodes } from "../checks/traversal";
-
 // What this export leaves out (design doc 4.7.2): never a Review finding and
 // never a blocker, but 4.3.4 forbids dropping it silently (readmeBuilder.ts).
+import { TYPOGRAPHY_TOKEN_PREFIX } from "../util/typography";
+import { buildLayerPath, uniqueChildName } from "./layerPath";
+import { isExportedFrame } from "./exportScope";
+import { collectAllNodes } from "../checks/traversal";
 
 const MAX_EXAMPLE_PATHS = 3;
 
@@ -15,6 +11,7 @@ const MAX_EXAMPLE_PATHS = 3;
 const MIXED_COLOR_STYLE_KEY = "\u0000mixed";
 
 export interface ColorStyleUsage {
+  /** `null` = several Color Styles on one node; readmeBuilder.ts words it. */
   styleName: string | null;
   examplePaths: string[];
   layerCount: number;
@@ -38,6 +35,7 @@ export interface ExclusionReport {
   tokenNameCollisions: TokenNameCollision[];
 }
 
+/** Tests only: as an export default it would falsely claim nothing was left out. */
 export function emptyExclusionReport(): ExclusionReport {
   return {
     colorStyles: [],
@@ -45,20 +43,6 @@ export function emptyExclusionReport(): ExclusionReport {
     bareRootComponents: [],
     tokenNameCollisions: [],
   };
-}
-
-// Shared with code.ts: the zip builder and this scan agree on the scope (4.7.4).
-export function isExportedFrame(node: SceneNode): boolean {
-  return node.type === "FRAME" || node.type === "SECTION";
-}
-
-// Path segment per page-root node, keyed by node id (4.5.2). A frame's segment
-// IS its zip folder name: code.ts stamps it onto the exported frame and the
-// scan roots its layer paths with it, from this one function (4.7.2).
-export function resolvePageRootNames(
-  pageRootNodes: readonly SceneNode[],
-): Map<string, string> {
-  return resolvePageRootSegmentNames(pageRootNodes, isExportedFrame);
 }
 
 // Deeper nodes are disambiguated against siblings like spec.json paths (4.5.2).
@@ -124,7 +108,7 @@ function colorStyleName(styleId: string): string {
   return styleId;
 }
 
-// Color comes from Variables only (4.3.4), so a Color Style is never a token.
+/** Color comes from Variables only (4.3.4), so a Color Style is never a token. */
 export function findColorStyleUsage(
   nodes: readonly SceneNode[],
   rootNames: ReadonlyMap<string, string>,
@@ -167,7 +151,7 @@ function collectBoundVariableIds(node: SceneNode): string[] {
   return ids;
 }
 
-// tokens.json carries COLOR/FLOAT only (4.5.1), so record what it dropped.
+/** tokens.json carries COLOR/FLOAT only (4.5.1), so record what it dropped. */
 export function findStringBooleanVariableUsage(
   nodes: readonly SceneNode[],
   rootNames: ReadonlyMap<string, string>,
@@ -203,8 +187,7 @@ export function findStringBooleanVariableUsage(
   return grouper.result();
 }
 
-// Export units are page-root FRAME/SECTION only (4.7.4), so a bare page-root
-// Component is never reached. Hence page-root nodes, not exported subtrees.
+/** Page-root nodes, not exported subtrees: a bare Component is in neither (4.7.4). */
 export function findBareRootComponents(
   nodes: readonly SceneNode[],
   rootNames: ReadonlyMap<string, string>,
@@ -265,19 +248,23 @@ function dedupe<T>(items: T[], key: (item: T) => string): T[] {
 }
 
 export interface ExclusionScanInput {
-  // Every page-root child; the exported frames are derived with
-  // `isExportedFrame`, as two separately passed node sets could disagree.
+  /** Every page-root child; `isExportedFrame` derives the exported frames. */
   pageRootNodes: readonly SceneNode[];
+  /**
+   * `resolvePageRootNames(pageRootNodes)`: passed in, not recomputed, because
+   * code.ts stamps this same map onto the zip folders (design doc 4.7.2).
+   */
+  rootNames: ReadonlyMap<string, string>;
   variables: readonly Variable[];
   textStyles: readonly TextStyle[];
 }
 
 export function collectExclusions({
   pageRootNodes,
+  rootNames,
   variables,
   textStyles,
 }: ExclusionScanInput): ExclusionReport {
-  const rootNames = resolvePageRootNames(pageRootNodes);
   const exportedNodes = collectExportedNodes(pageRootNodes.filter(isExportedFrame));
   return {
     colorStyles: findColorStyleUsage(exportedNodes, rootNames),

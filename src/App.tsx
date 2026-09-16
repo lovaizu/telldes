@@ -1,7 +1,7 @@
 import { createSignal, For, Show, type Component } from "solid-js";
 import promptTemplate from "./templates/prompt.md?raw";
 import steeringTemplate from "./templates/steering.md?raw";
-import type { CheckResult } from "./checks/types";
+import type { CheckLevel, CheckResult } from "./checks/types";
 import type {
   CheckErrorMessage,
   CheckResultsMessage,
@@ -32,6 +32,49 @@ export function reviewOutcome(
     : { results: msg.results, hasRun: true, error: "" };
 }
 
+/** The Review signals, as the message handler writes them. */
+interface ReviewSetters {
+  setResults: (results: CheckResult[]) => void;
+  setHasRun: (hasRun: boolean) => void;
+  setCheckError: (message: string) => void;
+  setRunning: (running: boolean) => void;
+}
+
+/**
+ * The Review half of `window.onmessage`, extracted whole: inline, neither the
+ * messages it answers nor the signals it writes could be asserted, so dropping
+ * the `check-error` branch (the tab pinned on "Running...", no reason shown)
+ * or any one setter was invisible.
+ */
+export function applyReviewOutcome(msg: { type: string }, setters: ReviewSetters): void {
+  if (msg.type !== "check-results" && msg.type !== "check-error") return;
+  const outcome = reviewOutcome(msg as CheckResultsMessage | CheckErrorMessage);
+  setters.setResults(outcome.results);
+  setters.setHasRun(outcome.hasRun);
+  setters.setCheckError(outcome.error);
+  // Both paths clear "Running...", or the tab stays pinned on it forever.
+  setters.setRunning(false);
+}
+
+/** One heading per level, its results beneath it, groups in first-seen order. */
+export function groupResultsByLevel(
+  results: CheckResult[],
+): { level: CheckLevel; items: CheckResult[] }[] {
+  const groups = new Map<CheckLevel, CheckResult[]>();
+  for (const result of results) {
+    const items = groups.get(result.level);
+    if (items) items.push(result);
+    else groups.set(result.level, [result]);
+  }
+  return [...groups].map(([level, items]) => ({ level, items }));
+}
+
+// CheckLevel is error-only today, so there is exactly one group. Grouping
+// rather than filtering is the guard: if a non-blocking level ever returns
+// (design doc 4.7.2), its results still get a heading and are still counted by
+// what is listed under it, instead of vanishing or inflating the error count.
+const LEVEL_HEADINGS: Partial<Record<CheckLevel, string>> = { error: "Errors" };
+
 interface SelectionNote {
   nodeId: string;
   nodeName: string;
@@ -54,14 +97,7 @@ const App: Component = () => {
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
     if (!msg) return;
-    if (msg.type === "check-results" || msg.type === "check-error") {
-      const outcome = reviewOutcome(msg);
-      setResults(outcome.results);
-      setHasRun(outcome.hasRun);
-      setCheckError(outcome.error);
-      // Both paths clear "Running...", or the tab stays pinned on it forever.
-      setRunning(false);
-    }
+    applyReviewOutcome(msg, { setResults, setHasRun, setCheckError, setRunning });
     if (msg.type === "selection-note") {
       setSelectionNote(msg.data);
       setNoteText(msg.data?.note ?? "");
@@ -118,12 +154,6 @@ const App: Component = () => {
     parent.postMessage({ pluginMessage: { type: "select-node", nodeId } }, "*");
   };
 
-  // CheckLevel is error-only today, so this filter passes everything through.
-  // It is a deliberate guard, not redundancy: if a non-blocking level is ever
-  // reintroduced (design doc 4.7.2), the Review list must keep showing errors
-  // as errors rather than silently promoting the new level. Do not remove.
-  const errors = () => results().filter((r) => r.level === "error");
-
   const runExport = () => {
     setExporting(true);
     setExportError("");
@@ -178,34 +208,38 @@ const App: Component = () => {
             </Show>
 
             <Show when={hasRun()}>
-              {/*
-                Gated on every result, not on the errors alone: CheckLevel is
-                error-only today so the two coincide, but the moment a
-                non-blocking level returns (design doc 4.7.2) a gate on errors
-                would render "All checks passed" while non-error results
-                existed — the silent drop 4.3.4 forbids.
-              */}
               <Show
                 when={results().length > 0}
                 fallback={<div class="pass">All checks passed</div>}
               >
-                <div class="section-label error-label">
-                  Errors ({errors().length})
-                </div>
-                <ul class="result-list">
-                  <For each={errors()}>
-                    {(item) => (
-                      <li
-                        class="result-item error-item"
-                        onClick={() => selectNode(item.nodeId)}
+                <For each={groupResultsByLevel(results())}>
+                  {(group) => (
+                    <>
+                      <div
+                        class="section-label"
+                        classList={{ "error-label": group.level === "error" }}
                       >
-                        <div class="result-node">{item.nodeName}</div>
-                        <div class="result-message">{item.message}</div>
-                        <div class="result-suggestion">{item.suggestion}</div>
-                      </li>
-                    )}
-                  </For>
-                </ul>
+                        {LEVEL_HEADINGS[group.level] ?? group.level} (
+                        {group.items.length})
+                      </div>
+                      <ul class="result-list">
+                        <For each={group.items}>
+                          {(item) => (
+                            <li
+                              class="result-item"
+                              classList={{ "error-item": group.level === "error" }}
+                              onClick={() => selectNode(item.nodeId)}
+                            >
+                              <div class="result-node">{item.nodeName}</div>
+                              <div class="result-message">{item.message}</div>
+                              <div class="result-suggestion">{item.suggestion}</div>
+                            </li>
+                          )}
+                        </For>
+                      </ul>
+                    </>
+                  )}
+                </For>
               </Show>
             </Show>
           </div>

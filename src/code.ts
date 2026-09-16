@@ -1,11 +1,8 @@
 import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
-import {
-  collectExclusions,
-  isExportedFrame,
-  resolvePageRootNames,
-} from "./export/exclusions";
+import { collectExclusions } from "./export/exclusions";
+import { isExportedFrame, resolvePageRootNames } from "./export/exportScope";
 import type { CheckResult } from "./checks/types";
 import type {
   CheckErrorMessage,
@@ -146,10 +143,10 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       // cannot disagree about what "inside the export" means.
       const topFrames = page.children.filter(isExportedFrame);
 
-      // One naming pass over every page-root child (design doc 4.5.2): a
-      // frame's segment is its zip folder name, and the exclusion scan roots
-      // its README layer paths with the same map, so the folder a reader opens
-      // is spelled exactly like the path they were given (4.7.2).
+      // The one naming pass over every page-root child (design doc 4.5.2). A
+      // frame's segment is its zip folder name, and this very map is handed to
+      // the exclusion scan below to root its README layer paths — not a second,
+      // equivalent one, which could drift from it (4.7.2).
       const rootNames = resolvePageRootNames(page.children);
 
       // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
@@ -158,6 +155,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       // reconcilable against the zip built from the same list.
       const exclusions = collectExclusions({
         pageRootNodes: page.children,
+        rootNames,
         variables: vars,
         textStyles,
       });
@@ -178,10 +176,16 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         const screenshots = await exportScreenshots(frame);
         const assets = await exportAssets(frame);
 
+        // No fallback and no `!`: `root.folder(undefined)` returns the export
+        // root itself, so a missing name would pile every frame's spec.json
+        // into it under a README naming folders the zip has not got (4.3.4).
+        const folderName = rootNames.get(frame.id);
+        if (folderName === undefined) {
+          throw new Error(`no folder name for frame ${frame.id}`);
+        }
+
         frames.push({
-          // `topFrames` comes from `page.children`, so the name is always there.
-          // No fallback: one would let the zip folder drift from the README.
-          folderName: rootNames.get(frame.id)!,
+          folderName,
           name: frame.name,
           spec,
           screenshots,
