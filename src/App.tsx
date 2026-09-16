@@ -2,10 +2,35 @@ import { createSignal, For, Show, type Component } from "solid-js";
 import promptTemplate from "./templates/prompt.md?raw";
 import steeringTemplate from "./templates/steering.md?raw";
 import type { CheckResult } from "./checks/types";
-import type { ExportDataMessage } from "./messages";
+import type {
+  CheckErrorMessage,
+  CheckResultsMessage,
+  ExportDataMessage,
+} from "./messages";
 import { buildExportZip } from "./export/zipBuilder";
 
 type Tab = "check" | "note" | "export";
+
+/** What the Review tab shows after one run, whether it finished or failed. */
+interface ReviewOutcome {
+  results: CheckResult[];
+  hasRun: boolean;
+  error: string;
+}
+
+/**
+ * The Review tab shows one run's outcome, so a failure replaces the previous
+ * results instead of stacking a banner on top of them (design doc 4.7.2
+ * 「実行失敗の扱い」). A plain function, because nothing else in App.tsx can be
+ * asserted without a DOM.
+ */
+export function reviewOutcome(
+  msg: CheckResultsMessage | CheckErrorMessage,
+): ReviewOutcome {
+  return msg.type === "check-error"
+    ? { results: [], hasRun: false, error: msg.message }
+    : { results: msg.results, hasRun: true, error: "" };
+}
 
 interface SelectionNote {
   nodeId: string;
@@ -29,16 +54,12 @@ const App: Component = () => {
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
     if (!msg) return;
-    if (msg.type === "check-results") {
-      setResults(msg.results);
-      setHasRun(true);
-      setRunning(false);
-      setCheckError("");
-    }
-    if (msg.type === "check-error") {
-      // Review threw. Clear "Running..." on this path too, or the tab stays
-      // pinned on it forever (code.ts posts this from the run-checks catch).
-      setCheckError(msg.message);
+    if (msg.type === "check-results" || msg.type === "check-error") {
+      const outcome = reviewOutcome(msg);
+      setResults(outcome.results);
+      setHasRun(outcome.hasRun);
+      setCheckError(outcome.error);
+      // Both paths clear "Running...", or the tab stays pinned on it forever.
       setRunning(false);
     }
     if (msg.type === "selection-note") {
@@ -158,35 +179,33 @@ const App: Component = () => {
 
             <Show when={hasRun()}>
               {/*
-                Outer gate on every result, inner gate on errors. CheckLevel is
+                Gated on every result, not on the errors alone: CheckLevel is
                 error-only today so the two coincide, but the moment a
-                non-blocking level returns (design doc 4.7.2) a single gate on
-                errors alone would render "All checks passed" while non-error
-                results existed — the silent drop 4.3.4 forbids.
+                non-blocking level returns (design doc 4.7.2) a gate on errors
+                would render "All checks passed" while non-error results
+                existed — the silent drop 4.3.4 forbids.
               */}
               <Show
                 when={results().length > 0}
                 fallback={<div class="pass">All checks passed</div>}
               >
-                <Show when={errors().length > 0}>
-                  <div class="section-label error-label">
-                    Errors ({errors().length})
-                  </div>
-                  <ul class="result-list">
-                    <For each={errors()}>
-                      {(item) => (
-                        <li
-                          class="result-item error-item"
-                          onClick={() => selectNode(item.nodeId)}
-                        >
-                          <div class="result-node">{item.nodeName}</div>
-                          <div class="result-message">{item.message}</div>
-                          <div class="result-suggestion">{item.suggestion}</div>
-                        </li>
-                      )}
-                    </For>
-                  </ul>
-                </Show>
+                <div class="section-label error-label">
+                  Errors ({errors().length})
+                </div>
+                <ul class="result-list">
+                  <For each={errors()}>
+                    {(item) => (
+                      <li
+                        class="result-item error-item"
+                        onClick={() => selectNode(item.nodeId)}
+                      >
+                        <div class="result-node">{item.nodeName}</div>
+                        <div class="result-message">{item.message}</div>
+                        <div class="result-suggestion">{item.suggestion}</div>
+                      </li>
+                    )}
+                  </For>
+                </ul>
               </Show>
             </Show>
           </div>

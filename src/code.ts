@@ -1,9 +1,18 @@
 import { collectAllNodes } from "./checks/traversal";
 import { runStructureChecks } from "./checks/structureChecks";
 import { checkSizing } from "./checks/sizingChecks";
-import { collectExclusions, isExportedFrame } from "./export/exclusions";
+import {
+  collectExclusions,
+  isExportedFrame,
+  resolvePageRootNames,
+} from "./export/exclusions";
 import type { CheckResult } from "./checks/types";
-import type { ExportDataMessage, ExportFrame } from "./messages";
+import type {
+  CheckErrorMessage,
+  CheckResultsMessage,
+  ExportDataMessage,
+  ExportFrame,
+} from "./messages";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
@@ -71,9 +80,14 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
     // tab on "Running..." with nothing to tell the user why.
     try {
       const results = runAllChecks(collectAllNodes(figma.currentPage));
-      figma.ui.postMessage({ type: "check-results", results });
+      const message: CheckResultsMessage = { type: "check-results", results };
+      figma.ui.postMessage(message);
     } catch (err) {
-      figma.ui.postMessage({ type: "check-error", message: `Review failed: ${err}` });
+      const message: CheckErrorMessage = {
+        type: "check-error",
+        message: `Review failed: ${err}`,
+      };
+      figma.ui.postMessage(message);
     }
   }
 
@@ -132,6 +146,12 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       // cannot disagree about what "inside the export" means.
       const topFrames = page.children.filter(isExportedFrame);
 
+      // One naming pass over every page-root child (design doc 4.5.2): a
+      // frame's segment is its zip folder name, and the exclusion scan roots
+      // its README layer paths with the same map, so the folder a reader opens
+      // is spelled exactly like the path they were given (4.7.2).
+      const rootNames = resolvePageRootNames(page.children);
+
       // What this export leaves out, for the README (design doc 4.7.2/4.7.4).
       // Collected after the error gate. It takes the page-root children and
       // derives the exported frames itself, so every README entry is
@@ -159,6 +179,9 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         const assets = await exportAssets(frame);
 
         frames.push({
+          // `topFrames` comes from `page.children`, so the name is always there.
+          // No fallback: one would let the zip folder drift from the README.
+          folderName: rootNames.get(frame.id)!,
           name: frame.name,
           spec,
           screenshots,

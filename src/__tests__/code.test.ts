@@ -214,6 +214,45 @@ describe("run-export", () => {
     });
   });
 
+  it("stamps each frame with the folder name the README layer paths are rooted at", async () => {
+    // One naming pass over the page-root children decides both, so the folder
+    // a reader opens is spelled exactly like the root of the paths the README
+    // quotes (design doc 4.5.2 / 4.7.2). The raw Figma name travels alongside
+    // it, because that is the name the designer sees on the page.
+    const title = makeNode({ id: "t", name: "Title", fillStyleId: "S:1" });
+    const frame = makeFrame({ id: "f", name: "Desktop / Home" }, [title]);
+    const component = makeNode({ id: "c", name: "Library", type: "COMPONENT" });
+    const { posted, send } = await loadPlugin(makePage([component, frame]));
+
+    await send({ type: "run-export" });
+
+    const data = posted.find((m) => m.type === "export-data");
+    const frames = data?.frames as { name: string; folderName: string }[];
+    expect(frames.map((f) => f.name)).toEqual(["Desktop / Home"]);
+    expect(frames.map((f) => f.folderName)).toEqual(["Desktop - Home"]);
+    const exclusions = data?.exclusions as {
+      bareRootComponents: string[];
+      colorStyles: { examplePaths: string[] }[];
+    };
+    expect(exclusions.colorStyles[0].examplePaths[0].split(" > ")[0]).toBe(
+      frames[0].folderName,
+    );
+    expect(exclusions.bareRootComponents).toEqual(["Library"]);
+  });
+
+  it("still posts an export when the page holds no exportable frame", async () => {
+    // Nothing to export is not a failure: the zip's templates and README are
+    // still worth producing, and the UI only leaves "Exporting..." on
+    // export-data / export-error.
+    const { posted, send } = await loadPlugin(makePage([]));
+
+    await send({ type: "run-export" });
+
+    expect(posted.filter((m) => m.type === "export-error")).toHaveLength(0);
+    const data = posted.find((m) => m.type === "export-data");
+    expect(data?.frames).toEqual([]);
+  });
+
   it("does not let a non-error check result block the export", async () => {
     // The gate filters on level === "error" so that reintroducing a
     // non-blocking level (design doc 4.7.2) cannot silently promote it to a

@@ -8,7 +8,6 @@ import {
   emptyExclusionReport,
   isExportedFrame,
 } from "../exclusions";
-import { resolveFrameFolderNames } from "../layerPath";
 import { buildReadme } from "../readmeBuilder";
 
 const mockGetVariableById = vi.fn();
@@ -350,6 +349,21 @@ describe("findTypographyTokenCollisions", () => {
     ).toEqual([]);
   });
 
+  it("matches a multi-level sub-path against the Text Style's full name", () => {
+    // tokens.json nests the Text Style under `typography/a/b` (tokensBuilder
+    // splits its name on `/` too), so the whole sub-path is the slot — not
+    // just its first segment.
+    const variable = makeVariable("typography/a/b", "COLOR");
+    expect(findTypographyTokenCollisions([variable], [makeTextStyle("a/b")])).toEqual([
+      { variableName: "typography/a/b", textStyleName: "a/b" },
+    ]);
+  });
+
+  it("ignores a multi-level sub-path whose Text Style matches only its first segment", () => {
+    const variable = makeVariable("typography/a/b", "COLOR");
+    expect(findTypographyTokenCollisions([variable], [makeTextStyle("a")])).toEqual([]);
+  });
+
   it("ignores a typography/ Variable with no matching Text Style name", () => {
     const variable = makeVariable("typography/heading-md", "FLOAT");
     expect(
@@ -418,6 +432,14 @@ describe("layer paths (via findColorStyleUsage)", () => {
     const leaf = makeNode({ id: "leaf", name: "Child", fillStyleId: "S:1" });
     makeContainer({ id: "root", name: "Orphan", parent: null }, [leaf]);
     expect(colorPaths([leaf])).toEqual(["Orphan > Child"]);
+  });
+
+  it("stops at a DOCUMENT parent, which is no more a layer than a PAGE is", () => {
+    const document = { type: "DOCUMENT", name: "Untitled", parent: null };
+    const leaf = makeNode({ id: "leaf", name: "Child", fillStyleId: "S:1" });
+    const root = makeContainer({ id: "root", name: "Home", parent: document }, [leaf]);
+    expect(root.parent?.type).toBe("DOCUMENT");
+    expect(colorPaths([leaf])).toEqual(["Home > Child"]);
   });
 
   it("still names a node its parent's children array does not contain", () => {
@@ -603,10 +625,8 @@ describe("layer-path roots agree with the zip folder names", () => {
       variables: [],
       textStyles: [],
     });
-    const [folderName] = resolveFrameFolderNames([frame.name]);
     const pathRoot = report.colorStyles[0].examplePaths[0].split(" > ")[0];
 
-    expect(pathRoot).toBe(folderName);
     expect(pathRoot).toBe("Home");
   });
 
@@ -621,7 +641,6 @@ describe("layer-path roots agree with the zip folder names", () => {
       textStyles: [],
     });
     expect(report.colorStyles[0].examplePaths[0]).toBe("Desktop - Home > Title");
-    expect(resolveFrameFolderNames([frame.name])).toEqual(["Desktop - Home"]);
   });
 
   it("suffixes duplicate frame names the same way the folders are suffixed", () => {
@@ -640,7 +659,6 @@ describe("layer-path roots agree with the zip folder names", () => {
       "Home > Title",
       "Home-2 > Title",
     ]);
-    expect(resolveFrameFolderNames(["Home", "Home"])).toEqual(["Home", "Home-2"]);
   });
 });
 
@@ -659,7 +677,9 @@ describe("collectExclusions rendered through buildReadme", () => {
     makePage([frame, button]);
 
     const readme = buildReadme({
-      frames: [{ name: "Home", hasScreenshots: true, hasAssets: true }],
+      frames: [
+        { name: "Home", folderName: "Home", hasScreenshots: true, hasAssets: true },
+      ],
       hasTokens: true,
       exclusions: collectExclusions({
         pageRootNodes: [frame, button],
@@ -696,7 +716,6 @@ describe("page-root segment naming", () => {
     });
     expect(report.colorStyles[0].examplePaths).toEqual(["Home > Title"]);
     expect(report.bareRootComponents).toEqual(["Home-2"]);
-    expect(resolveFrameFolderNames([frame.name])).toEqual(["Home"]);
   });
 
   it("does not let a non-frame collide with a sanitized frame folder name", () => {

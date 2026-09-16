@@ -1,18 +1,9 @@
+// The export zip, built from an `export-data` message (design doc 4.7.4 の出力
+// 8点). Outside App.tsx so the report → README hop is assertable (4.3.4).
 import type JSZip from "jszip";
 import type { ExportDataMessage, ExportFile } from "../messages";
 import { buildReadme, type ReadmeFrame } from "./readmeBuilder";
-import { resolveFrameFolderNames } from "./layerPath";
 
-/**
- * Assemble the export zip from an `export-data` message (design doc 4.7.4
- * 「書き出し」の出力8点).
- *
- * Lives outside App.tsx so it is testable without a DOM: the hop from the
- * exclusion report into README.md is the step 4.3.4 depends on — a zip whose
- * README claims nothing was excluded while four categories were detected is
- * precisely the silent drop the design forbids, and inside a Solid component
- * nothing could assert against it. App.tsx keeps only the download.
- */
 export interface ZipBuildInput {
   data: ExportDataMessage;
   promptTemplate: string;
@@ -55,26 +46,25 @@ export async function buildExportZip({
   }
 
   const allSections: { name: string }[] = [];
-  // What each folder ends up holding, so the README's Contents lines describe
-  // the zip rather than a fixed promise of screenshots and assets.
+  // What each folder ends up holding, so the Contents lines describe the zip.
   const readmeFrames: ReadmeFrame[] = [];
   // Primary viewport = the first frame's width (not whichever frame is last).
   const primaryWidth = data.frames[0]?.spec?.viewport?.width ?? 1440;
-  // Same function the README's layer-path roots use (exclusions.ts), so the
-  // folder a reader opens is spelled exactly like the path they were given.
-  const frameNames = resolveFrameFolderNames(data.frames.map((f) => f.name));
 
-  data.frames.forEach((frame, idx) => {
-    const folder = root.folder(frameNames[idx])!;
+  for (const frame of data.frames) {
+    // Folder name as code.ts decided it: deriving a second one here is what
+    // let the folders and the README's layer paths drift (design doc 4.7.2).
+    const folder = root.folder(frame.folderName)!;
     folder.file("spec.json", JSON.stringify(frame.spec, null, 2));
     addFilesToFolder(folder, frame.screenshots, frame.assets);
     readmeFrames.push({
-      name: frameNames[idx],
+      name: frame.name,
+      folderName: frame.folderName,
       hasScreenshots: frame.screenshots.length > 0,
       hasAssets: frame.assets.length > 0,
     });
     allSections.push(...(frame.spec?.children ?? []));
-  });
+  }
 
   const sectionTasks = generateSectionTasks(allSections);
   root.file(
@@ -92,9 +82,8 @@ export async function buildExportZip({
     buildReadme({
       frames: readmeFrames,
       hasTokens: Boolean(data.tokens),
-      // Not defaulted: a missing report must throw here (caught by the caller
-      // and surfaced as an export error) rather than produce a README that
-      // asserts nothing was excluded — design doc 4.3.4.
+      // Not defaulted: a missing report must throw (and surface as an export
+      // error) rather than claim nothing was excluded — design doc 4.3.4.
       exclusions: data.exclusions,
     }),
   );

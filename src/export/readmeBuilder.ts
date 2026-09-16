@@ -1,23 +1,15 @@
 import type { ExclusionReport } from "./exclusions";
 
-/**
- * README.md for the exported zip (design doc 4.7.4 output #8).
- *
- * Its "Not included in this export" section is the record of what telldes
- * dropped from *this* export: the design doc's 4.3.4 stance forbids silent
- * drops/skips, and Review reports errors only, so the exclusions detected at
- * export time (exclusions.ts) are reported here instead. A category with no
- * detections produces no output at all — the section states facts about this
- * export, not a checklist of things that might happen.
- */
+// README.md for the exported zip (design doc 4.7.4 output #8). Its "Not
+// included in this export" section states what this export left out (4.7.2),
+// facts only: a category with no detections produces no line at all.
 
-/** One exported frame folder, as the Contents list needs to describe it. */
 export interface ReadmeFrame {
-  /** Zip folder name, already de-duplicated. */
+  /** Frame name as Figma spells it, so the designer can find it on the page. */
   name: string;
-  /** Whether `screenshots/` files were written into the folder. */
+  /** Zip folder name, already sanitized and de-duplicated. */
+  folderName: string;
   hasScreenshots: boolean;
-  /** Whether `assets/` files were written into the folder. */
   hasAssets: boolean;
 }
 
@@ -27,21 +19,17 @@ export interface ReadmeInput {
   exclusions: ExclusionReport;
 }
 
-/**
- * Wording for a text node whose characters carry several Color Styles at once
- * (`fillStyleId === figma.mixed`): there is no single style to name, so the
- * entry says so instead. Lives here rather than in the detection layer because
- * it is README prose, not a style name — exclusions.ts carries `null`.
- */
+/** Wording for a text node with several Color Styles at once (styleName null). */
 const MIXED_COLOR_STYLE_LABEL = "multiple Color Styles on one text node";
 
-/**
- * Contents line for one frame folder. Only the files actually written are
- * listed: a childless frame yields a folder holding nothing but `spec.json`,
- * and the README is the one file whose job is to be reconcilable against the
- * zip the reader is holding (design doc 4.7.2).
- */
-function frameContentsLine({ name, hasScreenshots, hasAssets }: ReadmeFrame): string {
+// Contents line for one frame folder, listing only the files actually written:
+// the README has to be reconcilable against the zip in hand (design doc 4.7.2).
+function frameContentsLine({
+  name,
+  folderName,
+  hasScreenshots,
+  hasAssets,
+}: ReadmeFrame): string {
   const parts = ["spec.json"];
   if (hasScreenshots) parts.push("screenshots");
   if (hasAssets) parts.push("assets");
@@ -52,7 +40,7 @@ function frameContentsLine({ name, hasScreenshots, hasAssets }: ReadmeFrame): st
       : parts.length === 2
         ? `${parts[0]} and ${last}`
         : `${parts.slice(0, -1).join(", ")}, and ${last}`;
-  return `- \`${name}/\` — ${listed} for frame "${name}"`;
+  return `- \`${folderName}/\` — ${listed} for frame "${name}"`;
 }
 
 /** `- <lead>` followed by one indented `  - <item>` line per detection. */
@@ -61,15 +49,9 @@ function exclusionBullet(lead: string, items: string[]): string[] {
   return [`- ${lead}`, ...items.map((item) => `  - ${item}`)];
 }
 
-/**
- * One line per excluded style/variable: what it is, how many layers use it,
- * and up to three of them by layer path so the designer can find one.
- *
- * Grouping is per style/variable rather than per layer (design doc 4.7.2
- * 走査範囲), so a component placed 40 times is one line, not 40. When the
- * count is fully covered by the examples the line must not imply there are
- * more, hence the two phrasings.
- */
+// One line per excluded style/variable, grouped per style rather than per layer
+// (design doc 4.7.2 走査範囲). Two phrasings, so a line whose examples cover
+// every layer does not imply there are more.
 function usageLine(
   name: string | null,
   examplePaths: string[],

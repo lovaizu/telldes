@@ -8,7 +8,7 @@ function makeExclusions(overrides: Partial<ExclusionReport> = {}): ExclusionRepo
 
 /** A frame folder holding all three of spec.json, screenshots and assets. */
 function makeFrame(name: string, overrides: Partial<ReadmeFrame> = {}): ReadmeFrame {
-  return { name, hasScreenshots: true, hasAssets: true, ...overrides };
+  return { name, folderName: name, hasScreenshots: true, hasAssets: true, ...overrides };
 }
 
 const base = {
@@ -80,6 +80,19 @@ describe("buildReadme", () => {
     });
     expect(contentsSection(readme)).toContain(
       '- `Home/` — spec.json and screenshots for frame "Home"',
+    );
+  });
+
+  it("names the folder as the zip spells it and the frame as Figma does", () => {
+    // The reader has both in front of them: the folder to open, and the frame
+    // to find in Figma. Printing the folder name in both slots names a frame
+    // that does not exist on the page (design doc 4.7.2).
+    const readme = buildReadme({
+      ...base,
+      frames: [makeFrame("Desktop / Home", { folderName: "Desktop - Home-2" })],
+    });
+    expect(contentsSection(readme)).toContain(
+      '- `Desktop - Home-2/` — spec.json, screenshots, and assets for frame "Desktop / Home"',
     );
   });
 

@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   buildLayerPath,
   layerPathToSlug,
-  resolveFrameFolderNames,
   resolvePageRootSegmentNames,
   uniqueChildName,
 } from "../layerPath";
@@ -37,31 +36,6 @@ describe("uniqueChildName", () => {
   });
 });
 
-describe("resolveFrameFolderNames", () => {
-  it("keeps a plain frame name as the folder name", () => {
-    expect(resolveFrameFolderNames(["Home", "Pricing"])).toEqual(["Home", "Pricing"]);
-  });
-
-  it("suffixes duplicate frame names so folders cannot clobber each other", () => {
-    expect(resolveFrameFolderNames(["Home", "Home", "Home"])).toEqual([
-      "Home",
-      "Home-2",
-      "Home-3",
-    ]);
-  });
-
-  it("neutralizes path separators so a name cannot spawn nested folders", () => {
-    expect(resolveFrameFolderNames(["Desktop / Home", "a\\b"])).toEqual([
-      "Desktop - Home",
-      "a-b",
-    ]);
-  });
-
-  it("falls back to 'frame' for a blank name", () => {
-    expect(resolveFrameFolderNames(["   "])).toEqual(["frame"]);
-  });
-});
-
 describe("resolvePageRootSegmentNames", () => {
   const node = (id: string, name: string, type = "FRAME") =>
     ({ id, name, type }) as unknown as SceneNode;
@@ -69,14 +43,20 @@ describe("resolvePageRootSegmentNames", () => {
   const names = (nodes: SceneNode[]) =>
     [...resolvePageRootSegmentNames(nodes, isFrame).values()];
 
-  it("gives frames exactly the names resolveFrameFolderNames would", () => {
-    // The zip folders come from resolveFrameFolderNames over the frames alone;
-    // if these two disagreed, README paths would name folders that don't exist.
+  it("keeps a plain frame name as its segment", () => {
+    expect(names([node("f1", "Home"), node("f2", "Pricing")])).toEqual([
+      "Home",
+      "Pricing",
+    ]);
+  });
+
+  it("suffixes duplicate frame names so the zip folders cannot clobber each other", () => {
     const frames = [node("f1", "Desktop / Home"), node("f2", "Desktop / Home")];
-    const map = resolvePageRootSegmentNames(frames, isFrame);
-    expect(frames.map((f) => map.get(f.id))).toEqual(
-      resolveFrameFolderNames(frames.map((f) => f.name)),
-    );
+    expect(names(frames)).toEqual(["Desktop - Home", "Desktop - Home-2"]);
+  });
+
+  it("falls back to 'frame' for a blank name", () => {
+    expect(names([node("f1", "   ")])).toEqual(["frame"]);
   });
 
   it("makes the non-frame yield when it shares a name with a frame", () => {

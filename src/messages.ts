@@ -1,3 +1,4 @@
+import type { CheckResult } from "./checks/types";
 import type { ExclusionReport } from "./export/exclusions";
 
 /**
@@ -24,7 +25,15 @@ export interface ExportFile {
 
 /** Everything the UI needs to build one frame's zip folder. */
 export interface ExportFrame {
+  /** Frame name as Figma spells it — what the README names the frame by. */
   name: string;
+  /**
+   * The frame's zip folder name: sanitized and de-duplicated (design doc
+   * 4.5.2). Decided by code.ts in the same pass that roots the README's layer
+   * paths, so the folder a reader opens and the paths they were given cannot
+   * disagree (4.7.2).
+   */
+  folderName: string;
   spec: { children?: { name: string }[]; viewport?: { width: number } };
   screenshots: ExportFile[];
   assets: ExportFile[];
@@ -42,6 +51,12 @@ export interface ExportDataMessage {
    * silent drop 4.3.4 forbids.
    */
   exclusions: ExclusionReport;
+}
+
+/** Payload of the `check-results` message: Review finished, with its findings. */
+export interface CheckResultsMessage {
+  type: "check-results";
+  results: CheckResult[];
 }
 
 /**

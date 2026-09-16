@@ -8,23 +8,31 @@ import type { ExportDataMessage } from "../../messages";
 // were detected would have shipped unnoticed — the silent drop design doc
 // 4.3.4 forbids.
 
-function makeData(overrides: Partial<ExportDataMessage> = {}): ExportDataMessage {
+type Frame = ExportDataMessage["frames"][number];
+
+/**
+ * Frame payload with the fields every test varies. The folder name defaults to
+ * the frame name, which is what code.ts stamps on when nothing needs
+ * sanitizing or a `-N` suffix.
+ */
+function makeFrame(overrides: Partial<Frame> = {}): Frame {
+  const name = overrides.name ?? "Home";
   return {
-    type: "export-data",
-    frames: [{ name: "Home", spec: { children: [] }, screenshots: [], assets: [] }],
-    tokens: { color: {} },
-    exclusions: emptyExclusionReport(),
+    name,
+    folderName: name,
+    spec: { children: [] },
+    screenshots: [],
+    assets: [],
     ...overrides,
   };
 }
 
-/** Frame payload with the fields every test varies, defaulted to empty. */
-function makeFrame(overrides: Partial<ExportDataMessage["frames"][number]> = {}) {
+function makeData(overrides: Partial<ExportDataMessage> = {}): ExportDataMessage {
   return {
-    name: "Home",
-    spec: { children: [] },
-    screenshots: [],
-    assets: [],
+    type: "export-data",
+    frames: [makeFrame()],
+    tokens: { color: {} },
+    exclusions: emptyExclusionReport(),
     ...overrides,
   };
 }
@@ -94,18 +102,49 @@ describe("buildExportZip", () => {
     expect(contents).not.toContain("tokens.json");
   });
 
-  it("names the README frame folders exactly like the zip folders", async () => {
+  it("writes each frame into the folder name the message carries", async () => {
+    // The folder name is decided once, in code.ts, alongside the layer-path
+    // roots the README quotes; deriving a second one here is what let the two
+    // drift (design doc 4.7.2).
     const files = await buildFiles(
       makeData({
         frames: [
-          { name: "Desktop / Home", spec: {}, screenshots: [], assets: [] },
-          { name: "Desktop / Home", spec: {}, screenshots: [], assets: [] },
+          makeFrame({ name: "Desktop / Home", folderName: "Desktop - Home" }),
+          makeFrame({ name: "Desktop / Home", folderName: "Desktop - Home-2" }),
         ],
       }),
     );
     expect(files["telldes-export/Desktop - Home/spec.json"]).toBeDefined();
     expect(files["telldes-export/Desktop - Home-2/spec.json"]).toBeDefined();
     expect(files["telldes-export/README.md"]).toContain("- `Desktop - Home-2/`");
+  });
+
+  it("names the frame in README as Figma spells it, not as the folder does", async () => {
+    // `Desktop / Home` has no folder-legal spelling, so the Contents line used
+    // to point the designer at a frame name that exists nowhere on the page.
+    const files = await buildFiles(
+      makeData({
+        frames: [makeFrame({ name: "Desktop / Home", folderName: "Desktop - Home" })],
+      }),
+    );
+    expect(files["telldes-export/README.md"]).toContain(
+      '- `Desktop - Home/` — spec.json for frame "Desktop / Home"',
+    );
+  });
+
+  it("still writes the four root files when the page has no exportable frame", async () => {
+    // Nothing to fold over: the export must still produce a readable zip
+    // rather than throw on an empty frame list.
+    const files = await buildFiles(makeData({ frames: [] }));
+    expect(Object.keys(files).sort()).toEqual([
+      "telldes-export/README.md",
+      "telldes-export/prompt.md",
+      "telldes-export/steering.md",
+      "telldes-export/tokens.json",
+    ]);
+    expect(files["telldes-export/README.md"]).not.toContain("for frame");
+    expect(files["telldes-export/prompt.md"]).toBe("prompt 1440");
+    expect(files["telldes-export/steering.md"]).toContain("- [ ] (no sections found)");
   });
 
   it("fails loudly rather than writing a README that claims nothing was excluded", async () => {
@@ -118,12 +157,7 @@ describe("buildExportZip", () => {
     const files = await buildFiles(
       makeData({
         frames: [
-          {
-            name: "Home",
-            spec: { viewport: { width: 375 }, children: [{ name: "hero" }] },
-            screenshots: [],
-            assets: [],
-          },
+          makeFrame({ spec: { viewport: { width: 375 }, children: [{ name: "hero" }] } }),
         ],
       }),
     );
