@@ -755,11 +755,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-09-15
-* **Last completed**: G-5（Ph-7 完了）。U-1 は作業ステップ全完了・レビュー4軸実施済みだが、未解決指摘の扱い待ちで未チェック。
-* **Next**: U-1 の決着。未解決指摘6件（U-1「進行メモ」参照）の扱いについて A/B/C を提示済み・ユーザー回答待ち — A: もう1ラウンドで指摘1〜6を全部潰して確定（推奨）、B: 指摘1〜3のみ潰して確定し4〜6は U-3 へ、C: U-1 をこのまま確定し6件すべて U-3 へ。
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。再開時点でテスト 217 全パス・両ビルド green。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
+* **Status**: not suspended
+* **Date**: 2026-09-16
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。U-1 は作業ステップ全完了だが未解決指摘6件（U-1「進行メモ」参照）の扱いがユーザー判断待ちで未チェック。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。
 
 ---
 
