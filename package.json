@@ -1,0 +1,24 @@
+{
+  "name": "telldes",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "vite build && vite build --config vite.config.code.ts",
+    "dev": "vite build --watch & vite build --config vite.config.code.ts --watch",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.108.0",
+    "solid-js": "next",
+    "@solidjs/web": "next",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5",
+    "vite-plugin-solid": "next",
+    "vite-plugin-singlefile": "^2.0.3",
+    "vitest": "^3.2.1"
+  }
+}
