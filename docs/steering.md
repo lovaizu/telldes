@@ -826,11 +826,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-09-16
-* **Last completed**: U-1（Ph-8）。U-4 は修正ラウンド2の実装まで完了（`9175683` `c569202`）、再レビュー未実施で未チェック。
-* **Next**: U-4 の修正ラウンド2 再レビュー — `c2cfada..HEAD` に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off。詳細は U-4 の「再開時の作業」。
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `c569202`、テスト 257 全パス・両ビルド green・tsc 82（着手時 84）。**修正ラウンドは2回使用・残り1回**。中断時に再レビュー4軸を発注済みだったが結果を回収できずに停止したため、再開時はレビューからやり直す。未コミットの `docs/checks/U-4.md` は wip コミット済み（レビュー判定欄は空のまま＝コーディネーターが再レビュー後に埋める）。描画層の残存リスク（jsdom 未導入）は U-4.md に記録済みで今回は閉じない。U-5 は U-4 のレビューで挙がった範囲外指摘を積んだもの。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。範囲内の指摘は rn の手順どおり Valid/Invalid で自分が判定し、エスカレーションしない。
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
 
 ---
 
