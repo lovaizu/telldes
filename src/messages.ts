@@ -1,23 +1,12 @@
 import type { CheckResult } from "./checks/types";
 import type { ExclusionReport } from "./export/exclusions";
 
-/**
- * The plugin → UI message payloads, declared once.
- *
- * code.ts (Figma sandbox) and App.tsx (iframe) can only talk through
- * postMessage, whose signature is `any` on both ends, and the repo runs no
- * `tsc` step — so nothing here is enforced at build time. The point is that
- * the two sides read the *same* declaration instead of restating it, which is
- * what kept them in sync before: a field added on one side and forgotten on
- * the other is a one-file edit away from being visible.
- *
- * Runtime enforcement lives where it can actually fire: code.test.ts asserts
- * `export-data` carries `exclusions`, and buildReadme throws on a missing
- * report inside the handler's try, surfacing as an export error rather than a
- * README that falsely claims nothing was excluded (design doc 4.3.4).
- */
+// The plugin → UI message payloads. postMessage is `any` on both ends and the
+// repo runs no `tsc` step, so these buy no build-time check — only code.ts and
+// App.tsx reading one declaration instead of restating it. What is enforced is
+// enforced at runtime, by the tests.
 
-/** One file inside a frame folder, with its zip-relative path. */
+/** One file inside a frame folder, at its zip-relative path. */
 export interface ExportFile {
   path: string;
   data: Uint8Array;
@@ -27,46 +16,27 @@ export interface ExportFile {
 export interface ExportFrame {
   /** Frame name as Figma spells it — what the README names the frame by. */
   name: string;
-  /**
-   * The frame's zip folder name: sanitized and de-duplicated (design doc
-   * 4.5.2). Decided by code.ts in the same pass that roots the README's layer
-   * paths, so the folder a reader opens and the paths they were given cannot
-   * disagree (4.7.2).
-   */
+  /** The frame's zip folder name: sanitized and de-duplicated (4.5.2). */
   folderName: string;
   spec: { children?: { name: string }[]; viewport?: { width: number } };
   screenshots: ExportFile[];
   assets: ExportFile[];
 }
 
-/** Payload of the `export-data` message: a whole export, ready to zip. */
 export interface ExportDataMessage {
   type: "export-data";
   frames: ExportFrame[];
   tokens: unknown;
-  /**
-   * What this export left out — rendered into README.md (design doc 4.7.2).
-   * Required, not optional: an optional field would turn "the plugin failed
-   * to report" into a README asserting that nothing was excluded, exactly the
-   * silent drop 4.3.4 forbids.
-   */
+  // Required, not optional: a missing report would turn into a README
+  // asserting that nothing was excluded (design doc 4.3.4).
   exclusions: ExclusionReport;
 }
 
-/** Payload of the `check-results` message: Review finished, with its findings. */
 export interface CheckResultsMessage {
   type: "check-results";
   results: CheckResult[];
 }
 
-/**
- * Payload of the `check-error` message: Review could not finish.
- *
- * The Review tab clears its "Running..." flag on `check-results` or this — a
- * throw with no message would leave the tab pinned on "Running..." with
- * nothing to tell the user why (the same hazard `export-error` covers for the
- * export path).
- */
 export interface CheckErrorMessage {
   type: "check-error";
   message: string;
@@ -79,24 +49,18 @@ export interface SelectionNote {
   note: string;
 }
 
-/** Payload of `selection-note`: `null` when the selection is not one layer. */
 export interface SelectionNoteMessage {
   type: "selection-note";
+  /** `null` when the selection is not exactly one layer. */
   data: SelectionNote | null;
 }
 
-/** Payload of `note-saved`: which layer's note reached the file. */
 export interface NoteSavedMessage {
   type: "note-saved";
   nodeId: string;
 }
 
-/**
- * Payload of `export-error`: the export could not finish, or was refused.
- *
- * Same hazard as `check-error`: the Export tab clears "Exporting..." on this
- * or on `export-data` alone.
- */
+/** The export could not finish, or was refused before it started. */
 export interface ExportErrorMessage {
   type: "export-error";
   message: string;
