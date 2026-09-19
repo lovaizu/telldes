@@ -38,7 +38,8 @@ function resolvePageRootNames(nodes: readonly SceneNode[]): Map<string, string> 
 }
 
 export interface ExportScope {
-  frames: SceneNode[];
+  /** Readonly: a frame pushed in later would have no `rootNames` entry (4.5.2). */
+  frames: readonly SceneNode[];
   /** Segment per page-root node id; a frame's is its zip folder name (4.5.2). */
   rootNames: ReadonlyMap<string, string>;
   /** Frames and not: the exclusion scan reports on bare Components too (4.7.2). */
