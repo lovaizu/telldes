@@ -763,14 +763,15 @@ Ph-8: 実使用フィードバック対応
 - [x] Craft エキスパートレビュー（subagent、コーディング媒体）
 - [x] Verification エキスパートレビュー（subagent、コーディング媒体）
 - [x] Design エキスパートレビュー（subagent）
-- [ ] 修正ラウンド2: 3軸一致・2軸一致の未解決4件を潰し（実装済み）、該当軸を再レビュー（**未実施**）
+- [x] 修正ラウンド2: 3軸一致・2軸一致の未解決4件を潰し、該当軸を再レビュー（2026-09-19 実施・triage 済み）
+- [ ] 修正ラウンド3: V-1（`messages.ts` コメント比率）・V-2（`noteSaved` fixture 空振り）・V-3（`ExportScope.frames` readonly）を潰し（実装済み `0bf40c5` `1ea315e` `8e84b72`）、QA / Craft / Verification / Design の4軸を再レビュー（**未実施・修正ラウンドはこれで3回使い切り＝上限**）
 
 
-**進行メモ（2026-09-16 時点）**:
-- 実装 `9daf778` → レビュー4軸 → 修正ラウンド1 `9544e2d` → 再レビュー4軸 → 修正ラウンド2 `9175683` `c569202`。テスト 217 → 243 → 257、両ビルド green、tsc エラー 84 → 82（`App.test.ts` 分は 2 → 0）
-- 修正ラウンド1の再レビュー: QA **pass** / Craft **fail** / Verification・Design **条件付き pass**。完了条件7項目は4軸とも OK
-- 修正ラウンド2で、3軸一致・2軸一致の未解決4件をすべて解消済み（下記）。**修正ラウンドは2回使用、残り1回**
-- 修正ラウンド2の再レビュー4軸は発注したがセッション中断で結果を回収できていない。**再開時にやり直す**
+**進行メモ（2026-09-19 時点）**:
+- 実装 `9daf778` → レビュー4軸 → 修正ラウンド1 `9544e2d` → 再レビュー4軸 → 修正ラウンド2 `9175683` `c569202` → 再レビュー4軸（2026-09-19、`ad80720..HEAD` 対象）→ triage → 修正ラウンド3 `0bf40c5` `1ea315e` `8e84b72`。テスト 217 → 243 → 257 → 257、両ビルド green、tsc エラーは修正ラウンド3の前後で完全一致（82件、diff 空。対象4ファイルには0件）
+- 修正ラウンド2の再レビュー: QA **fail** / Craft **fail** / Design **fail** / Verification **pass**。**4軸一致で NG だったのは完了条件6（`messages.ts` のコメント比率、40〜55%の帯に残存）のみ**。①〜⑤⑦は変異テスト（のべ100件超投入、生存は数件）で裏づけ済み
+- triage: Valid 3件（V-1〜V-3、下記）を修正ラウンド3で対応。Invalid 9件は完了条件の外と判定し、U-5 に統合・新規追加（詳細は `docs/checks/U-4.md` の「修正ラウンド2 再レビューの triage」節）
+- 修正ラウンド3のセルフチェックは実装者から回収済み（7項目 OK、`messages.ts` は 49.5%→21.5%）。**QA / Craft / Verification / Design の4軸再レビューは中断のため未実施 — 再開時にやり直す**
 
 **修正ラウンド2で解消した4件（コーディネーターが実機確認済み）**:
 1. `rootNames` 無検証（3軸一致）→ `src/export/exportScope.ts` に `ExportScope { frames, rootNames, pageRootNodes }` と `resolveExportScope(pageRootNodes)` を新設。`collectExclusions` は `{ scope, variables, textStyles }` を受け取る形になり、一致必須の2引数が消滅。例外方針は `folderNameOf(scope, frame)` の throw に一本化。`RESERVED_ROOT_NAMES` とページ直下命名一式も `layerPath.ts` から移設（D2）。**変異 `resolveExportScope(page.children.filter(isExportedFrame))` で `code.test.ts` 2件が落ちることを確認**（ラウンド1では同種の変異が全パスだった）
@@ -778,9 +779,14 @@ Ph-8: 実使用フィードバック対応
 3. `App.tsx` の残りカス（2軸一致）→ `handlePluginMessage(msg, handlers)` を切り出し、`export-error` / `note-saved` / `selection-note` / `export-data` の全分岐を DOM なしでテスト。**変異「`applyReviewOutcome` の呼び出し行を丸ごと削除」で `App.test.ts` 2件が落ちることを確認**
 4. tsc エラー2件（2軸一致）→ `messages.ts` に `PluginMessage` union を追加し、`applyReviewOutcome` / `handlePluginMessage` のパラメータ型に使用
 
+**修正ラウンド3で解消した3件（triage の Valid 3件、実装者のセルフチェック済み・コーディネーター未実機確認）**:
+1. V-1: `messages.ts` のコメント比率 49.5%→21.5%（コメント行は同一論旨の3箇所重複を冒頭1箇所に集約。型宣言・フィールド・union は無改変、`git diff -U0` の増減行がすべてコメント行であることを確認済み）
+2. V-2: `App.test.ts` の `noteSaved` fixture 空振り → `selection-note` ケースの初期値を `true` にし、`handlers.setNoteSaved(false);` を削る変異で実際に1件落ちることを実装者が確認
+3. V-3: `ExportScope.frames` に `readonly` を付与。`scope.frames.push(n)` が `tsc` で TS2339 拒否されることを確認
+
 **残存リスク（今回は閉じない）**: 描画層の `<Show when={hasRun()}>` → `when={true}` の変異は生存する。jsdom 未導入で DOM テストが書けないため。jsdom の追加は環境変更にあたりユーザー確認が必要なので、`docs/checks/U-4.md` に既知リスクとして記録するに留めた
 
-**再開時の作業**: 修正ラウンド2の成果（`c2cfada..HEAD`）に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off する。レビュー発注時は成果物の差分・完了条件の逐語コピー・各軸のチェックリストのみを渡し、セルフチェックファイルや実装者のサマリ、期待する判定は渡さないこと
+**再開時の作業**: 修正ラウンド3の成果（`a2066df..8e84b72`）に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off する。レビュー発注時は成果物の差分・完了条件の逐語コピー・各軸のチェックリストのみを渡し、セルフチェックファイルや実装者のサマリ、期待する判定は渡さないこと。**これが3回目＝上限の修正ラウンドなので、再レビューで NG が残った場合は追加の修正ラウンドを走らせず、その場でユーザーにエスカレーションする**（rn の手順どおり）
 
 **修正指示の書き方（今回の反省）**: レビュアーが当てた変異そのものを指示に書き、それが落ちることを確認させる。修正ラウンド1では「命名パスを1回にしろ」とだけ指示し、引数化後の不整合をどう防ぐかまで書かなかったため、実装者のセルフチェックは自分が想定した変異（別の Map を渡す）しか当てず、レビュアーが当てた変異（Map の作り方を変える）を素通しした。
 
@@ -803,22 +809,30 @@ Ph-8: 実使用フィードバック対応
 
 **作業内容**:
 - [ ] 裸 root Component の除外物行に Figma 上の生名を併記する（Design D3）。`A/B` という名の Component が README に `A-B` と出るが、フレームと違って Contents 行のような対応表がないため、デザイナーは README の指示を実行する対象を特定できない。`findBareRootComponents` の戻り値を `{ path, rawName }[]` にし、正規化後と生名が異なるときだけ併記する。設計書 4.7.2 に1文追記
-- [ ] `tsc --noEmit` をゲートにする（Design F7）。現状79件のエラーで通らず、postMessage の型契約が build 時に一切検証されていない。`src/vite-env.d.ts` の追加（`*.md?raw` の宣言欠如）と solid-js の JSX 型解決を片付け、`package.json` の test スクリプトに `tsc --noEmit` を足す
-- [ ] `RESERVED_ROOT_NAMES` と `zipBuilder` が実際に書くルートファイルの一致を固定するテスト（Craft C-4）。現状 `RESERVED_ROOT_NAMES` に `notes.md` を足しても全グリーンで、zip ルートにファイルが増えても誰も気づかない
-- [ ] `zipBuilder` の境界ガードを揃える（Craft C-5 / Design D6）。重複 `folderName` だけ throw し、空文字（ルート直置き）と `/` を含む値（ルート外へ書き出し）は素通し。3つ守るか0にするかを決める
-- [ ] `baseSegment` のバックスラッシュ無害化のテスト（Verification NG-3）。`raw.replace(/[/\\]/g, "-")` を `/[/]/` に変えても全グリーンで、`\` を含むフレーム名の例が1件もない
-- [ ] `reviewOutcome` と `applyReviewOutcome` の二段構えを1関数に畳む（Design D5a）
+- [ ] `tsc --noEmit` をゲートにする（Design F7）。現状82件のエラーで通らず、postMessage の型契約が build 時に一切検証されていない。`src/vite-env.d.ts` の追加（`*.md?raw` の宣言欠如）と solid-js の JSX 型解決を片付け、`package.json` の test スクリプトに `tsc --noEmit` を足す。あわせて `handlePluginMessage` を `switch` 化して末尾に `const _exhaustive: never = msg;` を置き、`PluginMessage` union に型を足したとき消費側が黙って捨てないようにする（U-4 再レビュー Craft 指摘。現状 union に1種足しても `tsc` に新規エラーが出ない）
+- [ ] `RESERVED_ROOT_NAMES` と `zipBuilder` が実際に書くルートファイルの一致を固定するテスト（Craft C-4）。現状 `RESERVED_ROOT_NAMES` から `README.md` を削っても全グリーンで、zip ルートにファイルが増減しても誰も気づかない。`zipBuilder.test.ts` の0フレームケースが既にルートファイル一覧を取っているので、そこで突き合わせる
+- [ ] `zipBuilder` の境界ガードを揃える（Craft C-5 / Design D6）。現状 `folderName` の重複だけ throw し、空文字（ルート直置き）と `/` を含む値（ルート外へ書き出し）は素通し。さらに重複判定が大小文字を区別するため `Home` と `home` を直接渡すと throw せず2フォルダを作る（`exportScope` 側は大小無視で一意化しているので `code.ts` 経由では到達不能だが、このガードは「code.ts が壊れたときの最後の砦」として置かれている以上、揃っていないと意味がない）。あわせて `data.exclusions` 欠落時、`zipBuilder` と `messages.ts` のコメントが「throw する」と明言しているのに実際には `readmeBuilder` の `TypeError` に依存している件も、意図を載せた明示ガードにする。3つ守るか0にするかを決める
+- [ ] `baseSegment` の無害化を設計書 4.5.2 の規約1に揃える（Verification NG-3 / U-4 再レビュー Craft 指摘）。(a) バックスラッシュ置換のテストがなく、`raw.replace(/[/\\]/g, "-")` を `/[/]/` に変えても全グリーン（`\` を含むフレーム名の例が1件もない）。(b) 末尾ドットと Windows 禁止文字（`: * ? " < > |`）を無害化していないため、`Home.` と `Home` が Windows で同一パスに解決して片方の `spec.json` が黙って消え、`A:B` は展開自体が壊れる。大小文字と同じクラスの不具合でそちらだけ塞がれている状態。実装は `src/export/exportScope.ts`（U-4 修正ラウンド2で `layerPath.ts` から移設済み）。設計書 4.5.2 の規約1にも同じ根拠で追記が要る
+- [ ] `isExportedFrame` の二重定義を解消する（U-4 再レビュー Design 指摘）。`src/export/exportScope.ts` が export しているのに `src/export/specBuilder.ts` が `(n) => n.type === "FRAME" || n.type === "SECTION"` を独立に持っており、「何が書き出し単位か」という 4.7.4 の事実が2箇所にある。片方だけ更新されれば spec.json の対象と zip フォルダの対象が黙ってズレる（U-4 が潰した `resolveFrameFolderNames` の二重実装と同じ形）
+- [ ] 0フレーム書き出しの挙動を設計書 4.7.4 に明記する（U-4 再レビュー Design 指摘）。実装はエラーにせずテンプレート3点＋tokens.json だけの zip を落とすが、設計書は一言も触れていない。デザイナーには「Export complete」と出て中身にデザインのない zip が届き、理由がどこにも書かれない（4.3.4 の「黙って捨てない」姿勢と緊張する）。設計書に明記したうえで、README の Contents に「書き出し対象のフレームがページ上にありません」の1行を出す
+- [ ] `reviewOutcome` / `applyReviewOutcome` / `handlePluginMessage` の三段を畳む（Design D5a。U-4 修正ラウンド2で二段→三段になった）。`ReviewOutcome` は3フィールドの中間構造体で、生成直後に3つの setter へ展開するだけ。加えて Review だけ「無条件呼び出し＋関数内で早期 return」で、他4分岐（`if` で直接分岐）と type ガードの置き場所が非対称。テストも3レベルで同じ2点を重複検証している
+- [ ] `ExportScope` の不変条件を型で守る（U-4 再レビュー Design 指摘）。plain な structural interface なので `{ frames, rootNames: new Map(), pageRootNodes }` が型検査を通り（`code.test.ts` が実際にそう作っている）、`folderNameOf(scope, frame)` の `frame` も「`scope.frames` の要素」であることが縛られていない。守っているのは `resolveExportScope` 経由でしか作らないという規約と実行時 throw だけ。private brand か class 化で外部から組み立て不能にする
 - [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-5.md`）
 - [ ] QA エキスパートレビュー（subagent）
 - [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
 - [ ] Verification エキスパートレビュー（subagent、コーディング媒体）
+- [ ] Design エキスパートレビュー（subagent）
 
 **完了条件**:
 - 正規化で綴りが変わった裸 root Component について、`README.md` の除外物行に Figma 上の生名が併記されていること
 - `bun run test` が `tsc --noEmit` を含み、型エラー0で通ること
+- `PluginMessage` union に1種類足したとき、消費側（`handlePluginMessage`）で型エラーになること
 - `RESERVED_ROOT_NAMES` から1件削ったとき、または `zipBuilder` のルートファイルを1件増やしたときに落ちるテストが存在すること
-- `zipBuilder` が受け取る `folderName` の不正値（空文字・パス区切りを含む）について、throw するか型で防ぐかの方針が1つに揃っていること
-- フレーム名に `\` を含むケースのテストが存在し、パスすること
+- `zipBuilder` が受け取る `folderName` の不正値（空文字・パス区切りを含む・大小文字違いの重複）と `data.exclusions` の欠落について、throw するか型で防ぐかの方針が1つに揃っていること
+- フレーム名に `\`・末尾ドット・Windows 禁止文字（`: * ? " < > |`）を含むケースのテストが存在し、パスすること。設計書 4.5.2 の規約1が同じ無害化対象を記載していること
+- `isExportedFrame` と同じ判定がリポジトリ内に1箇所しか存在しないこと
+- 書き出し対象フレームが0件のときの挙動が設計書 4.7.4 に記載され、`README.md` にその旨の1行が出力されること
+- `resolveExportScope` を経由せずに `ExportScope` を組み立てるコードが型検査を通らないこと
 - 新たな問題が持ち込まれていないこと — (a) 既存テストが全グリーンであること、(b) U-4 で確立したフォルダ名と README パスの一致が変わっていないこと
 
 ---
@@ -826,11 +840,11 @@ Ph-8: 実使用フィードバック対応
 State
 -----
 
-* **Status**: not suspended
-* **Date**: YYYY-MM-DD
-* **Last completed**: #N description
-* **Next**: #N description
-* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+* **Status**: paused
+* **Date**: 2026-09-19
+* **Last completed**: U-4 修正ラウンド2 の再レビュー4軸＋triage。修正ラウンド3（V-1/V-2/V-3）は実装まで完了（`0bf40c5` `1ea315e` `8e84b72`）、再レビュー未実施で未チェック。
+* **Next**: U-4 の修正ラウンド3 再レビュー — `a2066df..8e84b72` に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off。詳細は U-4 の「再開時の作業」。**修正ラウンドはこれで3回目＝上限。NG が残っても追加ラウンドは走らせず、その場でユーザーにエスカレーション。**
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `8e84b72`、テスト 257 全パス・両ビルド green・tsc 82（変更前後で diff 空、対象4ファイルには0件）。中断時に再レビュー4軸をまだ発注していない状態で停止。U-4 修正ラウンド2の再レビュー4軸は完了・triage 済み（Valid 3件→ラウンド3で対応、Invalid 9件→U-5 に統合・追記済み）。描画層の残存リスク（jsdom 未導入、`<Show when={hasRun()}>` の変異が生存）は U-4.md に記録済みで今回は閉じない。U-5 はラウンド2再レビューで完了条件外と判定した指摘（大小文字ガード・バックスラッシュ/末尾ドット無害化・`isExportedFrame` 二重定義・0フレーム挙動の設計書記載・`ExportScope` の型的不変条件・union 網羅性チェック等）を積み増し済み。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。範囲内の指摘は rn の手順どおり Valid/Invalid で自分が判定し、エスカレーションしない。
 
 ---
 
