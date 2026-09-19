@@ -110,8 +110,12 @@ const exportData: ExportDataMessage = {
   exclusions: emptyExclusionReport(),
 };
 
-/** Every signal the handler writes, starting from a tab mid-use. */
-function handle(msg: PluginMessage) {
+/**
+ * Every signal the handler writes, starting from a tab mid-use. `noteSaved`
+ * starts where each case needs it: one asserting the Saved mark is dropped has
+ * to start with it set, or it only reads the fixture's own value back.
+ */
+function handle(msg: PluginMessage, start: { noteSaved?: boolean } = {}) {
   const state = {
     results: [stale] as CheckResult[],
     hasRun: true,
@@ -119,7 +123,7 @@ function handle(msg: PluginMessage) {
     running: true,
     selectionNote: selected as SelectionNote | null,
     noteText: "old",
-    noteSaved: false,
+    noteSaved: start.noteSaved ?? false,
     exportError: "",
     exporting: true,
     exported: [] as ExportDataMessage[],
@@ -159,7 +163,7 @@ describe("handlePluginMessage", () => {
   it("shows the newly selected layer's note and drops the Saved mark", () => {
     const next: SelectionNote = { nodeId: "n2", nodeName: "Pricing", note: "hi" };
 
-    const state = handle({ type: "selection-note", data: next });
+    const state = handle({ type: "selection-note", data: next }, { noteSaved: true });
 
     expect(state.selectionNote).toEqual(next);
     expect(state.noteText).toBe("hi");
