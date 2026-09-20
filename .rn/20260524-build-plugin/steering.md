@@ -46,7 +46,7 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 * **コミット単位**: ファイルを変更したら目的単位でコミット＆プッシュする
 * **プッシュ必須**: ファイルを変更したらコミット後に必ずプッシュする
 * **環境変更は事前確認必須**: ライブラリ追加・ツールインストール等、環境に対する変更が必要になった場合はユーザーに確認を取ってから実施する。勝手にインストール・追加しない
-* **テストは Given / When / Then を明示する**: 各 `it` の中を `// given` / `// when` / `// then` の3ブロックに分け、空行で区切る。読んだ人が「何を用意し、何をして、何を確かめたか」を見出しだけで追える状態にする。`it` の名前は挙動を述べる文にする（既存どおり）。1行で済む単純なケースでも `// when` と `// then` は省かない。既存テストは U-7 で揃える
+* **テストは Given / When / Then を明示する**: 各 `it` の中を `// given` / `// when` / `// then` の3ブロックに分け、空行で区切る。読んだ人が「何を用意し、何をして、何を確かめたか」を見出しだけで追える状態にする。`it` の名前は挙動を述べる文にする（既存どおり）。1行で済む単純なケースでも `// when` と `// then` は省かない。既存テストは U-7 で揃える。リポジトリを問わない共通ルールとしては dotfiles の Issue https://github.com/lovaizu/dotfiles/issues/16 に起票済み（rn の execute 手順が呼ぶスキルに置く案）。そちらが入ったら本項は不要になる
 
 ---
 
@@ -162,6 +162,8 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 * npm の状況（同日確認）: `solid-js` は `latest` 1.9.15、`next` **2.0.0-rc.9**。`@solidjs/web` は `latest` 2.0.0-rc.0、`next` 2.0.0-rc.9。`vite-plugin-solid` は `latest` 2.11.14、`next` 3.0.0-next.27。**2.0 の安定版はまだ出ていない**。beta.14 → rc.9 は破壊的変更を含みうる
 * 3パッケージは `next` タグで揃えること。更新は U-8 で行う（環境変更なのでユーザー確認のうえ）
 * `bunx tsc --noEmit` の 97 件中 87 件が `App.tsx` の JSX 型解決（TS7026「JSX.IntrinsicElements が無い」、TS2875「solid-js/jsx-runtime が見つからない」）。ランタイムは動いているので型定義／`tsconfig` の `jsxImportSource` 側の問題。RC で変わる可能性があるため、U-5 の `tsc` ゲート化は U-8 の後に判断する
+* **ビルドは Vite が公式の組み合わせ**（2026-09-20 確認）。Solid の quick start は `create-solid`（`npm init solid` / `bun create solid` …）で、生成されるテンプレートは Vite + `vite-plugin-solid`。Bun は**パッケージ管理と実行**（`bun install` / `bun run`）として使う位置づけで、Bun のバンドラで Solid を組む公式の道は無い — Solid の JSX は独自コンパイラ（`babel-preset-solid` → 2.0 では `@solidjs/compiler` を Babel から呼ぶ）を通す必要があり、`vite-plugin-solid` 3.x がそれを包んでいる。Bun / esbuild / Rolldown 単体にはこのコンパイラを差し込む口が無い。したがって現構成（Bun で管理、Vite でビルド）が公式の最新動向どおり
+* 2.0.0-rc.9 の主な破壊的変更（GitHub Releases より）: `<Dynamic>` → `dynamic()` 関数、委譲イベントのキーが `$$<type>` → `_$$<type>`、内部 API が `solid-js/internal` 配下へ、`merge()` / `omit()` が lazy view を返す。本プロジェクトの `App.tsx` は `createSignal` / `For` / `Show` と `@solidjs/web` の `render` しか使っていないので影響は小さいはずだが、U-8 で実測する
 * Figma プラグイン UI は iframe 内の標準ブラウザ環境。Solid が動作しない技術的制約はない
 
 ---
