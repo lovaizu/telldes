@@ -837,6 +837,7 @@ Ph-8: 実使用フィードバック対応
 - [ ] `messages.ts` / `exportScope.ts` / `code.ts` に残る事実と違うコメントを直す（U-4 ラウンド3 再レビュー R3-B / R3-C / R3-D）。(a) `exportScope.ts:41`「a frame pushed in later would have no `rootNames` entry」は誤り — `resolvePageRootNames` はページ直下の**全**ノードに名前を付けるので、裸 Component を push しても `folderNameOf` は throw しない。readonly が実際に守るのは実行時バックストップが効かないこのケースだと書く。(b) `messages.ts:9` の `ExportFile.path`「zip-relative path」は誤り — 実体はフレームフォルダ相対（`folder.file()` で書く）。(c) `code.ts:163-165`「must be a type error」は `messages.ts:5`「the repo runs no `tsc` step」と矛盾するので撤回する（`tsc` ゲート化が済めば真になるため、上の `tsc --noEmit` 項目と同時に決める）。`code.ts:190-191` は `messages.ts:4-7` とほぼ逐語で重複しており削除
 - [ ] `noteSaved` のクロスタブ空振りを塞ぐ（R3-A）。`App.test.ts:208`「leaves every other tab's signals alone for a Review message」が `noteSaved` を検証していないため、`handlePluginMessage` 冒頭に `handlers.setNoteSaved(false);` を足す変異が 257 全パスで生存する（＝ノートを保存した直後に Review を走らせると "Saved" 表示が消える実ユーザー不具合をテストが1件も捉えない）。当該テストを `{ noteSaved: true }` 開始にし `expect(state.noteSaved).toBe(true)` を足す。**この変異が実際に落ちることを確認するまで完了としない**
 - [ ] `ExportFrame.spec` を `SpecJson` に寄せる（R3-E）。`messages.ts:21` の手書き部分型は本体（`specBuilder.ts` の `SpecJson`、`viewport`・`children` とも必須）の劣化コピーで、その嘘に合わせた到達不能な `?.` が `zipBuilder.ts:52,74` に入っている。`SpecJson` を export して `spec: SpecJson` にすれば重複も死んだガードも消える
+- [ ] `dist/code.js` をサンドボックス非対応グローバル（`TextEncoder` 等）で走査する手順を `bun run test` のゲートに入れるか決める（`27ae8ce` のとき手作業でやった走査。推奨: 入れる。`tsc --noEmit` ゲート化と同枠）。ユーザー未回答
 - [ ] README の Contents 行でフレーム名を Markdown エスケープする（R3-F）。`readmeBuilder.ts:42` はバッククォートや `"` を含むフレーム名をそのまま埋めるため、コードスパンと引用が壊れる。デザイナーの付けた名前が README の構造を壊さないこと
 - [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-5.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
@@ -1121,11 +1122,11 @@ State
 
 （`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
 
-* **Status**: paused
-* **Date**: 2026-09-20
-* **Last completed**: U-4 check off（`eb7697d`）。その後はステアリングの確定のみ — 進め方「設計書を最新化 → 実装 → 試行」、レビューの配置、Ph-9 の D-0〜D-4、U-6〜U-8 の新設、README／設計書の書き分け、`.rn/` への移設（`4ceeaa8` まで）。U-2 は実装ラウンド1（`56bef79`）済み・4軸 fail・指摘12件は作業内容に記録済みで未 check off
-* **Next**: ① ユーザーが Figma 実機で Export を再試行（`27ae8ce` の `TextEncoder` 修正の確認。ついでに U-2 N-9 と Ph-9 D-0 も見てもらえると片付く）→ ② U-2 の残りを「設計書（N-6〜N-8）→ 実装（N-1〜N-5・N-10〜N-12）→ 実機（N-9）」の順で
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1（本文は新パスの steering を指す）。**4軸レビューはタスクごとに回さない**（作業ルール「レビューの配置」。U-6 で1回）。**実装エキスパートへの work-order にはテストの GWT 明示を必ず入れる**（作業ルール、ccpm#27 が入るまで）。U-8（Solid rc.9 更新）は環境変更なので着手前にユーザー確認。①の結果で Export がまだ落ちる場合は、`dist/code.js` をサンドボックス非対応グローバルで走査する手順（`27ae8ce` のとき手作業でやった）を最初に当てる。サンドボックス走査を `bun run test` のゲートに入れるかは未回答（推奨: 入れる。U-5 の tsc ゲート化と同枠）
+* **Status**:
+* **Date**:
+* **Last completed**:
+* **Next**:
+* **Notes**:
 
 ---
 
@@ -1134,7 +1135,7 @@ State
 
 * **ブランチ**: `worktree-figma-plugins`
 * **PR**: https://github.com/lovaizu/telldes/pull/1
-* **次タスク**: ① Figma 実機で Export 再試行（`TextEncoder` 修正 `27ae8ce` の確認）→ ② U-2 の残り（N-6〜N-8 の設計書 → N-1〜N-5・N-10〜N-12 の実装 → N-9 の実機）→ U-3 → U-5 → U-7（テストを GWT に揃える）→ U-8（Solid 2.0 RC へ更新、ユーザー確認のうえ）→ U-6（Ph-8 完成時の3軸レビュー）。その後 Ph-9（D-0 の実機検証から）。T-1 は Ph-8 完了後
+* **次タスク**: ① Figma 実機で Export 再試行（`TextEncoder` 修正 `27ae8ce` の確認。まだ落ちる場合は `dist/code.js` をサンドボックス非対応グローバルで走査する手順を最初に当てる。ついでに U-2 N-9 と Ph-9 D-0 も見てもらえると片付く）→ ② U-2 の残り（N-6〜N-8 の設計書 → N-1〜N-5・N-10〜N-12 の実装 → N-9 の実機）→ U-3 → U-5 → U-7（テストを GWT に揃える）→ U-8（Solid 2.0 RC へ更新、ユーザー確認のうえ）→ U-6（Ph-8 完成時の3軸レビュー）。その後 Ph-9（D-0 の実機検証から）。T-1 は Ph-8 完了後
 * **完了済み**:
   - S-1: プロジェクト初期化 ✅
   - C-1: ノード走査＋構造チェック（4チェック） ✅
