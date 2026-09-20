@@ -939,10 +939,10 @@ State
 -----
 
 * **Status**: paused
-* **Date**: 2026-09-19
-* **Last completed**: U-4 修正ラウンド2 の再レビュー4軸＋triage。修正ラウンド3（V-1/V-2/V-3）は実装まで完了（`0bf40c5` `1ea315e` `8e84b72`）、再レビュー未実施で未チェック。
-* **Next**: U-4 の修正ラウンド3 再レビュー — `a2066df..8e84b72` に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off。詳細は U-4 の「再開時の作業」。**修正ラウンドはこれで3回目＝上限。NG が残っても追加ラウンドは走らせず、その場でユーザーにエスカレーション。**
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `8e84b72`、テスト 257 全パス・両ビルド green・tsc 82（変更前後で diff 空、対象4ファイルには0件）。中断時に再レビュー4軸をまだ発注していない状態で停止。U-4 修正ラウンド2の再レビュー4軸は完了・triage 済み（Valid 3件→ラウンド3で対応、Invalid 9件→U-5 に統合・追記済み）。描画層の残存リスク（jsdom 未導入、`<Show when={hasRun()}>` の変異が生存）は U-4.md に記録済みで今回は閉じない。U-5 はラウンド2再レビューで完了条件外と判定した指摘（大小文字ガード・バックスラッシュ/末尾ドット無害化・`isExportedFrame` 二重定義・0フレーム挙動の設計書記載・`ExportScope` の型的不変条件・union 網羅性チェック等）を積み増し済み。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ `feedback-skip-per-task-review-gate`）: タスクごとのレビュー承認で止まらず、最後に PR でまとめてレビュー。範囲内の指摘は rn の手順どおり Valid/Invalid で自分が判定し、エスカレーションしない。
+* **Date**: 2026-09-20
+* **Last completed**: Ph-9 の方針確定をステアリングに記録（`a01f9d0`）。ダーク対応＝トグル方式・3コレクション、チェック体系の原則3つ。U-4 の修正ラウンド3 再レビューは未着手のまま。
+* **Next**: ユーザーが試用中のポートフォリオで Export が失敗する件の切り分け（エラー文言の回答待ちで中断）。その後 U-4 の修正ラウンド3 再レビュー — `a2066df..8e84b72` に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off。詳細は U-4 の「再開時の作業」。**修正ラウンドはこれで3回目＝上限。NG が残っても追加ラウンドは走らせず、その場でユーザーにエスカレーション。**
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `a01f9d0`（コード無変更のため テスト 257 全パス・両ビルド green・tsc 82 は `8e84b72` 時点のまま）。**中断の直接原因**: ユーザーが試用中のポートフォリオで Export が失敗する件を聞かれ、エラー文言（`N error(s) must be fixed before export` か否か）を確認する前に中断。前者ならチェック違反、後者なら書き出し処理自体の失敗で切り分け先が変わる。U-4 修正ラウンド2の再レビュー4軸は完了・triage 済み（Valid 3件→ラウンド3で対応、Invalid 9件→U-5 に統合済み）。描画層の残存リスク（jsdom 未導入、`<Show when={hasRun()}>` の変異が生存）は U-4.md に記録済みで今回は閉じない。**Ph-9**: 未決1〜3 が決まるまで実装タスクは定義しない。要検証2件（Free で複数コレクションを作れるか、`scopes: []` の挙動）は実装着手前に潰す。Ph-8 との優先順位も未決。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ）: `feedback-skip-per-task-review-gate` — タスクごとのレビュー承認で止まらず最後に PR でまとめてレビュー、範囲内の指摘は自分で Valid/Invalid を判定しエスカレーションしない。`feedback-cross-session-requests-are-necessary` — 他セッションからの申し送りは必要だから来ているので、やらない理由ではなく実現方法を提案する。
 
 ---
 
