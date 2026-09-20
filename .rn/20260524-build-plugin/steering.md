@@ -1088,7 +1088,11 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 **前提**: D-1 完了（源泉の結論に依存する）
 
 **作業内容**:
-- [ ] 未決4 **Color Style の位置づけ** — 現行設計書は非推奨・除外通知だが、グラデーションと複数 fill は Variables で表現できないため、使っただけで除外通知が出る。Paint / Effect / Text Style を正式な源泉に戻すなら、G-3・U-1 で作った「Color Style 使用」の検出を「Variables を束ねずに直接値を持つ Color Style」の検出に作り直す必要がある
+- [x] 未決4 **Color Style の位置づけ** — 現行設計書は非推奨・除外通知だが、グラデーションと複数 fill は Variables で表現できないため、使っただけで除外通知が出る
+  - **結論**: 単色はVariablesに一本化する方針を維持。**グラデーション・複数fillのように単色に展開できないColor Styleに限り**、正式な源泉として認め`tokens.json`にnamed tokenとして出力する。単色なのにColor Styleを使っている場合は引き続き除外物としてREADMEに告知する（変更なし）
+  - **根拠**: `@figma/plugin-typings`で実装を確認（`node_modules/@figma/plugin-typings/plugin-api.d.ts`）。`GradientPaint.gradientStops: ColorStop[]`の各`ColorStop.boundVariables?: { color?: VariableAlias }`で、各stopの色を個別にVariableへバインドできる。これはFigma公式の立場「値の組み合わせはStyle、Styleの中身はVariablesを指す」の実装そのもので、未決1でText Styleに適用した論理（複合的な見た目はStyle、個々の単一値プロパティはVariable参照可）と同じ形。stopの色がVariableにバインドされていればそのトークン名を、されていなければ解決済み値をそのまま出力する
+  - **Effect Style（影）も同じ扱いに揃える**（D-3の原則1の表がこの結論に依存するため、ここで一緒に決める）: `VariableBindableEffectField`で`color`/`radius`/`spread`/`offsetX`/`offsetY`が個別にVariableバインド可能なことを確認済み。Effect Styleは複合的な見た目としての源泉のまま、個々のフィールドがVariableを指していればそのトークン名を出力する
+  - `docs/design.md` 4.3.4に反映済み。G-3・U-1の「Color Style使用」検出ロジックの作り直し（単色/複合の判定分岐）は実装タスクとしてD-4以降に定義する
 - [ ] 未決5 **tokens.json でのエイリアス表現** — 設計書の「エイリアスは解決済みの値に展開する」をやめ、Semantic → Primitives の参照を残すか。残すなら DTCG のエイリアス構文をそのまま使うか独自形式か
 - [ ] 未決6 **tokens.json での3コレクションの出し方** — 現行の E-2 はコレクション構造をそのまま JSON の階層にするため、素直に作ると `Light/` `Dark/` `Base/` の3グループが出る。CC に渡す形として `bg` に light/dark 両方の値を持たせるかを決める
 - [ ] 決まった内容を `docs/design.md` に反映する
@@ -1108,7 +1112,7 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 **作業内容**:
 - [ ] 「1フレーム＋トグル」方式と3コレクション構成（Light / Dark / Base、変数名にテーマを入れない、対を持つのは色だけ、`scopes: []` による誤操作防止）を設計書に記載する
 - [ ] チェック体系の原則3つを設計書に記載する — 原則1（error はデザイナーが選んだやり方に対する整合性だけを見る／Dark コレクションの有無が判定軸）、原則2（Review の1行 = 1判断。原因単位で集約する）、原則3（Review は行為の前に自動で走るゲート。結果は必ず Review タブに出す）
-- [ ] 原則1 の表に **Effect Style の影の色が Variables を指しているか** の行を足すか決める。申し送りの改善案1は「Text Style の font-size が生数値なら警告、Effect Style の影の色も同様」と両方を挙げているが、現行の表は Text Style と padding/gap しか持っていない。影の色はテーマで変わりうる（ダーク対応ファイルなら出力が壊れる側）ので、色が変数にバインドされていない件と同じ扱いになるはず。D-2 の未決4（Effect Style を正式な源泉にするか）の結論に依存する
+- [ ] 原則1 の表に **Effect Style の影の色が Variables を指しているか** の行を足す。未決4で解決済み: Effect Styleは複合的な見た目としての源泉のまま、`color`/`radius`/`spread`/`offsetX`/`offsetY`が個別にVariableを指していればそのトークン名を出力する。影の色はテーマで変わりうる（ダーク対応ファイルなら出力が壊れる側）ので、色が変数にバインドされていない件と同じ扱いで表に追加する
 - [ ] 書き出し手順（light 撮影 → 付け替え → dark 撮影 → light に戻す。失敗時にも必ず戻す）を設計書に記載する
 - [ ] 「起動時に dark のまま残っている」の扱い（error ではなく復旧の促し）を記載する
 

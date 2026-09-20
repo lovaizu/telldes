@@ -88,10 +88,11 @@ Figma現行のベストプラクティスに合わせ、トークンの源泉を
 | **Variables（COLOR）** | カラー | `tokens.json` に named token として出力 |
 | **Variables（FLOAT/number）** | スペーシング・サイズ等の数値 | `tokens.json` に named token として出力 |
 | **Text Style** | タイポグラフィ（font-family/size/weight/line-height） | named typography token として出力し、spec から参照 |
-| **Color Style** | カラー | 非推奨。トークン源泉として扱わず、使用時は書き出し時のREADMEに除外物として記録（Figma本体もVariables推奨） |
+| **Color Style（グラデーション・複数fill）** | カラー（単色に展開できないもの） | named token として `tokens.json` に出力し、spec から参照 |
+| Color Style（単色） | カラー | 非推奨。トークン源泉として扱わず、使用時は書き出し時のREADMEに除外物として記録（Figma本体もVariables推奨） |
 | Variables（STRING/BOOLEAN） | — | トークン対象外。使用時は書き出し時のREADMEに除外物として記録 |
 
-カラーは **Variables に一本化**する。Color Style はトークン源泉として扱わず、使用していた場合は書き出し時にREADMEで告知する（4.7.2）。
+カラーは **単色は Variables に一本化**する。Color Style はグラデーション・複数fillのように単色に展開できないものに限り正式な源泉として扱う。Variable の COLOR 型は単色しか持てないため、グラデーションは Color Style 以外に表現手段がない（Figma本体も「値の組み合わせは Style、Style の中身は Variables を指す」という立場を取っており、実際 `GradientPaint.gradientStops[].boundVariables` で各stopの色を個別に Variable へバインドできる）。したがって、グラデーション・複数fillの Color Style を使用している場合は、各stopの色がVariableにバインドされていればそのトークン名を、されていなければ解決済みの値をそのまま `tokens.json` / `spec.json` に出力する。単色なのに Color Style を使っている場合（Variables に一本化できるのにしていない場合）は、引き続き除外物としてREADMEで告知する（4.7.2）。
 
 Variablesの使用そのものは必須ではない。使わない場合、CCはspec.jsonの解決済み値（`resolvedValue`）から直接CSSを生成する（同じ値が複数箇所でも個別値として出力）。出力の正しさは変わらないため、Variable化はデザイナーの判断に委ね、ツールは促さない。
 
