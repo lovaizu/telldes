@@ -1121,11 +1121,11 @@ State
 
 （`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
 
-* **Status**: not suspended
-* **Date**: YYYY-MM-DD
-* **Last completed**: #N description
-* **Next**: #N description
-* **Notes**: 次の具体的な行動・ブロッカー・保留中の決定への前向きなポインタのみ（セッションの再叙述は `git log` に任せる）
+* **Status**: paused
+* **Date**: 2026-09-20
+* **Last completed**: U-4 check off（`eb7697d`）。その後はステアリングの確定のみ — 進め方「設計書を最新化 → 実装 → 試行」、レビューの配置、Ph-9 の D-0〜D-4、U-6〜U-8 の新設、README／設計書の書き分け、`.rn/` への移設（`4ceeaa8` まで）。U-2 は実装ラウンド1（`56bef79`）済み・4軸 fail・指摘12件は作業内容に記録済みで未 check off
+* **Next**: ① ユーザーが Figma 実機で Export を再試行（`27ae8ce` の `TextEncoder` 修正の確認。ついでに U-2 N-9 と Ph-9 D-0 も見てもらえると片付く）→ ② U-2 の残りを「設計書（N-6〜N-8）→ 実装（N-1〜N-5・N-10〜N-12）→ 実機（N-9）」の順で
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1（本文は新パスの steering を指す）。**4軸レビューはタスクごとに回さない**（作業ルール「レビューの配置」。U-6 で1回）。**実装エキスパートへの work-order にはテストの GWT 明示を必ず入れる**（作業ルール、ccpm#27 が入るまで）。U-8（Solid rc.9 更新）は環境変更なので着手前にユーザー確認。①の結果で Export がまだ落ちる場合は、`dist/code.js` をサンドボックス非対応グローバルで走査する手順（`27ae8ce` のとき手作業でやった）を最初に当てる。サンドボックス走査を `bun run test` のゲートに入れるかは未回答（推奨: 入れる。U-5 の tsc ゲート化と同枠）
 
 ---
 
