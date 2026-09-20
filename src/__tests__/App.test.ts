@@ -6,7 +6,12 @@ import {
   reviewOutcome,
 } from "../App";
 import type { CheckResult } from "../checks/types";
-import type { ExportDataMessage, PluginMessage, SelectionNote } from "../messages";
+import type {
+  ExportDataMessage,
+  LayerNote,
+  PluginMessage,
+  SelectionNote,
+} from "../messages";
 import { emptyExclusionReport } from "../export/exclusions";
 
 // The Review tab shows one run's outcome. A DOM-free unit here is the only
@@ -103,6 +108,10 @@ describe("applyReviewOutcome", () => {
 
 const selected: SelectionNote = { nodeId: "n1", nodeName: "Home", note: "old" };
 
+const listed: LayerNote[] = [
+  { nodeId: "n1", layerPath: "Home > Hero", note: "old" },
+];
+
 const exportData: ExportDataMessage = {
   type: "export-data",
   frames: [],
@@ -127,6 +136,7 @@ function handle(msg: PluginMessage, start: { noteSaved?: boolean } = {}) {
     exportError: "",
     exporting: true,
     exported: [] as ExportDataMessage[],
+    notes: listed,
   };
   handlePluginMessage(msg, {
     setResults: (value) => (state.results = value),
@@ -138,6 +148,7 @@ function handle(msg: PluginMessage, start: { noteSaved?: boolean } = {}) {
     setNoteSaved: (value) => (state.noteSaved = value),
     setExportError: (value) => (state.exportError = value),
     setExporting: (value) => (state.exporting = value),
+    setNotes: (value) => (state.notes = value),
     selectedNodeId: () => state.selectionNote?.nodeId,
     startExport: (value) => state.exported.push(value),
   });
@@ -205,6 +216,24 @@ describe("handlePluginMessage", () => {
     expect(state.exporting).toBe(true);
   });
 
+  it("shows the page's noted layers when the plugin sends the list", () => {
+    const next: LayerNote[] = [
+      { nodeId: "n2", layerPath: "Pricing > Plan", note: "3列で折り返す" },
+    ];
+
+    const state = handle({ type: "notes-list", notes: next });
+
+    expect(state.notes).toEqual(next);
+  });
+
+  it("keeps the list when the selection is cleared", () => {
+    // The list is the whole page, not the selection (design doc 4.7.3): it
+    // stays up with no layer selected, which is when it is most needed.
+    const state = handle({ type: "selection-note", data: null });
+
+    expect(state.notes).toEqual(listed);
+  });
+
   it("leaves every other tab's signals alone for a Review message", () => {
     const state = handle({ type: "check-results", results: [error] });
 
@@ -212,6 +241,7 @@ describe("handlePluginMessage", () => {
     expect(state.noteText).toBe("old");
     expect(state.exportError).toBe("");
     expect(state.exported).toEqual([]);
+    expect(state.notes).toEqual(listed);
   });
 });
 

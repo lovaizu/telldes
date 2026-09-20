@@ -1,7 +1,7 @@
 // What this export leaves out (design doc 4.7.2): never a Review finding and
 // never a blocker, but 4.3.4 forbids dropping it silently (readmeBuilder.ts).
 import { TYPOGRAPHY_TOKEN_PREFIX } from "../util/typography";
-import { buildLayerPath, uniqueChildName } from "./layerPath";
+import { layerPathOf, uniqueChildName } from "./layerPath";
 import type { ExportScope } from "./exportScope";
 import { collectAllNodes } from "../checks/traversal";
 
@@ -61,14 +61,8 @@ function segmentName(node: BaseNode, rootNames: ReadonlyMap<string, string>): st
 }
 
 // `Home > Title`: unlike the spec.json `path` (4.5.2) it includes the frame.
-function layerPathOf(node: SceneNode, rootNames: ReadonlyMap<string, string>): string {
-  const names: string[] = [];
-  let current: BaseNode | null = node;
-  while (current && current.type !== "PAGE" && current.type !== "DOCUMENT") {
-    names.unshift(segmentName(current, rootNames));
-    current = current.parent;
-  }
-  return names.reduce((path, name) => buildLayerPath(path, name), "");
+function readmePathOf(node: SceneNode, rootNames: ReadonlyMap<string, string>): string {
+  return layerPathOf(node, (ancestor) => segmentName(ancestor, rootNames));
 }
 
 class UsageGrouper<T extends { examplePaths: string[]; layerCount: number }> {
@@ -124,9 +118,9 @@ export function findColorStyleUsage(
     const styleId = (node as MinimalFillsMixin).fillStyleId;
     // figma.mixed: still usage, but no single id to group by.
     if (styleId === figma.mixed) {
-      grouper.add(MIXED_COLOR_STYLE_KEY, node.id, layerPathOf(node, rootNames));
+      grouper.add(MIXED_COLOR_STYLE_KEY, node.id, readmePathOf(node, rootNames));
     } else if (typeof styleId === "string" && styleId !== "") {
-      grouper.add(styleId, node.id, layerPathOf(node, rootNames));
+      grouper.add(styleId, node.id, readmePathOf(node, rootNames));
     }
   }
   return grouper.result();
@@ -181,7 +175,7 @@ export function findStringBooleanVariableUsage(
       if (!variable) continue;
       if (variable.resolvedType === "STRING" || variable.resolvedType === "BOOLEAN") {
         names.set(id, variable.name);
-        grouper.add(id, node.id, layerPathOf(node, rootNames));
+        grouper.add(id, node.id, readmePathOf(node, rootNames));
       }
     }
   }
@@ -197,7 +191,7 @@ export function findBareRootComponents(
   for (const node of nodes) {
     if (node.type !== "COMPONENT" && node.type !== "COMPONENT_SET") continue;
     if (node.parent && node.parent.type === "PAGE")
-      paths.push(layerPathOf(node, rootNames));
+      paths.push(readmePathOf(node, rootNames));
   }
   return paths;
 }

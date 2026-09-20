@@ -6,6 +6,7 @@ import type {
   CheckErrorMessage,
   CheckResultsMessage,
   ExportDataMessage,
+  LayerNote,
   PluginMessage,
   SelectionNote,
 } from "./messages";
@@ -61,6 +62,7 @@ export function applyReviewOutcome(msg: PluginMessage, setters: ReviewSetters): 
 /** The signals `window.onmessage` writes, plus the one reading it needs. */
 interface MessageHandlers extends ReviewSetters {
   setSelectionNote: (note: SelectionNote | null) => void;
+  setNotes: (notes: LayerNote[]) => void;
   setNoteText: (text: string) => void;
   setNoteSaved: (saved: boolean) => void;
   setExportError: (message: string) => void;
@@ -86,6 +88,7 @@ export function handlePluginMessage(
     handlers.setNoteText(msg.data?.note ?? "");
     handlers.setNoteSaved(false);
   }
+  if (msg.type === "notes-list") handlers.setNotes(msg.notes);
   if (msg.type === "note-saved" && msg.nodeId === handlers.selectedNodeId()) {
     // Ignore a late ack for a node the user has already navigated away from.
     handlers.setNoteSaved(true);
@@ -124,6 +127,7 @@ const App: Component = () => {
   const [running, setRunning] = createSignal(false);
   const [checkError, setCheckError] = createSignal("");
   const [selectionNote, setSelectionNote] = createSignal<SelectionNote | null>(null);
+  const [notes, setNotes] = createSignal<LayerNote[]>([]);
   const [noteText, setNoteText] = createSignal("");
   const [noteSaved, setNoteSaved] = createSignal(false);
   const [exporting, setExporting] = createSignal(false);
@@ -139,6 +143,7 @@ const App: Component = () => {
       setCheckError,
       setRunning,
       setSelectionNote,
+      setNotes,
       setNoteText,
       setNoteSaved,
       setExportError,
@@ -306,6 +311,23 @@ const App: Component = () => {
                   </div>
                 </>
               )}
+            </Show>
+
+            <div class="section-label">Notes on this page ({notes().length})</div>
+            <Show
+              when={notes().length > 0}
+              fallback={<div class="note-list-empty">No notes on this page yet</div>}
+            >
+              <ul class="result-list">
+                <For each={notes()}>
+                  {(item) => (
+                    <li class="result-item" onClick={() => selectNode(item.nodeId)}>
+                      <div class="result-node">{item.layerPath}</div>
+                      <div class="note-list-text">{item.note}</div>
+                    </li>
+                  )}
+                </For>
+              </ul>
             </Show>
           </div>
         )}
@@ -475,6 +497,16 @@ const App: Component = () => {
         .note-actions .run-btn {
           width: auto;
           padding: 6px 20px;
+        }
+        .note-list-empty {
+          color: #999;
+          padding: 12px 0;
+        }
+        .note-list-text {
+          font-size: 11px;
+          color: #666;
+          /* Notes are free text and often several lines. */
+          white-space: pre-wrap;
         }
         .note-saved {
           color: #1bc47d;

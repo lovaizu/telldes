@@ -5,6 +5,24 @@ export function buildLayerPath(parentPath: string, name: string): string {
   return parentPath ? `${parentPath} > ${name}` : name;
 }
 
+/**
+ * A node's path from the page root down, each ancestor named by `segmentOf`.
+ * Callers spell a segment differently: the export README disambiguates
+ * same-named siblings, the Notes tab quotes the raw Figma name (4.7.3).
+ */
+export function layerPathOf(
+  node: SceneNode,
+  segmentOf: (node: BaseNode) => string,
+): string {
+  const names: string[] = [];
+  let current: BaseNode | null = node;
+  while (current && current.type !== "PAGE" && current.type !== "DOCUMENT") {
+    names.unshift(segmentOf(current));
+    current = current.parent;
+  }
+  return names.reduce((path, name) => buildLayerPath(path, name), "");
+}
+
 /** A child's segment, later duplicates suffixed `-N` (design doc 4.3.6). */
 export function uniqueChildName(
   siblings: readonly { name: string }[],

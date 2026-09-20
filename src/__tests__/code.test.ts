@@ -16,7 +16,36 @@ interface PluginMessage {
 }
 
 function makeNode(overrides: Record<string, unknown> = {}): SceneNode {
-  return { id: "n1", name: "node", type: "RECTANGLE", ...overrides } as unknown as SceneNode;
+  return {
+    id: "n1",
+    name: "node",
+    type: "RECTANGLE",
+    getPluginData: () => "",
+    ...overrides,
+  } as unknown as SceneNode;
+}
+
+/** A node whose note the plugin can read back after writing it. */
+function makeNotedNode(note: string, overrides: Record<string, unknown> = {}): SceneNode {
+  const data: Record<string, string> = { note };
+  return makeNode({
+    ...overrides,
+    getPluginData: (key: string) => data[key] ?? "",
+    setPluginData: (key: string, value: string) => {
+      data[key] = value;
+    },
+    setRelaunchData: () => {},
+  });
+}
+
+function findNode(root: BaseNode, id: string): BaseNode | null {
+  if (root.id === id) return root;
+  if (!("children" in root)) return null;
+  for (const child of (root as ChildrenMixin).children) {
+    const found = findNode(child, id);
+    if (found) return found;
+  }
+  return null;
 }
 
 /** Page with both-direction parent/children links, as the Figma tree has. */
@@ -76,6 +105,7 @@ async function loadPlugin(
     },
     getLocalTextStyles: () => [],
     getStyleById: (id: string) => ({ name: id }),
+    getNodeById: (id: string) => findNode(page, id),
     ...figmaOverrides,
   });
 
@@ -417,6 +447,87 @@ describe("run-export", () => {
     expect(posted.find((m) => m.type === "export-error")?.message).toContain(
       "Export failed",
     );
+  });
+});
+
+describe("notes-list", () => {
+  it("lists every noted layer on the page at startup, in layer-tree order", async () => {
+    const title = makeNotedNode("見出しは1行に収める", { id: "t", name: "Title" });
+    const plain = makeNode({ id: "p", name: "Plain" });
+    const cta = makeNotedNode("押下でモーダル", { id: "c", name: "CTA" });
+    const inner = makeFrame({ id: "i", name: "Hero" }, [title, cta]);
+    const frame = makeFrame({ id: "f", name: "Home" }, [inner, plain]);
+    const { posted } = await loadPlugin(makePage([frame]));
+
+    expect(posted.find((m) => m.type === "notes-list")?.notes).toEqual([
+      { nodeId: "t", layerPath: "Home > Hero > Title", note: "見出しは1行に収める" },
+      { nodeId: "c", layerPath: "Home > Hero > CTA", note: "押下でモーダル" },
+    ]);
+  });
+
+  it("lists a note on a layer the export leaves out", async () => {
+    // A note can sit anywhere, so the list scans the page, not the export
+    // scope (design doc 4.7.3) — otherwise a written note goes missing.
+    const label = makeNotedNode("非活性時はグレー", { id: "l", name: "Label" });
+    const bare = makeFrame({ id: "b", name: "Button", type: "COMPONENT" }, [label]);
+    const { posted } = await loadPlugin(makePage([bare]));
+
+    expect(posted.find((m) => m.type === "notes-list")?.notes).toEqual([
+      { nodeId: "l", layerPath: "Button > Label", note: "非活性時はグレー" },
+    ]);
+  });
+
+  it("posts an empty list for a page holding no note", async () => {
+    const frame = makeFrame({ id: "f", name: "Home" }, [makeNode({ id: "t" })]);
+    const { posted } = await loadPlugin(makePage([frame]));
+
+    const list = posted.filter((m) => m.type === "notes-list");
+    expect(list).toHaveLength(1);
+    expect(list[0].notes).toEqual([]);
+  });
+
+  it("keeps the rest of the plugin working when the page cannot be scanned", async () => {
+    // The startup scan runs before `figma.ui.onmessage` is assigned, so a
+    // throw there would leave every tab without a handler.
+    const page = makePage([]);
+    Object.defineProperty(page, "children", {
+      get() {
+        throw new Error("boom");
+      },
+    });
+    const { posted, send } = await loadPlugin(page);
+
+    await send({ type: "run-checks" });
+
+    expect(posted.filter((m) => m.type === "notes-list")).toHaveLength(0);
+    expect(posted.find((m) => m.type === "check-error")?.message).toContain(
+      "Review failed",
+    );
+  });
+
+  it("resends the list once a note has been saved", async () => {
+    const title = makeNotedNode("", { id: "t", name: "Title" });
+    const frame = makeFrame({ id: "f", name: "Home" }, [title]);
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "save-note", nodeId: "t", note: "保存直後に出ること" });
+
+    const list = posted.filter((m) => m.type === "notes-list");
+    expect(list).toHaveLength(2);
+    expect(list[1].notes).toEqual([
+      { nodeId: "t", layerPath: "Home > Title", note: "保存直後に出ること" },
+    ]);
+  });
+
+  it("resends the list once a note has been deleted by an empty save", async () => {
+    const title = makeNotedNode("消えること", { id: "t", name: "Title" });
+    const frame = makeFrame({ id: "f", name: "Home" }, [title]);
+    const { posted, send } = await loadPlugin(makePage([frame]));
+
+    await send({ type: "save-note", nodeId: "t", note: "" });
+
+    const list = posted.filter((m) => m.type === "notes-list");
+    expect(list[list.length - 1].notes).toEqual([]);
   });
 });
 

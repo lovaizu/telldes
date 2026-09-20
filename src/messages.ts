@@ -60,6 +60,19 @@ export interface NoteSavedMessage {
   nodeId: string;
 }
 
+/** One noted layer in the Notes tab list (design doc 4.7.3). */
+export interface LayerNote {
+  nodeId: string;
+  /** `Home > Hero > Title`, raw Figma layer names from the page root down. */
+  layerPath: string;
+  note: string;
+}
+
+export interface NotesListMessage {
+  type: "notes-list";
+  notes: LayerNote[];
+}
+
 /** The export could not finish, or was refused before it started. */
 export interface ExportErrorMessage {
   type: "export-error";
@@ -72,5 +85,6 @@ export type PluginMessage =
   | CheckErrorMessage
   | SelectionNoteMessage
   | NoteSavedMessage
+  | NotesListMessage
   | ExportErrorMessage
   | ExportDataMessage;

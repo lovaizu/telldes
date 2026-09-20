@@ -10,10 +10,13 @@ import type {
   ExportDataMessage,
   ExportErrorMessage,
   ExportFrame,
+  LayerNote,
   NoteSavedMessage,
+  NotesListMessage,
   SelectionNote,
   SelectionNoteMessage,
 } from "./messages";
+import { layerPathOf } from "./export/layerPath";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
@@ -36,6 +39,37 @@ function sendSelectionNote() {
   const data = getSelectedNote();
   const message: SelectionNoteMessage = { type: "selection-note", data };
   figma.ui.postMessage(message);
+}
+
+// The whole page, not the export scope: a note can sit on any layer, and one
+// the list left out would read as a note the designer never wrote (4.7.3).
+function collectNotes(page: PageNode): LayerNote[] {
+  const notes: LayerNote[] = [];
+  for (const node of collectAllNodes(page)) {
+    const note = node.getPluginData("note");
+    if (!note) continue;
+    notes.push({
+      nodeId: node.id,
+      layerPath: layerPathOf(node, (ancestor) => ancestor.name),
+      note,
+    });
+  }
+  return notes;
+}
+
+// Contained: this runs at import time, before `figma.ui.onmessage` is
+// assigned, so a throw in the scan would leave the plugin with no message
+// handler at all — every tab dead because one list could not be built.
+function sendNotesList() {
+  try {
+    const message: NotesListMessage = {
+      type: "notes-list",
+      notes: collectNotes(figma.currentPage),
+    };
+    figma.ui.postMessage(message);
+  } catch {
+    // Leave the list as the UI last had it rather than claim it is empty.
+  }
 }
 
 // Variables/Text Styles APIs may not be available in all Figma file types
@@ -69,6 +103,7 @@ function runAllChecks(nodes: SceneNode[]): CheckResult[] {
 }
 
 sendSelectionNote();
+sendNotesList();
 
 figma.on("selectionchange", () => {
   sendSelectionNote();
@@ -114,6 +149,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       }
       const message: NoteSavedMessage = { type: "note-saved", nodeId: msg.nodeId };
       figma.ui.postMessage(message);
+      sendNotesList();
     }
   }
 
