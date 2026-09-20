@@ -1066,12 +1066,14 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
   - **実装時の制約（ユーザー指示、2026-09-20）**: 生成する33個の定義（変数・Style の名前・値・スコープ・codeSyntax）はコードにハードコードせず、専用の定義ファイル（例: `src/presets/tokenDefinitions.ts`）に持たせる。未決3で確定する最小セットがそのまま定義ファイルの内容になる
   - **UIの名称**: 4つ目のタブ名は **Setup**（既存の Review / Notes / Export と並ぶ英語ラベル。「このファイルにトークン一式を用意する」という一度きりの準備作業であることが一目で伝わる common word）
   - **完了時メッセージ（実装はD-4以降。Review/Notes/Exportの実装に合わせて2026-09-20に先取り確定した「押した結果の benefit + 次にやること」を伝える方針を Setup にも適用）**: `Created 25 variables and 8 styles in this file's Assets panel. Rename or adjust values there anytime.`（できたこと＋次にやること＝Figma純正パネルで編集）。実装時に README.md の用語（変数名・Style名は未決3で確定する最小セット）と整合させ、README にも Setup 節を追記すること
-- [ ] 未決3 **最小セット・命名規則で設計書 4.3.4 を書き換える** — 命名は値を名前に入れない（色・書体は役割名、余白・角丸・文字サイズは段階名）。「4の倍数」は名前ではなく値のルールとして扱い、検証で値を見る。段階名にする根拠は2つ: (a) ダークとライトで値が変わっても名前が変わらない／16px を 20px に変えても名前が嘘にならない、(b) Tailwind の `p-4` は 16px（0.25rem 刻み）なので `space-16` と名付けると Tailwind 側の数字と食い違う。段階名なら衝突しない
-  - **最小セット案（申し送り、33個）**: 色8 = bg / surface / border / text / text-muted / primary / primary-hover / on-primary、余白6 = space-xs / sm / md / lg / xl / 2xl、角丸3 = radius-sm / md / lg、書体2 = font-sans / font-mono、文字サイズ6 = size-display / h1 / h2 / h3 / body / small、Text Style 6 = display / heading-lg / heading-md / heading-sm / body / caption（中身は上の変数を指す）、Effect Style 2 = shadow-sm / shadow-md。変数25＋スタイル8
-  - **任意セット（押したら足せる）**: 状態色8（success / warning / error / info × 背景と文字）、radius-full、shadow-lg、Text Style の lead / label
-  - **Primitives 層を作らない根拠**: Figma 公式の規模目安は「50未満＝1コレクション、Light/Dark のモードのみ」「50〜200＝Primitives と Semantic を分ける」「200以上＝Semantic 複数・モード4〜8」。LP/HP は一番上の帯なので、意味のある名前の変数だけ並べる。現行 4.3.4 の推奨体系38個のうち状態色8個は LP/HP でほぼ使わないので任意へ。text-tertiary / secondary も落とす
-  - ただし D-0 の結論（3コレクション方式）と整合させること。申し送りは Free で Variable Modes が使えない前提で書かれており、「Light/Dark のモードのみ」の部分は本ステアリングの「確定: ダーク対応」で3コレクションに置き換わっている
-- [ ] 決まった内容を `docs/design.md` に反映する
+- [x] 未決3 **最小セット・命名規則で設計書 4.3.4 を書き換える** — 命名は値を名前に入れない（色・書体は役割名、余白・角丸・文字サイズは段階名）
+  - **実データ検証（2026-09-20）**: ユーザーが実際にFigmaで作成・書き出した1件のLP（ポートフォリオサイト、`top`/`components`の2フレーム）のspec.json/tokens.jsonで33個の申し送り案を照合。Color/Spacing/Radius/Font-familyで実測値の半分前後が段階から外れることを確認した。漏れを3種に分類して個別に対処: (a) 原理的にVariable化不可能なもの（装飾用グラデーション4色。Variableは単色しか持てない。未決4送り）、(b) 別の仕組みの話だったもの（340pxのpaddingは「間隔」ではなく1440px幅の中身を760pxに中央寄せするコーディングパターンであり、spacingトークンの対象ではない）、(c) 本当に段階が足りなかったもの（radius 10/12/20、spacing 12/20/40/56、font-size 18/20/72/128）。(c)のみ段階を調整し、(a)(b)はトークン数を増やしても解決しないため対象外のまま
+  - **Primitives/Semantic 2層構成は不採用**: Figma公式ガイド（`figma-generate-library`スキル、ゴールドスタンダードとされるSimple Design System参照。https://github.com/figma/mcp-server-guide/blob/main/skills/figma-generate-library/references/token-creation.md）の目安で「50個未満は1コレクション、Primitives分離不要」とあり、この規模（32個）はその範囲内。各変数が直接値を持つ1層構成に確定
+  - **命名は `/` 区切りの階層名**（Figma変数パネルが自動でグループ化する。実データの`fg/default`と同じ形式に統一。デザイナー側の認知負荷はFigma純正のフォルダ機能で下げる）
+  - **結論（最終セット、32個）**: 詳細は `docs/design.md` 4.3.4 に反映済み。内訳は Color(8) / Spacing(8) / Radius(5) / Font-family(3) / Text Style(6) / Effect Style(2)
+  - **100%網羅は目標にしない**ことを明言: いずれの段階にも無い一回限りの値は生値のままでよい。段階を無理に増やすと隣接差が数pxまで縮み「トークン」としての意味を失う
+  - Variableのscope設定（GAP/CORNER_RADIUS/TEXT_FILL等、Figma公式の対応表通り）は判断不要の機械的な実装項目としてD-4以降の実装タスク定義に含める。Dark対応での`scopes: []`（誤操作防止、確定済み）とは別目的なので混同しない
+- [x] 決まった内容を `docs/design.md` に反映する
 
 **完了条件**:
 - 未決1〜3それぞれに結論と根拠が記録され、`docs/design.md` 4.3.4 が新しい源泉・最小セット・命名規則で書き換えられていること

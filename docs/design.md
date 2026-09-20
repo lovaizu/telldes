@@ -97,20 +97,26 @@ Variablesの使用そのものは必須ではない。使わない場合、CCは
 
 命名規約は自由。ただし意味の一貫性のため、以下の**推奨トークン体系**を本ドキュメント上の指針として示す（プラグインが命名を促すことはしない）。**telldesは値をどのスロットに割り当てるかを自動判定しない**（誤検知を避けるため）。「トークン化する値の命名はこの体系から選ぶ」という共通語彙の提示までが本書の役割で、トークン化の要否と具体的なスロット選択はデザイナーが行う。
 
+命名は Figma の変数パネルが自動でグループ化する `/` 区切りの階層名とする。値は各変数が直接持つ1層構成とし、原始値を別変数に分けるPrimitives/Semanticの2層構成は採らない（この規模のトークン数ではFigma公式ガイドも1層構成を推奨している）。この体系は「よく使われる値だけに名前を付ける」という位置づけであり、ここに無い一回限りの値（突出して大きい/小さいフォントサイズ、ページ端の大きな余白等）は生値のままでよい。全ての値をトークンに収めることは目標にしない。
+
 ```
-Color（Variables COLOR）
-  brand:    primary / primary-hover / secondary
-  neutral:  bg / surface / text-primary / text-secondary / text-tertiary / border
-  status:   success / warning / error / info（各々 -bg と -text に分割）
-Typography（Text Style名）
-  display / heading-lg / heading-md / heading-sm / body / lead / caption / label
-Spacing（Variables FLOAT）
-  xs / sm / md / lg / xl / 2xl
-Radius（Variables FLOAT）
-  sm / md / lg / full
-Elevation（Effect Style / drop shadow）
-  shadow-sm / shadow-md / shadow-lg
+Color（Variables COLOR、8）
+  bg / surface / border
+  fg/default / fg/muted
+  primary/default / primary/hover / primary/on
+Spacing（Variables FLOAT、8）
+  spacing/xs=4 / sm=8 / md=16 / lg=24 / xl=32 / 2xl=48 / 3xl=64 / 4xl=96
+Radius（Variables FLOAT、5）
+  radius/sm=4 / md=8 / lg=16 / xl=24 / full
+Font family（Variables STRING、3）
+  font/heading / body / accent
+Typography（Text Style名、6）
+  display / heading-lg / heading-md / heading-sm / body / caption
+Elevation（Effect Style / drop shadow、2）
+  shadow-sm / shadow-md
 ```
+
+Font familyの3役割で足りない書体（装飾用の一回限りの書体等）は、Variableを増やさず生値のまま使ってよい。同様にTypographyの6段階に無い一回限りの大きさも生値のままでよい。
 
 Elevation（ドロップシャドウ）の命名指針も本体系に含めるが、プラグインが命名を促すことはしない。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である（Effect Style を named token として tokens.json に出す対応は Text Style トークンと同じく別途）。
 
