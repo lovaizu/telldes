@@ -766,7 +766,7 @@ Ph-8: 実使用フィードバック対応
 - [x] Verification エキスパートレビュー（subagent、コーディング媒体）
 - [x] Design エキスパートレビュー（subagent）
 - [x] 修正ラウンド2: 3軸一致・2軸一致の未解決4件を潰し、該当軸を再レビュー（2026-09-19 実施・triage 済み）
-- [ ] 修正ラウンド3: V-1（`messages.ts` コメント比率）・V-2（`noteSaved` fixture 空振り）・V-3（`ExportScope.frames` readonly）を潰し（実装済み `0bf40c5` `1ea315e` `8e84b72`）、QA / Craft / Verification / Design の4軸を再レビュー（**未実施・修正ラウンドはこれで3回使い切り＝上限**）
+- [x] 修正ラウンド3: V-1（`messages.ts` コメント比率）・V-2（`noteSaved` fixture 空振り）・V-3（`ExportScope.frames` readonly）を潰し（実装済み `0bf40c5` `1ea315e` `8e84b72`）、QA / Craft / Verification / Design の4軸を再レビュー（2026-09-20 実施。**4軸とも pass**。新規指摘 R3-A〜R3-H はすべて完了条件の外と判定し U-5 へ。詳細は `docs/checks/U-4.md`）
 
 
 **進行メモ（2026-09-19 時点）**:
@@ -818,7 +818,11 @@ Ph-8: 実使用フィードバック対応
 - [ ] `isExportedFrame` の二重定義を解消する（U-4 再レビュー Design 指摘）。`src/export/exportScope.ts` が export しているのに `src/export/specBuilder.ts` が `(n) => n.type === "FRAME" || n.type === "SECTION"` を独立に持っており、「何が書き出し単位か」という 4.7.4 の事実が2箇所にある。片方だけ更新されれば spec.json の対象と zip フォルダの対象が黙ってズレる（U-4 が潰した `resolveFrameFolderNames` の二重実装と同じ形）
 - [ ] 0フレーム書き出しの挙動を設計書 4.7.4 に明記する（U-4 再レビュー Design 指摘）。実装はエラーにせずテンプレート3点＋tokens.json だけの zip を落とすが、設計書は一言も触れていない。デザイナーには「Export complete」と出て中身にデザインのない zip が届き、理由がどこにも書かれない（4.3.4 の「黙って捨てない」姿勢と緊張する）。設計書に明記したうえで、README の Contents に「書き出し対象のフレームがページ上にありません」の1行を出す
 - [ ] `reviewOutcome` / `applyReviewOutcome` / `handlePluginMessage` の三段を畳む（Design D5a。U-4 修正ラウンド2で二段→三段になった）。`ReviewOutcome` は3フィールドの中間構造体で、生成直後に3つの setter へ展開するだけ。加えて Review だけ「無条件呼び出し＋関数内で早期 return」で、他4分岐（`if` で直接分岐）と type ガードの置き場所が非対称。テストも3レベルで同じ2点を重複検証している
-- [ ] `ExportScope` の不変条件を型で守る（U-4 再レビュー Design 指摘）。plain な structural interface なので `{ frames, rootNames: new Map(), pageRootNodes }` が型検査を通り（`code.test.ts` が実際にそう作っている）、`folderNameOf(scope, frame)` の `frame` も「`scope.frames` の要素」であることが縛られていない。守っているのは `resolveExportScope` 経由でしか作らないという規約と実行時 throw だけ。private brand か class 化で外部から組み立て不能にする
+- [ ] `ExportScope` の不変条件を型で守る（U-4 再レビュー Design 指摘）。plain な structural interface なので `{ frames, rootNames: new Map(), pageRootNodes }` が型検査を通り（`code.test.ts` が実際にそう作っている）、`folderNameOf(scope, frame)` の `frame` も「`scope.frames` の要素」であることが縛られていない。守っているのは `resolveExportScope` 経由でしか作らないという規約と実行時 throw だけ。private brand か class 化で外部から組み立て不能にする。**U-4 ラウンド3 再レビューで4軸が再提起**: `frames` に付けた `readonly` は要素側だけで、プロパティ自体には付いていないため `scope.frames = []` の再代入は素通りする。しかも `tsc` がどのゲートでも走らないので `push` すら実際には止まらない（上の `tsc --noEmit` ゲート化とセットで初めて意味を持つ）
+- [ ] `messages.ts` / `exportScope.ts` / `code.ts` に残る事実と違うコメントを直す（U-4 ラウンド3 再レビュー R3-B / R3-C / R3-D）。(a) `exportScope.ts:41`「a frame pushed in later would have no `rootNames` entry」は誤り — `resolvePageRootNames` はページ直下の**全**ノードに名前を付けるので、裸 Component を push しても `folderNameOf` は throw しない。readonly が実際に守るのは実行時バックストップが効かないこのケースだと書く。(b) `messages.ts:9` の `ExportFile.path`「zip-relative path」は誤り — 実体はフレームフォルダ相対（`folder.file()` で書く）。(c) `code.ts:163-165`「must be a type error」は `messages.ts:5`「the repo runs no `tsc` step」と矛盾するので撤回する（`tsc` ゲート化が済めば真になるため、上の `tsc --noEmit` 項目と同時に決める）。`code.ts:190-191` は `messages.ts:4-7` とほぼ逐語で重複しており削除
+- [ ] `noteSaved` のクロスタブ空振りを塞ぐ（R3-A）。`App.test.ts:208`「leaves every other tab's signals alone for a Review message」が `noteSaved` を検証していないため、`handlePluginMessage` 冒頭に `handlers.setNoteSaved(false);` を足す変異が 257 全パスで生存する（＝ノートを保存した直後に Review を走らせると "Saved" 表示が消える実ユーザー不具合をテストが1件も捉えない）。当該テストを `{ noteSaved: true }` 開始にし `expect(state.noteSaved).toBe(true)` を足す。**この変異が実際に落ちることを確認するまで完了としない**
+- [ ] `ExportFrame.spec` を `SpecJson` に寄せる（R3-E）。`messages.ts:21` の手書き部分型は本体（`specBuilder.ts` の `SpecJson`、`viewport`・`children` とも必須）の劣化コピーで、その嘘に合わせた到達不能な `?.` が `zipBuilder.ts:52,74` に入っている。`SpecJson` を export して `spec: SpecJson` にすれば重複も死んだガードも消える
+- [ ] README の Contents 行でフレーム名を Markdown エスケープする（R3-F）。`readmeBuilder.ts:42` はバッククォートや `"` を含むフレーム名をそのまま埋めるため、コードスパンと引用が壊れる。デザイナーの付けた名前が README の構造を壊さないこと
 - [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-5.md`）
 - [ ] QA エキスパートレビュー（subagent）
 - [ ] Craft エキスパートレビュー（subagent、コーディング媒体）
@@ -834,7 +838,11 @@ Ph-8: 実使用フィードバック対応
 - フレーム名に `\`・末尾ドット・Windows 禁止文字（`: * ? " < > |`）を含むケースのテストが存在し、パスすること。設計書 4.5.2 の規約1が同じ無害化対象を記載していること
 - `isExportedFrame` と同じ判定がリポジトリ内に1箇所しか存在しないこと
 - 書き出し対象フレームが0件のときの挙動が設計書 4.7.4 に記載され、`README.md` にその旨の1行が出力されること
-- `resolveExportScope` を経由せずに `ExportScope` を組み立てるコードが型検査を通らないこと
+- `resolveExportScope` を経由せずに `ExportScope` を組み立てるコードが型検査を通らないこと。`scope.frames.push(...)` だけでなく `scope.frames = []` の再代入も拒否されること
+- `handlePluginMessage` の冒頭に `handlers.setNoteSaved(false);` を足す変異で、`App.test.ts` が少なくとも1件落ちること
+- リポジトリ内のコメントに、`tsc` による型検査が効いていると読める記述が残っていないこと（`tsc` をゲート化した場合は、その記述が事実になっていること）
+- `ExportFile.path` と `ExportFrame.spec` の型・コメントが実体と一致していること。`zipBuilder.ts` に型上到達不能な `?.` が残っていないこと
+- バッククォートまたは `"` を含むフレーム名で `README.md` の Contents 行が壊れないことを示すテストが存在し、パスすること
 - 新たな問題が持ち込まれていないこと — (a) 既存テストが全グリーンであること、(b) U-4 で確立したフォルダ名と README パスの一致が変わっていないこと
 
 ---
@@ -975,6 +983,7 @@ State
   - G-4: Export README 除外物明記 ✅
   - G-5: tokens.json 出力条件の更新 ✅
   - U-1: Variables 提案チェックの削除と源泉・範囲告知の README 移設 ✅
+  - U-4: U-1 持ち越し指摘の解消 ✅（修正ラウンド3回＝上限を使い切り、4軸 pass。新規指摘 R3-A〜R3-H は U-5 へ）
 * **テスト**: 217テスト全パス
 * **UI ラベル**: Review / Notes / Export（英語、デザイナー向け）
 * **出力構造**: フレーム名ごとにフォルダ分け（LP 1フレームでも HP 複数フレームでも同じ構造）
