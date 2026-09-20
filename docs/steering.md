@@ -938,11 +938,13 @@ U-1 で削除した `variableChecks.ts` が持っていた集約（同じ色が3
 State
 -----
 
-* **Status**: paused
-* **Date**: 2026-09-20
-* **Last completed**: Ph-9 の方針確定をステアリングに記録（`a01f9d0`）。ダーク対応＝トグル方式・3コレクション、チェック体系の原則3つ。U-4 の修正ラウンド3 再レビューは未着手のまま。
-* **Next**: ユーザーが試用中のポートフォリオで Export が失敗する件の切り分け（エラー文言の回答待ちで中断）。その後 U-4 の修正ラウンド3 再レビュー — `a2066df..8e84b72` に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off。詳細は U-4 の「再開時の作業」。**修正ラウンドはこれで3回目＝上限。NG が残っても追加ラウンドは走らせず、その場でユーザーにエスカレーション。**
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。HEAD `a01f9d0`（コード無変更のため テスト 257 全パス・両ビルド green・tsc 82 は `8e84b72` 時点のまま）。**中断の直接原因**: ユーザーが試用中のポートフォリオで Export が失敗する件を聞かれ、エラー文言（`N error(s) must be fixed before export` か否か）を確認する前に中断。前者ならチェック違反、後者なら書き出し処理自体の失敗で切り分け先が変わる。U-4 修正ラウンド2の再レビュー4軸は完了・triage 済み（Valid 3件→ラウンド3で対応、Invalid 9件→U-5 に統合済み）。描画層の残存リスク（jsdom 未導入、`<Show when={hasRun()}>` の変異が生存）は U-4.md に記録済みで今回は閉じない。**Ph-9**: 未決1〜3 が決まるまで実装タスクは定義しない。要検証2件（Free で複数コレクションを作れるか、`scopes: []` の挙動）は実装着手前に潰す。Ph-8 との優先順位も未決。T-1 は Ph-8 完了後、かつ Figma 実機が要るため自律実行不可。ユーザー指示（永続メモリ）: `feedback-skip-per-task-review-gate` — タスクごとのレビュー承認で止まらず最後に PR でまとめてレビュー、範囲内の指摘は自分で Valid/Invalid を判定しエスカレーションしない。`feedback-cross-session-requests-are-necessary` — 他セッションからの申し送りは必要だから来ているので、やらない理由ではなく実現方法を提案する。
+（`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
+
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: 次の具体的な行動・ブロッカー・保留中の決定への前向きなポインタのみ（セッションの再叙述は `git log` に任せる）
 
 ---
 
