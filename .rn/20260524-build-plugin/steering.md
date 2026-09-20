@@ -878,6 +878,13 @@ Ph-9: ダークモード対応とチェック体系の再設計
 
 別セッション（ccpm/webplan）からの申し送り（2026-09-19）が発端。設計書 4.3.4（トークンの源泉）の見直しとして届いたが、ダークモード対応が必須要件だと確認されたことで、チェック体系そのものの設計に波及した。
 
+申し送りの改善案7件（Style の中身が Variables を指すか検証／エイリアス展開をやめる／Variable Modes 対応／Color Style を役割ありに戻す／String Variable を拾う／4の倍数チェック／Variables 必須化は警告まで）と、プリセット生成・命名規則・Free の制約は、下の「確定」2節と未決1〜6に振り分け済み。申し送りが挙げた素材で D-1〜D-3 が要るもの:
+
+* **出典**（Figma 公式）: [Tokens, variables and styles](https://help.figma.com/hc/en-us/articles/18490793776023-Update-1-Tokens-variables-and-styles) / [The difference between variables and styles](https://help.figma.com/hc/en-us/articles/15871097384471-The-difference-between-variables-and-styles) / [Overview of variables, collections and modes](https://help.figma.com/hc/en-us/articles/14506821864087-Overview-of-variables-collections-and-modes) / [Modes for variables](https://help.figma.com/hc/en-us/articles/15343816063383-Modes-for-variables) / [Plugin API: figma.variables](https://developers.figma.com/docs/plugins/api/figma-variables/)
+* **Figma 公式の立場**: 「多くの場合、デザイントークンの実装は Styles と Variables の組み合わせになる」。値は Variables、値の組み合わせは Styles、Styles の中身は Variables を指す。公式の例: 既定の文字サイズの Number 変数（モバイル16 / デスクトップ18）を Text Style のプロパティに適用
+* **Variables の型と適用先**（公式）: Color = 塗り・線・グラデーション各点・影の色・カラースタイル。Number = 角丸／幅高さ（min/max 含む）／余白と gap／線の太さ／不透明度／影とぼかしの X・Y・blur・spread／文字のサイズ・太さ・行送り・字間・段落字下げ・段落間／レイアウトグリッド／テキストスタイル。String = フォントファミリー・フォントのスタイル名・テキストの中身・テキストスタイル・プロトタイプのバリアント。Boolean = 表示非表示・true/false バリアント
+* **プリセット生成の下敷き**: Figma 自身が同じことをするスキルを公開している — https://github.com/figma/mcp-server-guide/blob/main/skills/figma-generate-library/references/token-creation.md
+
 ### 確定: ダーク対応は「1フレーム＋トグル」方式（2026-09-19）
 
 Figma のプラン制限は「1コレクションあたりのモード数」にかかる（Starter はモードを作れない／Professional 10／Organization 20）。**コレクションの数はどのプランでも制限されていない**ため、Variable Modes を使わずコレクションを分ければ Free でもダーク対応ができる。
@@ -995,7 +1002,11 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 **作業内容**:
 - [ ] 未決1 **タイポグラフィの源泉** を決める — Text Style のままにするか、String（フォントファミリー）+ Number（サイズ・太さ・行送り・字間）の Variables に寄せるか。現行実装（G-2）は Text Style から `typographyToken` を拾っている。この結論に「String Variable を拾う」案とプリセット生成の Text Style 生成有無が依存する
 - [ ] 未決2 **プリセット生成モードを新設するか** を決める — 検証・書き出しに並ぶ3機能目。押すとコレクション・変数・Text Style・Effect Style を一式作る。最小セット案は変数25＋スタイル8＝33個。`setVariableCodeSyntax('WEB', 'var(--space-md)')` の全変数設定・スコープの初期設定・冪等な生成が必須項目
-- [ ] 未決3 **最小セット・命名規則で設計書 4.3.4 を書き換える** — 命名は値を名前に入れない（色・書体は役割名、余白・角丸・文字サイズは段階名）。「4の倍数」は名前ではなく値のルールとして扱い、検証で値を見る
+- [ ] 未決3 **最小セット・命名規則で設計書 4.3.4 を書き換える** — 命名は値を名前に入れない（色・書体は役割名、余白・角丸・文字サイズは段階名）。「4の倍数」は名前ではなく値のルールとして扱い、検証で値を見る。段階名にする根拠は2つ: (a) ダークとライトで値が変わっても名前が変わらない／16px を 20px に変えても名前が嘘にならない、(b) Tailwind の `p-4` は 16px（0.25rem 刻み）なので `space-16` と名付けると Tailwind 側の数字と食い違う。段階名なら衝突しない
+  - **最小セット案（申し送り、33個）**: 色8 = bg / surface / border / text / text-muted / primary / primary-hover / on-primary、余白6 = space-xs / sm / md / lg / xl / 2xl、角丸3 = radius-sm / md / lg、書体2 = font-sans / font-mono、文字サイズ6 = size-display / h1 / h2 / h3 / body / small、Text Style 6 = display / heading-lg / heading-md / heading-sm / body / caption（中身は上の変数を指す）、Effect Style 2 = shadow-sm / shadow-md。変数25＋スタイル8
+  - **任意セット（押したら足せる）**: 状態色8（success / warning / error / info × 背景と文字）、radius-full、shadow-lg、Text Style の lead / label
+  - **Primitives 層を作らない根拠**: Figma 公式の規模目安は「50未満＝1コレクション、Light/Dark のモードのみ」「50〜200＝Primitives と Semantic を分ける」「200以上＝Semantic 複数・モード4〜8」。LP/HP は一番上の帯なので、意味のある名前の変数だけ並べる。現行 4.3.4 の推奨体系38個のうち状態色8個は LP/HP でほぼ使わないので任意へ。text-tertiary / secondary も落とす
+  - ただし D-0 の結論（3コレクション方式）と整合させること。申し送りは Free で Variable Modes が使えない前提で書かれており、「Light/Dark のモードのみ」の部分は本ステアリングの「確定: ダーク対応」で3コレクションに置き換わっている
 - [ ] 決まった内容を `docs/design.md` に反映する
 
 **完了条件**:
@@ -1031,6 +1042,7 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 **作業内容**:
 - [ ] 「1フレーム＋トグル」方式と3コレクション構成（Light / Dark / Base、変数名にテーマを入れない、対を持つのは色だけ、`scopes: []` による誤操作防止）を設計書に記載する
 - [ ] チェック体系の原則3つを設計書に記載する — 原則1（error はデザイナーが選んだやり方に対する整合性だけを見る／Dark コレクションの有無が判定軸）、原則2（Review の1行 = 1判断。原因単位で集約する）、原則3（Review は行為の前に自動で走るゲート。結果は必ず Review タブに出す）
+- [ ] 原則1 の表に **Effect Style の影の色が Variables を指しているか** の行を足すか決める。申し送りの改善案1は「Text Style の font-size が生数値なら警告、Effect Style の影の色も同様」と両方を挙げているが、現行の表は Text Style と padding/gap しか持っていない。影の色はテーマで変わりうる（ダーク対応ファイルなら出力が壊れる側）ので、色が変数にバインドされていない件と同じ扱いになるはず。D-2 の未決4（Effect Style を正式な源泉にするか）の結論に依存する
 - [ ] 書き出し手順（light 撮影 → 付け替え → dark 撮影 → light に戻す。失敗時にも必ず戻す）を設計書に記載する
 - [ ] 「起動時に dark のまま残っている」の扱い（error ではなく復旧の促し）を記載する
 
