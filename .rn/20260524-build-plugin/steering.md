@@ -1,4 +1,5 @@
 Rn version: 0.8.0
+Design: docs/design.md
 
 Telldes Figma Plugin 実装フェーズ
 ======================
@@ -24,7 +25,7 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 目的
 --
 
-設計書（`docs/telldes-design.md`）で定義した仕様を動くプラグインとして実装する。目的は2つ。
+設計書（`docs/design.md`）で定義した仕様を動くプラグインとして実装する。目的は2つ。
 
 1. Figma 上で制作ルール違反を検出し、デザイナーにフィードバックする
 2. CC が正確にコーディングできるデザインスペック一式を zip で出力する
@@ -36,7 +37,7 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 作業ルール（全作業共通）
 ------------
 
-* **設計書が正**: 実装判断に迷ったら `docs/telldes-design.md` を参照する。設計書に記載のない動作を勝手に追加しない
+* **設計書が正**: 実装判断に迷ったら `docs/design.md` を参照する。設計書に記載のない動作を勝手に追加しない
 * **進め方は「設計書を最新化 → 実装 → 試行」**: この順で回す。未決は設計書の最新化の中で潰し、決着してから実装に入る。実装が終わったら Figma 実機で試す
 * **ステアリングは常時最新**: レビュー結果・申し送り・保留した判断は、出たその場でステアリングに反映する。未決・要検証も「決める」「検証する」というタスクとして定義し、フェーズの説明文に散文で溜めない（タスク化されていない残作業は誰の作業キューにも乗らず放置される）
 * **レビューの配置**: 4軸レビューをタスクごとに回さない。**設計レビューは実装前**（設計書を最新化する段で、その文面を対象に）、**QA / Craft / Verification はフェーズ完成時に1回**（PR 前）。試行中は セルフチェック＋テスト＋実機で回す。根拠: 変更が続いている的に4軸を当てても結果がすぐ陳腐化し、かつ実機でしか出ない不具合（レビュアーは全員 Node で走るため `TextEncoder` 不在のような差は原理的に捕まらない）は4軸では見つからない
@@ -65,7 +66,7 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 - [ ] 具体的な作業ステップ1
 - [ ] 具体的な作業ステップ2
 - [ ] ...
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/{タスクID}.md`）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/{タスクID}.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
 
 **完了条件**:
@@ -93,7 +94,7 @@ Telldes は「Figma でデザイン → CC でコーディング」ワークフ�
 1. **セルフチェック**: 完了条件を1件ずつ確認し、判定（OK/NG）と根拠を記録する
 2. **ユーザーレビュー**: セルフチェックがパスした後にユーザーへ確認依頼する。OKが出るまで改善を繰り返す
 
-チェック結果は `docs/checks/{タスクID}.md` に出力する。
+チェック結果は `.rn/20260524-build-plugin/checks/{タスクID}.md` に出力する。
 
 ### チェックファイルフォーマット
 
@@ -195,7 +196,7 @@ Ph-1: プロジェクトセットアップ
 - [x] `src/code.ts`（プラグインメインエントリ。`figma.showUI()` のみ）
 - [x] `src/ui.tsx`（UI エントリ。3モード切替タブ: チェック / note / 書き出し）
 - [x] Figma でローカルプラグインとして読み込み、UI 表示を確認
-- [x] セルフチェック（チェック結果: `docs/checks/S-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/S-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -224,7 +225,7 @@ Ph-2: チェック機能
   - 背景を子レイヤーとして配置しているケースの検出
 - [x] 各チェックに改善方法メッセージを付与（設計書 4.7.2 節の文言通り）
 - [x] テスト作成（各チェックの正常系・違反検出系）
-- [x] セルフチェック（チェック結果: `docs/checks/C-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/C-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -249,7 +250,7 @@ Ph-2: チェック機能
   - 同じ font-size 値が複数箇所の提案
 - [x] エラーと提案を区別する型定義（`CheckResult { level: 'error' | 'suggestion', ... }`）
 - [x] テスト作成
-- [x] セルフチェック（チェック結果: `docs/checks/C-2.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/C-2.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -273,7 +274,7 @@ Ph-2: チェック機能
 - [x] 結果クリックで対象ノードを選択＋ビューポート移動（`figma.viewport.scrollAndZoomIntoView`）
 - [x] エラーゼロ時のパス表示
 - [x] Figma 上で動作確認
-- [x] セルフチェック（チェック結果: `docs/checks/C-3.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/C-3.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -300,7 +301,7 @@ Ph-3: note 入力 UI
 - [x] `setRelaunchData({ editNote: '' })` で note 設定済みノードにプロパティパネルボタン表示
 - [x] ノード選択変更イベント（`figma.on('selectionchange', ...)`）でUI更新
 - [x] Figma 上で動作確認
-- [x] セルフチェック（チェック結果: `docs/checks/N-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/N-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -332,7 +333,7 @@ Ph-4: 書き出し機能
   - Variable 参照時の `*Token` フィールド付与
 - [x] `viewport` の width をページフレームの幅から取得
 - [x] テスト作成（ノードモックで各プロパティの抽出を検証）
-- [x] セルフチェック（チェック結果: `docs/checks/E-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/E-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -358,7 +359,7 @@ Ph-4: 書き出し機能
   - `$value` の解決（resolvedValue）
 - [x] Variables 未定義時は tokens.json を出力しない制御
 - [x] テスト作成
-- [x] セルフチェック（チェック結果: `docs/checks/E-2.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/E-2.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -387,7 +388,7 @@ Ph-4: 書き出し機能
   - ベクターアセット: SVG → `assets/icons/{path}.svg`
   - ファイル名: レイヤーパスを `--` で結合
 - [x] テスト作成
-- [x] セルフチェック（チェック結果: `docs/checks/E-3.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/E-3.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -422,7 +423,7 @@ Ph-4: 書き出し機能
 - [x] UI: 書き出しボタン＋ダウンロードリンク表示
 - [x] Blob 生成→ダウンロード処理
 - [x] Figma 上で動作確認（実際に zip をダウンロードし内容を検証）
-- [x] セルフチェック（チェック結果: `docs/checks/E-4.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/E-4.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -452,7 +453,7 @@ Ph-5: CC プロンプト＋ステアリングテンプレート
   6. Auto Layout → CSS flexbox 対応表（設計書 4.6 節）
   7. 完了時チェック
 - [x] テンプレート内の動的部分（viewport幅等）をプレースホルダー化
-- [x] セルフチェック（チェック結果: `docs/checks/P-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/P-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -474,7 +475,7 @@ Ph-5: CC プロンプト＋ステアリングテンプレート
   - タスクリスト（コーディングステップ＋完了チェック）
   - ルール（コーディング規約）
 - [x] spec.json / note から自動記入可能な項目の特定とマーキング
-- [x] セルフチェック（チェック結果: `docs/checks/P-2.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/P-2.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -496,7 +497,7 @@ Ph-6: レスポンシブ対応＋統合テスト
 **作業内容**:
 - [x] トップレベルフレームごとに spec.json + screenshots/ + assets/ をフレーム名フォルダに出力
 - [x] tokens.json はルート（共通）に配置
-- [x] セルフチェック（チェック結果: `docs/checks/R-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/R-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -521,14 +522,14 @@ Ph-6: レスポンシブ対応＋統合テスト
   - prompt.md, steering.md が含まれること
 - [ ] CC に zip を渡してコーディングさせ、デザインカンプとの一致度を確認
 - [ ] 不一致があれば原因を特定し修正
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/T-1.md`）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/T-1.md`）
 
 **完了条件**:
 - テスト用 LP に対する Review がエラー0件で終了している状態であること
 - 出力 zip の全ファイル（spec.json / tokens.json / screenshots / assets / prompt.md / steering.md / README.md）が設計書 4.5 節のフォーマットに準拠している状態であること
 - CC が zip のみからコーディングした結果が、デザインカンプとレイアウト・色・サイズ・間隔の各観点で一致している状態であること
 - 新たな問題が持ち込まれていないこと — 具体的には、(a) 既存テストが全グリーンのままであること、(b) 修正によって既存の出力フィールド・チェックの挙動が退行していないこと、(c) 書き出し時にノード単位のエクスポートエラーが発生していないこと
-- 手戻りが発生した場合、その原因と対策が `docs/checks/T-1.md` に記録されている状態であること
+- 手戻りが発生した場合、その原因と対策が `.rn/20260524-build-plugin/checks/T-1.md` に記録されている状態であること
 
 **進行メモ**:
 - T-1 は Figma 実機が必須のため自律実行不可。ユーザーが Figma で Review 実行 → エラー内容を貼る → 仕様どおりの検出かチェック側のバグ／誤検知かを判定、という往復で進める。エラーが 0 件になったら Export し、zip を渡してもらって 4.5 節と照合、その後 CC コーディング再現テストへ。
@@ -550,7 +551,7 @@ Ph-7: doc-first ギャップ解消
 **作業内容**:
 - [x] 4.5.1 に W3C DTCG composite 形式（`$type: "typography"`, `$value: { fontFamily, fontSize, fontWeight, lineHeight, letterSpacing }`）の JSON 例を追記。推奨命名（`display / heading-lg / heading-md / heading-sm / body / lead / caption / label`）にも触れる
 - [x] 4.5.2.1 の「text（タイポグラフィのメトリクス）」節に `typographyToken` フィールドを追記。付与条件（`textStyleId` が単一 ID の場合のみ。`figma.mixed` は除外）を明記
-- [x] セルフチェック（チェック結果: `docs/checks/G-1.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/G-1.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -569,7 +570,7 @@ Ph-7: doc-first ギャップ解消
 - [x] `tokensBuilder.ts`: `figma.getLocalTextStylesAsync()`（または同等API）から typography トークンを生成し、G-1 で追記したスキーマで出力。既存の `setNested`（`$base` 衝突退避）を再利用
 - [x] `specBuilder.ts`: text ノードの `textStyleId` が単一 ID の場合に `typographyToken` を付与（`figma.mixed` は除外）
 - [x] テスト作成
-- [x] セルフチェック（チェック結果: `docs/checks/G-2.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/G-2.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -587,14 +588,14 @@ Ph-7: doc-first ギャップ解消
 **前提**: G-1, G-2 完了（衝突チェックが G-2 で centralize される `typography/` プレフィックス定数に依存するため、G-2 完了を前提とする）
 
 **作業内容**:
-- [x] `docs/telldes-design.md` 4.7.2 節に Variable/Text Style token 名衝突の告知チェック（suggestion）を追記（G-2 レビューで発見: Variable のフルパスが `typography/<name>` と一致し同名の Text Style が存在する場合、tokens.json 側は last-write-wins のまま・書き出しはブロックせず、デザイナーに事前警告する方針）
+- [x] `docs/design.md` 4.7.2 節に Variable/Text Style token 名衝突の告知チェック（suggestion）を追記（G-2 レビューで発見: Variable のフルパスが `typography/<name>` と一致し同名の Text Style が存在する場合、tokens.json 側は last-write-wins のまま・書き出しはブロックせず、デザイナーに事前警告する方針）
 - [x] `structureChecks.ts`（または `variableChecks.ts`）に suggestion レベルの `result()` ヘルパーを追加（現状 `result()` は error 固定）
 - [x] Color Style 使用チェック実装
 - [x] STRING/BOOLEAN Variable 使用チェック実装
 - [x] ルート直下の裸 Component/Component Set 定義チェック実装
 - [x] Variable/Text Style token 名衝突チェック実装（`src/util/typography.ts` の共有プレフィックス定数を使用し、Variable フルパスと Text Style 名が同一 `typography/<name>` に解決するケースを検出）
 - [x] テスト作成
-- [x] セルフチェック（チェック結果: `docs/checks/G-3.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/G-3.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -614,7 +615,7 @@ Ph-7: doc-first ギャップ解消
 **作業内容**:
 - [x] `src/App.tsx` の README 生成箇所に除外物セクションを追加
 - [x] テスト作成（該当箇所があれば）
-- [x] セルフチェック（チェック結果: `docs/checks/G-4.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/G-4.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -631,7 +632,7 @@ Ph-7: doc-first ギャップ解消
 **作業内容**:
 - [x] `tokensBuilder.ts` の出力条件を「Variables または Text Style のいずれかが存在する場合に出力」に変更
 - [x] テスト更新
-- [x] セルフチェック（チェック結果: `docs/checks/G-5.md`）
+- [x] セルフチェック（チェック結果: `.rn/20260524-build-plugin/checks/G-5.md`）
 - [x] ユーザーレビュー依頼・OK取得
 
 **完了条件**:
@@ -658,7 +659,7 @@ Ph-8: 実使用フィードバック対応
 **前提**: G-3, G-4, G-5 完了
 
 **作業内容**:
-- [x] `docs/telldes-design.md` を更新: 4.7.2 節の「Variablesチェック（提案）」節を削除し、「源泉・範囲チェック（提案／告知）」を Review の一部ではなく Export README への出力として位置づけ直す。4.3.4 の「チェック時に繰り返し使われている値を検出し『Variableにしませんか？』と提案する」「Reviewの提案（4.7.2）はこの語彙で命名を促す」、4.7.4 の「Reviewで告知する」、4.7.2 末尾の「エラーは書き出し前に解消必須。提案・告知は無視してもよい」も整合させる
+- [x] `docs/design.md` を更新: 4.7.2 節の「Variablesチェック（提案）」節を削除し、「源泉・範囲チェック（提案／告知）」を Review の一部ではなく Export README への出力として位置づけ直す。4.3.4 の「チェック時に繰り返し使われている値を検出し『Variableにしませんか？』と提案する」「Reviewの提案（4.7.2）はこの語彙で命名を促す」、4.7.4 の「Reviewで告知する」、4.7.2 末尾の「エラーは書き出し前に解消必須。提案・告知は無視してもよい」も整合させる
 - [x] `src/checks/variableChecks.ts` と `src/checks/__tests__/variableChecks.test.ts` を削除し、`src/code.ts` の `runVariableChecks` 呼び出しと import を削除
 - [x] `src/checks/types.ts` の `CheckLevel` を `"error"` のみに変更する（改善方法テキストである `CheckResult.suggestion` フィールドは削除しない）
 - [x] `src/checks/scopeChecks.ts` の `runScopeChecks` / `checkTypographyTokenCollisions` を、`CheckResult[]` ではなく除外物レポート（項目種別・レイヤーパス／トークン名・件数）を返す形に変更する
@@ -666,7 +667,7 @@ Ph-8: 実使用フィードバック対応
 - [x] `src/App.tsx`: Review タブの Suggestions セクションと `suggestions()` シグナル・関連 CSS（`.suggestion-label` / `.suggestion-item`）を削除する。`.result-suggestion`（error の改善方法表示）は残す
 - [x] `src/App.tsx`: README 生成の「Not included in this export」セクションを、除外物レポートの実検出データで埋める（検出ゼロの項目は行を出さない）
 - [x] テスト更新（`scopeChecks.test.ts` を新シグネチャに追従、README 生成のテストがあれば更新）
-- [x] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-1.md`）
+- [x] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-1.md`）
 - [x] QA エキスパートレビュー（subagent）
 - [x] Craft エキスパートレビュー（subagent、コーディング媒体）
 - [x] Verification エキスパートレビュー（subagent、コーディング媒体）
@@ -695,13 +696,13 @@ Ph-8: 実使用フィードバック対応
 **前提**: N-1 完了
 
 **作業内容**:
-- [ ] `docs/telldes-design.md` 4.7.3 節に note 一覧の仕様を追記する（一覧に出す情報＝レイヤーパス＋note 本文、クリックで該当ノードを選択、更新タイミング）
+- [ ] `docs/design.md` 4.7.3 節に note 一覧の仕様を追記する（一覧に出す情報＝レイヤーパス＋note 本文、クリックで該当ノードを選択、更新タイミング）
 - [ ] `src/code.ts`: ページ内の全ノードを走査して `getPluginData("note")` が非空のノードを集め、`{ nodeId, layerPath, note }` の配列を `notes-list` メッセージで UI に送る関数を追加する。レイヤーパスは `src/export/layerPath.ts` の `buildLayerPath` を再利用する
 - [ ] `src/code.ts`: プラグイン起動時・note 保存時（削除＝空文字保存を含む）に `notes-list` を再送する
 - [ ] `src/App.tsx`: Notes タブに一覧セクションを追加する。各項目はレイヤーパスと note 本文を表示し、クリックで既存の `select-node` メッセージを送る。0件時は空状態メッセージを出す
 - [ ] `src/App.tsx`: 選択中ノードのエディタは一覧の上に残し、ノード未選択時も一覧は表示されるようにする
 - [ ] テスト作成（note 収集ロジックの単体テスト）
-- [x] 実装ラウンド1（`56bef79`）— 上記6項目を実装。4軸レビューで **4軸とも fail**。以下が未解決（詳細と根拠: `docs/checks/U-2.md` の「4軸レビューの triage」）
+- [x] 実装ラウンド1（`56bef79`）— 上記6項目を実装。4軸レビューで **4軸とも fail**。以下が未解決（詳細と根拠: `.rn/20260524-build-plugin/checks/U-2.md` の「4軸レビューの triage」）
 
 **残りは「設計書を最新化 → 実装 → 試行」の順で片付ける。** まず N-6〜N-8（設計書）、次に N-1〜N-5・N-10〜N-12（実装）、最後に N-9（実機）。
 - [ ] N-1: `figma.on("currentpagechange", sendNotesList)` を購読する。ページを切り替えると一覧が前ページのまま残り、その行をクリックすると `figma.currentPage.selection = [node]` が throw するが `select-node` は async ハンドラ内で try が無く**未処理 rejection＝UI に何も届かない**。削除済みレイヤーなら `getNodeById` が null で素通り＝無反応。`select-node` を try/catch で囲み、対象が現在のページに無い／削除済みの場合の扱いを 4.7.3 に定める（4軸一致・完了条件3が破れる）
@@ -716,7 +717,7 @@ Ph-8: 実使用フィードバック対応
 - [ ] N-11: `"note"` のマジック文字列を定数化する（2→3箇所に増えた）／`layerPathOf` のコールバック引数名 `node` が外側をシャドウしているので `ancestor` に揃える／0件時に「Notes on this page (0)」と「No notes on this page yet」で同じ事実を2回言っている
 - [ ] N-12: `save-note` に try/catch を足す（`run-checks` / `run-export` にはある）。`sendNotesList()` を足したことで、壊れたときの道連れが1つ増えた
 - [ ] N-9: **実機確認が必須** — 主コンポーネント内部のレイヤーに note を付けてインスタンスを2個置いたとき、一覧が何行になるか。重複するなら行に区別（インスタンス名の明示など）が要る。結果を 4.7.3 に書く
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-2.md`）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-2.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
 
 **完了条件**:
@@ -736,13 +737,13 @@ Ph-8: 実使用フィードバック対応
 **前提**: U-1 完了
 
 **作業内容**:
-- [ ] `docs/telldes-design.md` 4.7.2 に追加する検出カテゴリを追記する
+- [ ] `docs/design.md` 4.7.2 に追加する検出カテゴリを追記する
 - [ ] ページ直下に裸で置かれた `GROUP` / `INSTANCE` / `TEXT` / `RECTANGLE` 等（`FRAME`・`SECTION` 以外）が無記録で書き出しから落ちている件を検出・記録する
 - [ ] `strokeStyleId` に束縛された Color Style を検出する（現状 `fillStyleId` のみ）
 - [ ] インスタンスの component properties 経由（`instance.componentProperties[k].boundVariables.value`）で束縛された STRING Variable を検出する
 - [ ] 同名 Variable が別コレクションに存在し `tokens.json` で相互に上書きされる件を検出する
 - [ ] テスト作成
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-3.md`）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-3.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
 
 **完了条件**:
@@ -768,19 +769,19 @@ Ph-8: 実使用フィードバック対応
 - [x] `src/App.tsx`: `check-error` 受信時に `results()` / `hasRun()` をクリアし、失敗バナーの下に前回の結果が残らないようにする。あわせて Review パネルの `<Show>` 二重ゲートのデッドパス（結果あり・エラー0件で空パネル）を解消する
 - [x] テスト追加: 0フレーム書き出し、`typography/a/b` の多段サブパス衝突、DOCUMENT 終端のレイヤーパス
 - [x] 新規モジュール（`src/export/exclusions.ts` / `readmeBuilder.ts` / `zipBuilder.ts` / `layerPath.ts`）のコメントを既存コードの密度（5〜13%）に揃える。過去の不具合の経緯を語る段落は削り、必要な背景は設計書側に置く
-- [x] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-4.md`）
+- [x] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-4.md`）
 - [x] QA エキスパートレビュー（subagent）
 - [x] Craft エキスパートレビュー（subagent、コーディング媒体）
 - [x] Verification エキスパートレビュー（subagent、コーディング媒体）
 - [x] Design エキスパートレビュー（subagent）
 - [x] 修正ラウンド2: 3軸一致・2軸一致の未解決4件を潰し、該当軸を再レビュー（2026-09-19 実施・triage 済み）
-- [x] 修正ラウンド3: V-1（`messages.ts` コメント比率）・V-2（`noteSaved` fixture 空振り）・V-3（`ExportScope.frames` readonly）を潰し（実装済み `0bf40c5` `1ea315e` `8e84b72`）、QA / Craft / Verification / Design の4軸を再レビュー（2026-09-20 実施。**4軸とも pass**。新規指摘 R3-A〜R3-H はすべて完了条件の外と判定し U-5 へ。詳細は `docs/checks/U-4.md`）
+- [x] 修正ラウンド3: V-1（`messages.ts` コメント比率）・V-2（`noteSaved` fixture 空振り）・V-3（`ExportScope.frames` readonly）を潰し（実装済み `0bf40c5` `1ea315e` `8e84b72`）、QA / Craft / Verification / Design の4軸を再レビュー（2026-09-20 実施。**4軸とも pass**。新規指摘 R3-A〜R3-H はすべて完了条件の外と判定し U-5 へ。詳細は `.rn/20260524-build-plugin/checks/U-4.md`）
 
 
 **進行メモ（2026-09-19 時点）**:
 - 実装 `9daf778` → レビュー4軸 → 修正ラウンド1 `9544e2d` → 再レビュー4軸 → 修正ラウンド2 `9175683` `c569202` → 再レビュー4軸（2026-09-19、`ad80720..HEAD` 対象）→ triage → 修正ラウンド3 `0bf40c5` `1ea315e` `8e84b72`。テスト 217 → 243 → 257 → 257、両ビルド green、tsc エラーは修正ラウンド3の前後で完全一致（82件、diff 空。対象4ファイルには0件）
 - 修正ラウンド2の再レビュー: QA **fail** / Craft **fail** / Design **fail** / Verification **pass**。**4軸一致で NG だったのは完了条件6（`messages.ts` のコメント比率、40〜55%の帯に残存）のみ**。①〜⑤⑦は変異テスト（のべ100件超投入、生存は数件）で裏づけ済み
-- triage: Valid 3件（V-1〜V-3、下記）を修正ラウンド3で対応。Invalid 9件は完了条件の外と判定し、U-5 に統合・新規追加（詳細は `docs/checks/U-4.md` の「修正ラウンド2 再レビューの triage」節）
+- triage: Valid 3件（V-1〜V-3、下記）を修正ラウンド3で対応。Invalid 9件は完了条件の外と判定し、U-5 に統合・新規追加（詳細は `.rn/20260524-build-plugin/checks/U-4.md` の「修正ラウンド2 再レビューの triage」節）
 - 修正ラウンド3のセルフチェックは実装者から回収済み（7項目 OK、`messages.ts` は 49.5%→21.5%）。**QA / Craft / Verification / Design の4軸再レビューは中断のため未実施 — 再開時にやり直す**
 
 **修正ラウンド2で解消した4件（コーディネーターが実機確認済み）**:
@@ -794,7 +795,7 @@ Ph-8: 実使用フィードバック対応
 2. V-2: `App.test.ts` の `noteSaved` fixture 空振り → `selection-note` ケースの初期値を `true` にし、`handlers.setNoteSaved(false);` を削る変異で実際に1件落ちることを実装者が確認
 3. V-3: `ExportScope.frames` に `readonly` を付与。`scope.frames.push(n)` が `tsc` で TS2339 拒否されることを確認
 
-**残存リスク（今回は閉じない）**: 描画層の `<Show when={hasRun()}>` → `when={true}` の変異は生存する。jsdom 未導入で DOM テストが書けないため。jsdom の追加は環境変更にあたりユーザー確認が必要なので、`docs/checks/U-4.md` に既知リスクとして記録するに留めた
+**残存リスク（今回は閉じない）**: 描画層の `<Show when={hasRun()}>` → `when={true}` の変異は生存する。jsdom 未導入で DOM テストが書けないため。jsdom の追加は環境変更にあたりユーザー確認が必要なので、`.rn/20260524-build-plugin/checks/U-4.md` に既知リスクとして記録するに留めた
 
 **再開時の作業**: 修正ラウンド3の成果（`a2066df..8e84b72`）に対して QA / Craft / Verification / Design の4軸を再レビューし、triage して check off する。レビュー発注時は成果物の差分・完了条件の逐語コピー・各軸のチェックリストのみを渡し、セルフチェックファイルや実装者のサマリ、期待する判定は渡さないこと。**これが3回目＝上限の修正ラウンドなので、再レビューで NG が残った場合は追加の修正ラウンドを走らせず、その場でユーザーにエスカレーションする**（rn の手順どおり）
 
@@ -831,7 +832,7 @@ Ph-8: 実使用フィードバック対応
 - [ ] `noteSaved` のクロスタブ空振りを塞ぐ（R3-A）。`App.test.ts:208`「leaves every other tab's signals alone for a Review message」が `noteSaved` を検証していないため、`handlePluginMessage` 冒頭に `handlers.setNoteSaved(false);` を足す変異が 257 全パスで生存する（＝ノートを保存した直後に Review を走らせると "Saved" 表示が消える実ユーザー不具合をテストが1件も捉えない）。当該テストを `{ noteSaved: true }` 開始にし `expect(state.noteSaved).toBe(true)` を足す。**この変異が実際に落ちることを確認するまで完了としない**
 - [ ] `ExportFrame.spec` を `SpecJson` に寄せる（R3-E）。`messages.ts:21` の手書き部分型は本体（`specBuilder.ts` の `SpecJson`、`viewport`・`children` とも必須）の劣化コピーで、その嘘に合わせた到達不能な `?.` が `zipBuilder.ts:52,74` に入っている。`SpecJson` を export して `spec: SpecJson` にすれば重複も死んだガードも消える
 - [ ] README の Contents 行でフレーム名を Markdown エスケープする（R3-F）。`readmeBuilder.ts:42` はバッククォートや `"` を含むフレーム名をそのまま埋めるため、コードスパンと引用が壊れる。デザイナーの付けた名前が README の構造を壊さないこと
-- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `docs/checks/U-5.md`）
+- [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-5.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
 
 **完了条件**:
@@ -866,7 +867,7 @@ Ph-8: 実使用フィードバック対応
 - [ ] 各軸には隔離コピー（`git archive HEAD`）での変異テストを指示する。同一ワークツリーで並行させると変異が互いの読み取りを汚染する（U-2 のレビューで実際に起きた）
 
 **完了条件**:
-- 3軸の判定と指摘が `docs/checks/U-6.md` に記録されていること
+- 3軸の判定と指摘が `.rn/20260524-build-plugin/checks/U-6.md` に記録されていること
 - すべての指摘が Valid / Invalid のいずれかに判定され、Valid の分が修正されているか、次フェーズのタスクとして定義されていること
 
 ---
@@ -986,7 +987,7 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 
 ### D-1: 未決1〜3を決めて設計書に反映する
 
-**目的**: トークンの源泉と命名規則を確定させ、`docs/telldes-design.md` 4.3.4 を書き換える。1→2→3 の順で決める（後ろが前の結論に依存する）。
+**目的**: トークンの源泉と命名規則を確定させ、`docs/design.md` 4.3.4 を書き換える。1→2→3 の順で決める（後ろが前の結論に依存する）。
 
 **前提**: D-0 完了
 
@@ -994,10 +995,10 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 - [ ] 未決1 **タイポグラフィの源泉** を決める — Text Style のままにするか、String（フォントファミリー）+ Number（サイズ・太さ・行送り・字間）の Variables に寄せるか。現行実装（G-2）は Text Style から `typographyToken` を拾っている。この結論に「String Variable を拾う」案とプリセット生成の Text Style 生成有無が依存する
 - [ ] 未決2 **プリセット生成モードを新設するか** を決める — 検証・書き出しに並ぶ3機能目。押すとコレクション・変数・Text Style・Effect Style を一式作る。最小セット案は変数25＋スタイル8＝33個。`setVariableCodeSyntax('WEB', 'var(--space-md)')` の全変数設定・スコープの初期設定・冪等な生成が必須項目
 - [ ] 未決3 **最小セット・命名規則で設計書 4.3.4 を書き換える** — 命名は値を名前に入れない（色・書体は役割名、余白・角丸・文字サイズは段階名）。「4の倍数」は名前ではなく値のルールとして扱い、検証で値を見る
-- [ ] 決まった内容を `docs/telldes-design.md` に反映する
+- [ ] 決まった内容を `docs/design.md` に反映する
 
 **完了条件**:
-- 未決1〜3それぞれに結論と根拠が記録され、`docs/telldes-design.md` 4.3.4 が新しい源泉・最小セット・命名規則で書き換えられていること
+- 未決1〜3それぞれに結論と根拠が記録され、`docs/design.md` 4.3.4 が新しい源泉・最小セット・命名規則で書き換えられていること
 - 現行実装（G-2 の Text Style 由来 `typographyToken`）との差分が、実装タスクとして起こせる粒度で書かれていること
 
 ---
@@ -1012,7 +1013,7 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 - [ ] 未決4 **Color Style の位置づけ** — 現行設計書は非推奨・除外通知だが、グラデーションと複数 fill は Variables で表現できないため、使っただけで除外通知が出る。Paint / Effect / Text Style を正式な源泉に戻すなら、G-3・U-1 で作った「Color Style 使用」の検出を「Variables を束ねずに直接値を持つ Color Style」の検出に作り直す必要がある
 - [ ] 未決5 **tokens.json でのエイリアス表現** — 設計書の「エイリアスは解決済みの値に展開する」をやめ、Semantic → Primitives の参照を残すか。残すなら DTCG のエイリアス構文をそのまま使うか独自形式か
 - [ ] 未決6 **tokens.json での3コレクションの出し方** — 現行の E-2 はコレクション構造をそのまま JSON の階層にするため、素直に作ると `Light/` `Dark/` `Base/` の3グループが出る。CC に渡す形として `bg` に light/dark 両方の値を持たせるかを決める
-- [ ] 決まった内容を `docs/telldes-design.md` に反映する
+- [ ] 決まった内容を `docs/design.md` に反映する
 
 **完了条件**:
 - 未決4〜6それぞれに結論と根拠が記録され、設計書に反映されていること
@@ -1033,7 +1034,7 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
 - [ ] 「起動時に dark のまま残っている」の扱い（error ではなく復旧の促し）を記載する
 
 **完了条件**:
-- 上記4点が `docs/telldes-design.md` に記載され、ステアリングの「確定:」2節が設計書を指すだけの状態になっていること
+- 上記4点が `docs/design.md` に記載され、ステアリングの「確定:」2節が設計書を指すだけの状態になっていること
 - チェック体系の各チェックについて、ダーク対応ファイル／ライトのみファイルでの発火有無が表として設計書にあること
 
 ---
