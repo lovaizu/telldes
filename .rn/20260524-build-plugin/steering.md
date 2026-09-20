@@ -1138,11 +1138,11 @@ State
 
 （`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
 
-* **Status**: paused
-* **Date**: 2026-09-20
-* **Last completed**: D-0 実機検証完了（結果: OK、2件ともダーク対応方式の前提が成立）。D-1 の未決1（タイポグラフィの源泉→Text Styleのまま）・未決2（Setupモード新設→Yes、定義はハードコードせず専用定義ファイル）を確定（`ef8ca70`〜`528042e`）。ついでに Review/Notes/Export の完了メッセージに benefit＋次アクションを追記、README.md の用語と整合確認済み（`51d5b98`）。Setup実装時の完了メッセージも先取りで記録済み（`9fc4337`）
-* **Next**: 未決3（最小セット・命名規則。33個案の採用可否、D-0で確定した3コレクション方式との整合）をユーザーに1件提示するところから再開する。未決3まで決まったら「決まった内容を docs/design.md に反映する」（D-1最後の未チェック項目）へ。その後 D-2（未決4〜6）→ D-3 → D-4
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。未決は1件ずつ出す運用を継続中（作業ルール参照）
+* **Status**: not suspended
+* **Date**: YYYY-MM-DD
+* **Last completed**: #N description
+* **Next**: #N description
+* **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
 
 ---
 
