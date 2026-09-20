@@ -1150,11 +1150,11 @@ State
 
 （`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
 
-* **Status**: paused
-* **Date**: 2026-09-20
-* **Last completed**: D-1（未決1〜3）と D-2（未決4〜6）が全て決着し `docs/design.md` に反映済み（`12948c5` `9266419` `77fe992`）。未決3＝プリセット32個・1層構成・`/`階層命名、未決4＝グラデーション/複数fillのみColor Styleを正式源泉に（Effect Styleも同扱い）、未決5＝変更なし、未決6＝tokens.jsonはトークン名を最上位キーにしlight/darkをペアで持つ
-* **Next**: D-3 に着手する。ユーザー承認済み（「OKなので再開後に進めて」2026-09-20）なので再確認は不要。ステアリングにしかない確定内容（「1フレーム＋トグル」方式・3コレクション、チェック体系の原則3つ、書き出し手順、起動時dark残りの扱い）と、今セッションの実データ検証で見つかった導出ルール2件（コンテナ中央寄せ、角丸full）を `docs/design.md` に書く。その後 D-4（設計レビュー＋Ph-9実装タスク定義）
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1。未解決の未追跡ファイル: `?? .DS_Store`（OS 生成物。gitignore に追記するか削除するかユーザー未回答）。D-3 の角丸 `full` ルールは Figma 実機での挙動確認（短辺の半分を超える radius の扱い）が済むまで確定させないこと
+* **Status**: —
+* **Date**: —
+* **Last completed**: —
+* **Next**: —
+* **Notes**: —
 
 ---
 
