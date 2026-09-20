@@ -748,6 +748,7 @@ Ph-8: 実使用フィードバック対応
 - [ ] `strokeStyleId` に束縛された Color Style を検出する（現状 `fillStyleId` のみ）
 - [ ] インスタンスの component properties 経由（`instance.componentProperties[k].boundVariables.value`）で束縛された STRING Variable を検出する
 - [ ] 同名 Variable が別コレクションに存在し `tokens.json` で相互に上書きされる件を検出する
+- [ ] 書き出し対象外レイヤー（書き出し対象 `FRAME`/`SECTION` 配下に無いノード）に付いた note を検出し、レイヤーパスと note 本文を README の除外物に記録する（U-2 N-7 で設計書 4.7.2 に追記済み。Notes 一覧には出るのに CC に届かない黙殺を塞ぐ）
 - [ ] テスト作成
 - [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/U-3.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
@@ -755,6 +756,7 @@ Ph-8: 実使用フィードバック対応
 **完了条件**:
 - ページ直下の `FRAME`・`SECTION` 以外のノードが書き出しから落ちる場合、`README.md` の除外物セクションに該当レイヤーが記録されること
 - `strokeStyleId` に Color Style を束縛したレイヤーが Color Style 使用として記録されること
+- 書き出し対象外レイヤーに付いた note が、レイヤーパスと本文つきで除外物に記録されること
 - component properties 経由で束縛された STRING Variable が記録されること
 - 別コレクションの同名 Variable が `tokens.json` で衝突する場合に記録されること
 - 検出ゼロの項目については `README.md` に該当行が出力されないこと
