@@ -247,8 +247,13 @@ const App: Component = () => {
             <Show when={hasRun()}>
               <Show
                 when={results().length > 0}
-                fallback={<div class="pass">All checks passed</div>}
+                fallback={
+                  <div class="pass">
+                    All checks passed — this file is ready to export.
+                  </div>
+                }
               >
+                <div class="section-hint">Fix these before exporting.</div>
                 <For each={groupResultsByLevel(results())}>
                   {(group) => (
                     <>
@@ -306,7 +311,9 @@ const App: Component = () => {
                       Save
                     </button>
                     <Show when={noteSaved()}>
-                      <span class="note-saved">Saved</span>
+                      <span class="note-saved">
+                        Saved — this will be included in the export.
+                      </span>
                     </Show>
                   </div>
                 </>
@@ -340,7 +347,10 @@ const App: Component = () => {
               <div class="export-error">{exportError()}</div>
             </Show>
             <Show when={exportDone()}>
-              <div class="pass">Export complete — zip downloaded</div>
+              <div class="pass">
+                Export complete — hand the zip to CC. It includes prompt.md
+                and steering.md to get it started.
+              </div>
             </Show>
           </div>
         )}
@@ -423,6 +433,11 @@ const App: Component = () => {
           color: #1bc47d;
           font-weight: 600;
           font-size: 13px;
+        }
+        .section-hint {
+          margin-top: 12px;
+          font-size: 11px;
+          color: #666;
         }
         .section-label {
           margin-top: 12px;
