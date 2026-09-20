@@ -37,20 +37,21 @@ describe("exportAssets", () => {
     });
   });
 
-  it("exports vector nodes as SVG via SVG_STRING", async () => {
+  // SVG_STRING would need a TextEncoder, which the plugin sandbox lacks.
+  it("exports vector nodes as SVG bytes, never as a string", async () => {
     const icon = makeNode({
       name: "arrow",
       type: "VECTOR",
       children: undefined,
-      exportAsync: vi.fn().mockResolvedValue("<svg></svg>"),
+      exportAsync: vi.fn().mockResolvedValue(new Uint8Array([60, 115, 118])),
     });
     delete (icon as any).children;
     const root = makeNode({ children: [icon] });
     const results = await exportAssets(root);
     expect(results).toHaveLength(1);
     expect(results[0].path).toBe("assets/icons/arrow.svg");
-    expect(icon.exportAsync).toHaveBeenCalledWith({ format: "SVG_STRING" });
-    expect(new TextDecoder().decode(results[0].data)).toBe("<svg></svg>");
+    expect(icon.exportAsync).toHaveBeenCalledWith({ format: "SVG" });
+    expect(results[0].data).toBeInstanceOf(Uint8Array);
   });
 
   it("does not render a container frame as a raster (no baked-in children)", async () => {

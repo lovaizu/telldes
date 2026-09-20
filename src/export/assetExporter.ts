@@ -73,11 +73,10 @@ async function processNode(
         });
       }
     } else if (isVectorNode(node)) {
-      const svg = await (node as ExportMixin).exportAsync({ format: "SVG_STRING" });
-      results.push({
-        path: `assets/icons/${fileName}.svg`,
-        data: new TextEncoder().encode(svg),
-      });
+      // SVG (not SVG_STRING): the plugin sandbox has no TextEncoder, so take the
+      // bytes Figma already encodes rather than encoding a string ourselves.
+      const data = await (node as ExportMixin).exportAsync({ format: "SVG" });
+      results.push({ path: `assets/icons/${fileName}.svg`, data });
     }
   } catch (err) {
     throw new Error(`Failed to export asset "${path}": ${err}`);
