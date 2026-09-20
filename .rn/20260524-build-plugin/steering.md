@@ -1093,9 +1093,11 @@ Ph-9 は「設計書を最新化 → 実装 → 試行」の**設計書を最新
   - **根拠**: `@figma/plugin-typings`で実装を確認（`node_modules/@figma/plugin-typings/plugin-api.d.ts`）。`GradientPaint.gradientStops: ColorStop[]`の各`ColorStop.boundVariables?: { color?: VariableAlias }`で、各stopの色を個別にVariableへバインドできる。これはFigma公式の立場「値の組み合わせはStyle、Styleの中身はVariablesを指す」の実装そのもので、未決1でText Styleに適用した論理（複合的な見た目はStyle、個々の単一値プロパティはVariable参照可）と同じ形。stopの色がVariableにバインドされていればそのトークン名を、されていなければ解決済み値をそのまま出力する
   - **Effect Style（影）も同じ扱いに揃える**（D-3の原則1の表がこの結論に依存するため、ここで一緒に決める）: `VariableBindableEffectField`で`color`/`radius`/`spread`/`offsetX`/`offsetY`が個別にVariableバインド可能なことを確認済み。Effect Styleは複合的な見た目としての源泉のまま、個々のフィールドがVariableを指していればそのトークン名を出力する
   - `docs/design.md` 4.3.4に反映済み。G-3・U-1の「Color Style使用」検出ロジックの作り直し（単色/複合の判定分岐）は実装タスクとしてD-4以降に定義する
-- [ ] 未決5 **tokens.json でのエイリアス表現** — 設計書の「エイリアスは解決済みの値に展開する」をやめ、Semantic → Primitives の参照を残すか。残すなら DTCG のエイリアス構文をそのまま使うか独自形式か
-- [ ] 未決6 **tokens.json での3コレクションの出し方** — 現行の E-2 はコレクション構造をそのまま JSON の階層にするため、素直に作ると `Light/` `Dark/` `Base/` の3グループが出る。CC に渡す形として `bg` に light/dark 両方の値を持たせるかを決める
-- [ ] 決まった内容を `docs/design.md` に反映する
+- [x] 未決5 **tokens.json でのエイリアス表現** — **結論: 現行の記載「エイリアスは解決済みの値に展開する」を維持し、変更なし。** 未決3で1層構成（Primitives/Semanticの参照関係を作らない）に決めたため、telldesが生成する32個のトークンにエイリアスは存在せず、論点の前提が消えている。デザイナーが独自にVariable同士のエイリアスを作った場合も、既存の解決済み値展開（循環参照ガード実装済み）で対応でき、CCへの出力精度に影響しない。design.mdへの変更は不要
+- [x] 未決6 **tokens.json での3コレクションの出し方** — **結論: コレクション名でグループ化しない。トークン名を最上位キーにし、色トークンは`$value`にlight/darkのペアを持たせる**（`{"bg": {"$type":"color","$value":{"light":"#FFFFFF","dark":"#1A1A1A"}}}`）。Base（間隔・角丸・書体等）はテーマで値が変わらないので単一値のまま
+  - **根拠**: コレクション名でグループ化すると（`{"Light":{"bg":...},"Dark":{"bg":...}}`）、CCが「Light.bgとDark.bgは同じトークンの2つの値」と認識できず、無関係な2つの変数として誤って出力しかねない。出力精度が最優先という基本方針に反する。トークン名を最上位キーにすれば、CCは`$value`がlight/darkのオブジェクトかどうかだけを見て機械的に`:root`/`[data-theme="dark"]`の出し分けを判断できる
+  - `docs/design.md` 4.5.1に反映済み
+- [x] 決まった内容を `docs/design.md` に反映する
 
 **完了条件**:
 - 未決4〜6それぞれに結論と根拠が記録され、設計書に反映されていること
