@@ -89,13 +89,15 @@ minWidth/maxWidth/minHeight/maxHeight は同じく一意に対応するため許
 |---|---|---|
 | **Variables（COLOR）** | カラー | `tokens.json` に named token として出力 |
 | **Variables（FLOAT/number）** | スペーシング・サイズ等の数値 | `tokens.json` に named token として出力 |
-| **Variables（STRING）のうち書体名** | font-family | `tokens.json` に named token として出力（`$type: "fontFamily"`） |
+| **Variables（STRING）のうち書体用にスコープを絞ったもの** | font-family | `tokens.json` に named token として出力（`$type: "fontFamily"`） |
 | **Text Style** | タイポグラフィ（font-family/size/weight/line-height） | named typography token として出力し、spec から参照 |
 | **Color Style（グラデーション・複数fill）** | カラー（単色に展開できないもの） | named token として `tokens.json` に出力し、spec から参照 |
 | Color Style（単色） | カラー | 非推奨。トークン源泉として扱わず、使用時は書き出し時のREADMEに除外物として記録（Figma本体もVariables推奨） |
-| Variables（BOOLEAN）、書体名以外の Variables（STRING） | — | トークン対象外。使用時は書き出し時のREADMEに除外物として記録 |
+| Variables（BOOLEAN）、それ以外の Variables（STRING） | — | トークン対象外。使用時は書き出し時のREADMEに除外物として記録 |
 
-**書体も `tokens.json` に出す。** 色・余白・角丸・文字サイズ・影はどれも「解決済み値＋`*Token`」で出て CC は `var(--…)` で書けるのに、書体だけ生の文字列になるのは原則B「形が揃っている」を崩す特別扱いであり、telldes 自身が Setup で作ったもの（`font/heading` 等）を自分で「拾えませんでした」と告知する形にもなる。Figma 公式も String Variable の適用先に font-family を挙げており、W3C DTCG にも `fontFamily` 型があるので、公式の作法の範囲に収まる（原則A）。デザイナーが独自に作った STRING Variable のうち書体名以外のもの（テキストの中身・バリアント切り替え等）と BOOLEAN Variable は、対応する CSS の受け皿が無いため引き続き対象外・告知対象とする。書体かどうかは Variable の `scopes`（Figma が持つ「どのプロパティに適用できるか」の宣言）に `FONT_FAMILY` ないし `ALL_SCOPES` を含むかで判別する。変数名から当てにいかないのは原則B「推測させない」による。
+**書体も `tokens.json` に出す。** 色・余白・角丸・文字サイズ・影はどれも「解決済み値＋`*Token`」で出て CC は `var(--…)` で書けるのに、書体だけ生の文字列になるのは原則B「形が揃っている」を崩す特別扱いであり、telldes 自身が Setup で作ったもの（`font/heading` 等）を自分で「拾えませんでした」と告知する形にもなる。Figma 公式も String Variable の適用先に font-family を挙げており、W3C DTCG にも `fontFamily` 型があるので、公式の作法の範囲に収まる（原則A）。デザイナーが独自に作った STRING Variable のうち書体でないもの（テキストの中身・バリアント切り替え等）と BOOLEAN Variable は、対応する CSS の受け皿が無いため引き続き対象外・告知対象とする。
+
+**書体かどうかは Variable の `scopes` で決める — `FONT_FAMILY` を含み、かつ `ALL_SCOPES` を含まないもの**、すなわちデザイナーが Figma の変数パネルで書体用だと絞ったものだけを書体として扱う。`scopes` は変数ピッカーにどのフィールドで出すかの絞り込みで、新規作成した Variable は既定で `ALL_SCOPES`（＝絞っていない）である。`ALL_SCOPES` を書体の印にすると、テキストの中身の差し替え用に作った STRING Variable まで書体として `tokens.json` に出てしまう。既定値のままは宣言ではない（原則B「推測させない」）。変数名から当てにいかないのも同じ理由。絞っていない STRING Variable は対象外のまま除外物として README に載る（4.7.2）ので、拾われなかったことは黙って落ちず、スコープを絞れば拾われるという手がかりが届く（原則B「欠けていると分かる」）。**Setup が生成する `font/heading` / `font/body` / `font/accent` には `scopes: ["FONT_FAMILY"]` を設定する。** 書体がトークンとして出ることはこのスコープ設定に依存する。
 
 カラーは **単色は Variables に一本化**する。Color Style はグラデーション・複数fillのように単色に展開できないものに限り正式な源泉として扱う。Variable の COLOR 型は単色しか持てないため、グラデーションは Color Style 以外に表現手段がない（Figma本体も「値の組み合わせは Style、Style の中身は Variables を指す」という立場を取っており、実際 `GradientPaint.gradientStops[].boundVariables` で各stopの色を個別に Variable へバインドできる）。したがって、グラデーション・複数fillの Color Style を使用している場合は、各stopの色がVariableにバインドされていればそのトークン名を、されていなければ解決済みの値をそのまま `tokens.json` / `spec.json` に出力する。**ただしダークモード対応が ON のファイルでは、stop の色の未バインドは影の色と同じく error とする**（4.7.2）。telldes は stop の色も Light ⇄ Dark で差し替えるため（4.3.9）、バインドされていない stop だけがライトの色のまま取り残され、`screenshots-dark/` が実物と食い違う。単色なのに Color Style を使っている場合（Variables に一本化できるのにしていない場合）は、引き続き除外物としてREADMEで告知する（4.7.2）。
 
@@ -230,7 +232,7 @@ zip に入るもの（4.5〜4.6、4.8）と、CC に何を届けるかの判断�
 telldes-export/
 ├── prompt.md          ← CCプロンプト（自動生成）
 ├── steering.md        ← 確認・タスク・ルール（テンプレート）
-├── tokens.json        ← デザイントークン（対応Variables（COLOR/FLOAT/書体名のSTRING）またはText Styleが定義されている場合のみ）
+├── tokens.json        ← デザイントークン（対応Variables（COLOR/FLOAT/書体のSTRING）またはText Styleが定義されている場合のみ）
 ├── README.md          ← zip内容の説明＋今回の書き出しの除外物（4.7.2）
 ├── site/              ← favicon・OG画像（Export設定で指定された場合のみ。4.5.3）
 ├── {フレーム名}/       ← トップレベルフレームごとにフォルダ
@@ -249,7 +251,7 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
 
 #### 4.5.1 tokens.json
 
-対応Variables（COLOR / FLOAT / 書体名の STRING。判別と対象外の範囲は 4.3.4）またはText Styleのいずれかが定義されている場合のみ出力。どちらも未定義の場合は`tokens.json`自体を出力しない。W3C Design Tokens Community Groupの仕様に準拠。
+対応Variables（COLOR / FLOAT / 書体の STRING。判別と対象外の範囲は 4.3.4）またはText Styleのいずれかが定義されている場合のみ出力。どちらも未定義の場合は`tokens.json`自体を出力しない。W3C Design Tokens Community Groupの仕様に準拠。
 
 ```json
 {
@@ -294,7 +296,7 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
 }
 ```
 
-Variablesの構造をそのままJSON化する。デザイナーの命名がそのままトークン名になる。`$type` は Variable の型から決まり、COLOR は `color`、FLOAT は `number`、書体名の STRING は `fontFamily`（W3C DTCG の型名）になる。書体も他と同じ「トークン名＋値」で出るので、CC は font-family も `var(--…)` で書ける（原則B「形が揃っている」）。
+Variablesの構造をそのままJSON化する。デザイナーの命名がそのままトークン名になる。`$type` は Variable の型から決まり、COLOR は `color`、FLOAT は `number`、書体の STRING は `fontFamily`（W3C DTCG の型名）になる。書体も他と同じ「トークン名＋値」で出るので、CC は font-family も `var(--…)` で書ける（原則B「形が揃っている」）。
 
 `typography` グループは Text Style から出力する（4.3.4「Text Style は named typography token として出力し、spec から参照」）。Variables ではなく Text Style が源泉である点が color/spacing と異なるが、`tokens.json` 上のトークンとしての扱いは同じ。`$type` は `"typography"`、`$value` は `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` を持つ複合値（W3C DTCG の composite token 形式）とする。トークン名（上記例の `heading-md`）は Text Style 名をそのまま用いる。命名は自由だが、4.3.4 の推奨トークン体系（`display` / `heading-lg` / `heading-md` / `heading-sm` / `lead` / `body` / `label` / `caption`）に従うことを推奨する。
 
@@ -668,7 +670,7 @@ Reviewが報告するのはエラーのみとする。エラーは書き出し�
 
 **書き出し時の除外物告知（README出力）:** 上記(2)。ツールが対象外にするもの（＝デザイナーに直す義務はないが、黙って捨ててはいけないもの）は、Reviewではなく書き出し時に検出し、zip内 `README.md` の「Not included in this export」セクションに**実際に検出された項目のみ**を対象レイヤーパス（トークン名の衝突はトークン名、noteはレイヤーパスと本文）付きで記録する。検出ゼロの項目は行を出さない。「予測できない動き」を防ぐ基本姿勢（4.3.4）と原則B「欠けていると分かる」を、Reviewのノイズではなく書き出し結果の事実記録として担保する。
 - **単色の** Color Styleを使用 → カラーはVariablesに一本化するためトークン化されない（4.3.4。グラデーション・複数fillのColor Styleは正式な源泉なので告知しない）。**Color Styleごとに1件**、使用レイヤー数と代表レイヤーパス（最大3件）を列挙する。1つのテキストノード内で複数のColor Styleが混在する場合（`fillStyleId === figma.mixed`）は単一のidに解決できないため、その旨を示す名前の1件にまとめる
-- BOOLEAN Variable、または書体名以外の STRING Variable を使用 → トークン出力対象外（4.3.4。書体名の STRING は源泉なので告知しない）。**Variableごとに1件**、Variable名・使用レイヤー数・代表レイヤーパス（最大3件）を列挙する
+- BOOLEAN Variable、または書体として扱われない STRING Variable を使用 → トークン出力対象外（判別は 4.3.4。書体は源泉なので告知しない）。**Variableごとに1件**、Variable名・使用レイヤー数・代表レイヤーパス（最大3件）を列挙する
 - ページ直下に裸で置かれたComponent/Component Set定義 → 書き出し対象外（4.7.4の範囲方針）。該当レイヤーと、画面フレーム内にインスタンスとして配置するか、ライブラリページへ移す旨を記録する
 - Variableのフルパスが `typography/<name>` に一致し、同名のText Styleが存在（tokens.jsonの`typography`グループで衝突し、後に書き出されるText Style側が上書きする。4.5.1） → 衝突したトークン名の組を記録する
 - 書き出し対象外のレイヤーに付いたnote → noteは `spec.json` の `note` としてしかCCに届かず（4.5.2）、`spec.json` は書き出し対象フレーム配下しか持たないため、対象外のレイヤーに付いたnoteは `spec.json` には現れない（CCがスペックとして読む場所には届かない）。一方、Notesタブの一覧はページ全体を走査するため（4.7.3）そのnoteは一覧には出る。「一覧に出ている＝CCに届く」と読めて届かない状態を防ぐため、レイヤーパスと本文を記録する
@@ -785,7 +787,7 @@ Export タブの並びは上から **設定 → 共通ルール → note 一覧�
 | 再起動ボタン | `node.setRelaunchData({ editNote: '' })` |
 | note一覧の更新 | `figma.on('currentpagechange')`（ページ切り替え時。4.7.3） |
 | Variable取得 | `node.boundVariables`, `figma.variables.getLocalVariables()` |
-| トークン一式の生成（Setup） | `figma.variables.createVariableCollection()`, `variable.setValueForMode()`, `variable.scopes`（Dark は `[]`。4.3.9） |
+| トークン一式の生成（Setup） | `figma.variables.createVariableCollection()`, `variable.setValueForMode()`, `variable.scopes`（書体は `["FONT_FAMILY"]`。4.3.4。Dark は `[]`。4.3.9） |
 | テーマの付け替え | `node.setBoundVariable()`, `figma.variables.setBoundVariableForPaint()`, `figma.variables.setBoundVariableForEffect()`（戻り値で Paint / Effect の配列を作り直して再代入する。4.3.9） |
 | 付け替え対象のスタイル列挙 | `figma.getLocalPaintStylesAsync()`, `figma.getLocalEffectStylesAsync()`（4.3.9 の対象(2)） |
 | Export設定の保存 | `figma.root.setPluginData()` / `getPluginData()`（4.7.4.3） |
