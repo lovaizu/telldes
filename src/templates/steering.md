@@ -4,18 +4,17 @@
 
 Before coding, fill in each item. Items marked `[auto]` can be determined from spec.json and notes. Ask the user about items marked `[ask]`.
 
+Responsive breakpoints, OGP / meta information and page language are **not** asked here — the designer already answered them in `spec.json` under `settings`. Read them from there; do not ask again.
+
 | # | Item | Source | Value |
 |---|---|---|---|
 | 1 | Output format (single HTML / multi-file) | `[ask]` | |
 | 2 | CSS approach (inline style / `<style>` / external CSS) | `[ask]` | |
-| 3 | Responsive (single / desktop+mobile) | `[auto]` from spec structure | |
-| 4 | Viewport width | `[auto]` from spec.json viewport.width | {{VIEWPORT_WIDTH}}px |
-| 5 | Image path base | `[ask]` deployment-dependent | |
-| 6 | Component granularity | `[auto]` from spec.json sections | |
-| 7 | Font loading (Google Fonts / local / system) | `[auto]` from spec.json text.fontFamily | |
-| 8 | Deploy target (static hosting / CMS / etc.) | `[ask]` | |
-| 9 | OGP / meta information | `[ask]` | |
-| 10 | Language / charset | `[ask]` | |
+| 3 | Viewport width | `[auto]` from spec.json viewport.width | {{VIEWPORT_WIDTH}}px |
+| 4 | Image path base | `[ask]` deployment-dependent | |
+| 5 | Component granularity | `[auto]` from spec.json sections | |
+| 6 | Font loading (Google Fonts / local / system) | `[auto]` from spec.json text.fontFamily | |
+| 7 | Deploy target (static hosting / CMS / etc.) | `[ask]` | |
 
 ## Task List
 
@@ -35,7 +34,7 @@ Before coding, fill in each item. Items marked `[auto]` can be determined from s
 - [ ] Layout matches the spec exactly (padding, gap, sizing)
 - [ ] Text content matches spec (characters, fontSize, fontFamily, fontWeight, color)
 - [ ] All images and icons are placed correctly
-- [ ] Responsive behavior works (if applicable)
+- [ ] Responsive behavior matches `settings.responsive` (breakpoints and content width)
 
 ## Rules
 
