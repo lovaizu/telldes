@@ -978,7 +978,11 @@ Ph-9: ダークモード対応とチェック体系の再設計
 
 1. **Notes タブの一覧を残すか、Export に一本化するか** — U-2 は Notes タブに一覧を作る前提で実装ラウンド1 まで進み、4軸とも fail で中断中。Export が依頼書になったことで、note 一覧の主たる置き場所は Export の最下段になった。Notes タブにも残すなら二重実装、寄せるなら U-2 の残タスク（N-1〜N-5・N-10〜N-12）の前提が変わる
 2. **状態8種（default / hover / focus / active / disabled / loading / empty / error）の受け口を Ph-9 に入れるか** — ハンドオフで最も抜けやすいと全出典が指摘する項目だが、telldes には今どこにも受け口が無い。設定でも note でもなく「描く」もの（バリアント）なので、README の制作ルールと Review チェックの話になる。Ph-9 の範囲に入れるか、別フェーズに切るか
-3. **Setup が生成するトークンは32個か、Dark の8色を足した40個か**（D-3 で発覚）。設計書 4.3.4 は「この32個を Setup が一式生成する」と書いているが、その32個の内訳（Color 8 / Spacing 8 / Radius 5 / Font-family 3 / Text Style 6 / Effect Style 2）に Dark の色が入っていない。一方 4.7.2 の原則1は「Setup は3コレクションを一式生成するので Dark は全ファイルに存在する」を判定軸の訂正の根拠にしている。**両方は同時に成り立たない**。Dark を生成しないなら判定軸の訂正の根拠が消え、生成するなら数が合わない。本ステアリングの Setup 完了時メッセージ（D-1 未決2）の「25 variables」も24との食い違いがあり、同じ数の棚卸しで直す
+3. ~~**Setup が生成するトークンは32個か、Dark の8色を足した40個か**~~（D-3 で発覚）→ **決着（2026-09-21）: Dark の8色も一緒に作る。合計40個 ＝ 変数32個 ＋ Style 8個。**
+   - 内訳: Color Light 8 / Color Dark 8 / Spacing 8 / Radius 5 / Font-family 3（＝変数32）＋ Text Style 6 / Effect Style 2（＝Style 8）
+   - **根拠**: ダーク用は `scopes: []` でカラーピッカーから隠れる（4.3.9）ので、ダークを使わない人のファイルでも邪魔にならない。ダークを始めるときは Export 設定を ON にして色を入れるだけで済み、作られるタイミングが1つで済む。4.7.2 原則1 の判定軸の訂正（Setup を実行した全ファイルに Dark がある）の根拠もこれで実在する
+   - **あわせて直す数の食い違い**: Setup 完了時メッセージ（D-1 未決2）の `Created 25 variables and 8 styles` は誤り。正しくは **32 variables and 8 styles**
+   - **あわせて直す 4.3.9 の Base 行**（レビュー #12 の未決に無かった分）: 現在「余白・角丸・書体・文字サイズ」だが、**文字サイズは Text Style であって変数ではない**（D-1 未決1）ので Base には入らない。書体は STRING 変数で、扱いは未決4 の結論に従う
 4. **Font family（Variables STRING、3）を除外物告知から外すか**（D-3 で発覚）。4.3.4 の推奨体系は `font/heading` / `body` / `accent` を STRING Variable として持つが、同節の源泉表と 4.7.2 は「STRING/BOOLEAN Variable → トークン対象外。使用時は README に除外物として記録」としている。Setup がこの3つを全ファイルに作る以上、全ファイルの README に除外物が3件出続ける
 5. **Typography の段階は6個か8個か**（D-3 で発覚）。4.3.4 は6個（display / heading-lg / heading-md / heading-sm / body / caption）、4.5.1 の推奨命名は8個（+ lead / label）で食い違っている
 
