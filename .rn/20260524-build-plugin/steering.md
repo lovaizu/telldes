@@ -1651,11 +1651,11 @@ State
 
 （`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
 
-* **Status**: —
-* **Date**: —
-* **Last completed**: —
-* **Next**: —
-* **Notes**: —
+* **Status**: paused
+* **Date**: 2026-09-22
+* **Last completed**: **D-5 完了＝Ph-9 の「設計書を最新化する段」が終わった。** ①「D-3 で実装者が決めた点」8件をユーザー承認（#3 の複製だけ差し替え）→ `settings` を zip ルートの `settings.json` に1つだけ置く形に（設計書 4.5.4 新設、`e7fa944`）。② **UI を OOUI で組み直した**（`61b0470`、`97e2cc6`）。作業仮説「縦1画面＋見出し」はユーザー指摘「OOUI に従っているか」で破棄 — 箱を変えただけで軸はタスク指向のままだった。オブジェクトは **画面 → レイヤー** と **トークン** の2系統。③ Ph-9 の実装タスク **I-1〜I-9** を定義（`57b3ffd`）。④ 設計レビュー判定 **fail・22件**を全件反映＋triage 記録（`97e2cc6`、`45b950d`）
+* **Next**: **W-1（Ph-9 の実装前提2件を Figma 実機で検証）**。①`radius/full` の Variable 値を `9999` にして短辺がそれより小さい矩形にバインドし、Figma がクランプして丸く描くか壊れるかを見る ②STRING Variable を新規作成して `scopes` の既定値が `["ALL_SCOPES"]` かを Plugin API で読む。**どちらも私の環境から確認できないのでユーザーに実機操作を依頼する**。W-1 が済んだら I-1（Setup）→ I-2（UI の作り直し）の順で実装に入る
+* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1（`45b950d` までプッシュ済み）。未追跡ファイルなし。D-4・D-5 の**4軸レビュー（QA / Craft / Verification）は未実施** — 作業ルールどおりフェーズ完成時（Ph-9 の実装が終わってから）に1回当てる。`git push` はセッション中に一度認証エラーで失敗したが、後から通った
 
 ---
 
