@@ -233,6 +233,7 @@ telldes-export/
 ├── prompt.md          ← CCプロンプト（自動生成）
 ├── steering.md        ← 確認・タスク・ルール（テンプレート）
 ├── tokens.json        ← デザイントークン（対応Variables（COLOR/FLOAT/書体のSTRING）またはText Styleが定義されている場合のみ）
+├── settings.json      ← Export 設定（4群。4.5.4）
 ├── README.md          ← zip内容の説明＋今回の書き出しの除外物（4.7.2）
 ├── site/              ← favicon・OG画像（Export設定で指定された場合のみ。4.5.3）
 ├── {フレーム名}/       ← トップレベルフレームごとにフォルダ
@@ -510,41 +511,6 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 トップレベルフレーム自身の塗りはページ全体の背景（4.3.5）であり子ノードにはならないため、spec.json のトップレベルに `background`（`fills` と同じ形式の配列）として出力する。塗りがない場合はフィールドを省略する。
 
-**settings（Export 設定）**
-
-Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）は、spec.json のトップレベルに `settings` として出力する。
-
-```json
-{
-  "page": "LP - Product Name",
-  "viewport": { "width": 1440 },
-  "settings": {
-    "responsive": [
-      { "minWidth": 0, "frame": "top-mobile", "contentWidth": "100%" },
-      { "minWidth": 1024, "frame": "top", "contentWidth": "1120px" }
-    ],
-    "darkMode": true,
-    "site": {
-      "title": "Product Name",
-      "description": "…",
-      "lang": "ja",
-      "themeColorToken": "color/bg",
-      "themeColor": "#FFFFFF",
-      "favicon": { "svg": "site/favicon.svg", "ico": "site/favicon.ico", "appleTouchIcon": "site/apple-touch-icon.png" },
-      "ogImage": "site/og-image.png",
-      "ogTitle": "…",
-      "ogDescription": "…"
-    },
-    "rules": "…（共通ルールの自由記述）"
-  }
-}
-```
-
-- 設定はファイル単位（4.7.4.3）なので、**全フレームの spec.json に同じ `settings` が載る**。別ファイルに切り出さないのは、フレームフォルダ1つで1ページ分の依頼が完結する形（4.5）を崩さないため。
-- `responsive` の各行は `minWidth`（適用開始幅。`0` は最小幅から適用）・`frame`（その幅で使うフレームのzipフォルダ名。4.5.2の正規化後）・`contentWidth`（固定pxなら `"1120px"`、比率なら `"100%"`）。フレーム名ではなくフォルダ名で持つのは、CC が読むのはzipであってFigmaのレイヤーツリーではないため。
-- `themeColorToken` は Variables から選んだテーマカラーのトークン名。値が light/dark の対かどうかは `tokens.json` を引けば分かるので（4.5.1）、`<meta name="theme-color">` を1つ出すか `media` 付きで2つ出すかを CC が機械的に判断できる。`themeColor` は同じ値の解決済み表現で、`tokens.json` が出力されない場合の退避。
-- `favicon` / `ogImage` は zip ルートからの相対パス（4.5.3）。未指定の群・項目はフィールドごと省略する（該当値が無い場合はフィールドを出さないという 4.5.2.1 の規約どおり）。
-
 **path / ファイル名の一意性**
 
 同一親内に同名の子（レイヤー順序で区別する同名インスタンス等、4.3.6）がある場合、2つ目以降の `path` セグメントとスクリーンショット/アセットのファイル名に `-2`, `-3` … の接尾辞を付けて一意化する。これにより spec.json の参照とファイル名が常に一致する。トップレベルフレーム名が重複する場合も、フォルダ名に同じ規則で接尾辞を付ける。
@@ -554,7 +520,7 @@ Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）は、spec.j
 1. **パス区切り文字の無害化**: 名前に含まれる `/` と `\` を `-` に置換する。置換しないと `Desktop / Home` というフレーム名が zip 内で `Desktop/Home/` という入れ子フォルダを作ってしまい、READMEのパス表記とも食い違う
 2. **前後空白の除去**: `.trim()` を適用する。`" Home "` と `"Home"` は読み手には区別がつかず、別フォルダとして並ぶと突き合わせ不能になる
 3. **空名・ドットのみのフォールバック**: 1〜2の結果が空文字列になる場合、または `.` `..` `...` のようにドットだけになる場合は `frame` を用いる。空のセグメントはフォルダ名にもパス表記にもならず、`.` と `..` は名前ではなくパス操作である（`..` は展開先によっては書き出しルートの外にフォルダを作る）
-4. **重複への `-N` 付与**: 上記を適用した結果が既出の名前と一致する場合、`-2`, `-3` … を付けて一意化する。「既出の名前」の集合には、zipルート直下に置くファイル名 `README.md` / `prompt.md` / `steering.md` / `tokens.json` と、フォルダ名 `site`（4.5.3）をあらかじめ含める。含めないと `README.md` という名のフレームが、同名ファイルの隣に同名フォルダが並ぶzipを作ってしまう。`site` はフォルダ同士なので、同名フォルダが1つにまとまりfaviconとフレームの中身が混ざる。`site` は**実際に `site/` を書き出すかに関わらず予約する** — 予約を設定に依存させると、favicon の指定を外しただけでフレームのフォルダ名が変わる
+4. **重複への `-N` 付与**: 上記を適用した結果が既出の名前と一致する場合、`-2`, `-3` … を付けて一意化する。「既出の名前」の集合には、zipルート直下に置くファイル名 `README.md` / `prompt.md` / `steering.md` / `tokens.json` / `settings.json` と、フォルダ名 `site`（4.5.3）をあらかじめ含める。含めないと `README.md` という名のフレームが、同名ファイルの隣に同名フォルダが並ぶzipを作ってしまう。`site` はフォルダ同士なので、同名フォルダが1つにまとまりfaviconとフレームの中身が混ざる。`site` は**実際に `site/` を書き出すかに関わらず予約する** — 予約を設定に依存させると、favicon の指定を外しただけでフレームのフォルダ名が変わる
 5. **一致判定は大文字小文字を区別しない**: 4の「既出の名前と一致するか」は小文字化して照合する（予約ファイル名との照合も同様）。macOS（APFS既定）とWindowsは `Home` と `home` を同一パスに解決するため、別名として扱うと展開時に片方の `spec.json` がもう片方に黙って上書きされる。ただし**付与後に用いる綴りは元の名前のまま**とし（`Home` と `home` なら `Home` と `home-2`）、フォルダ名からFigma上のレイヤー名を辿れる状態を保つ
 
 **ページ直下の兄弟は、フレームも非フレームも同一のパスで一度に命名する。** すなわち上記1〜5を、ページ直下の全ノードに対して単一の「使用済み名の集合」上で適用する。ただし**書き出し対象のフレーム（`FRAME`／`SECTION`）を先に命名する**。フレームはzipフォルダを所有するため接尾辞なしの名前を保持し、同名の非フレーム側が `-N` を取って譲る。これにより (a) フレームのセグメントはzipフォルダ名と常にバイト一致し、(b) 「フォルダ `Home/` が存在するのに README が `Home` は書き出されていないと述べる」「`A/B` のフレームと `A-B` という名の Component が同一文字列で表示される」といった自己矛盾が原理的に起こらない。これが成り立つのは命名対象がページ直下の全ノードである場合に限られるため、**書き出し対象フレームの決定とこの命名は、同じノード列から一度に解決した1つの値として扱う**（片方を別のノード集合から作れる形にすると、(b)は破れる）。この規約は 4.7.2 の除外物告知におけるレイヤーパス先頭セグメントにもそのまま適用される。
@@ -573,8 +539,40 @@ Export 設定（4.7.4.2）で favicon / OG 画像のフレームが指定され�
 - 仕組みは screenshots / assets（4.4.2、4.3.8）と同じ `node.exportAsync` で、違いは倍率ではなく実寸（`constraint.type: 'WIDTH'`）を指定する点だけ。
 - ICO だけ別扱いなのは、Plugin API の書き出し形式が PNG / JPG / SVG / PDF しかなく ICO が無いため。PNG を包む形で作る（ICO 生成の実装手段は実装タスクで決める）。
 - **ツールは切り抜きも余白の追加もしない。** `WIDTH` 指定は等比縮小なので、縦横比が合わないフレームからは 1200×630 も 180×180 も出ない。どこを捨てて何を足すかはデザインに書かれていない情報であり、決めれば推測になる（4.9）。所定の比率で描くのはデザイナー側のルール（README）。
-- ファイル名は固定。レイヤーパス由来にしない理由は、`<link rel="icon">` や `<meta property="og:image">` が参照する先であり、フレーム名を変えただけで HTML の参照が切れるのを避けるため。この4つは `settings.site` からもパスで参照される（4.5.2.1）。
+- ファイル名は固定。レイヤーパス由来にしない理由は、`<link rel="icon">` や `<meta property="og:image">` が参照する先であり、フレーム名を変えただけで HTML の参照が切れるのを避けるため。この4つは `settings.site` からもパスで参照される（4.5.4）。
 - `site/` は**フレームフォルダの外**に置く。サイト全体に1組しか無いものであり、どれか1つのフレームフォルダに入れると「そのページのアセット」に見える。
+
+#### 4.5.4 settings.json
+
+Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）を zip ルートに出力する。
+
+```json
+{
+  "responsive": [
+    { "minWidth": 0, "frame": "top-mobile", "contentWidth": "100%" },
+    { "minWidth": 1024, "frame": "top", "contentWidth": "1120px" }
+  ],
+  "darkMode": true,
+  "site": {
+    "title": "Product Name",
+    "description": "…",
+    "lang": "ja",
+    "themeColorToken": "color/bg",
+    "themeColor": "#FFFFFF",
+    "favicon": { "svg": "site/favicon.svg", "ico": "site/favicon.ico", "appleTouchIcon": "site/apple-touch-icon.png" },
+    "ogImage": "site/og-image.png",
+    "ogTitle": "…",
+    "ogDescription": "…"
+  },
+  "rules": "…（共通ルールの自由記述）"
+}
+```
+
+- **設定はサイト全体で1つなので、zip ルートに1つだけ置きフレームフォルダには複製しない。** Export は実装への依頼書（4.7.4.1）であり、依頼書の全体条件は1枚目に1回書くもので、ページごとに繰り返す依頼書は無い。設定はファイル単位（4.7.4.3）で、`tokens.json` が既にルート共通なのとも揃う（原則B「1箇所にだけある」）。CC がページごとに設定を取り違えないことは、`prompt.md` が「各ページを作る前にルートの `settings.json` を読む」と手順で指示して担保する（4.8.1）——**手順で解ける問題を出力の形を歪めて解かない**。
+- **設定が1つも入力されていなくても必ず出力する。** `tokens.json`（源泉が無ければ出さない）と異なるのは、こちらが「デザイナーが何を宣言したか」を表すファイルで、無いと CC には「設定していない」のか「telldes が落とした」のかが区別できないため（原則B「欠けていると分かる」）。未指定の群・項目はフィールドごと省略する（4.5.2.1 の規約と同じ）。
+- `responsive` の各行は `minWidth`（適用開始幅。`0` は最小幅から適用）・`frame`（その幅で使うフレームのzipフォルダ名。4.5.2の正規化後）・`contentWidth`（固定pxなら `"1120px"`、比率なら `"100%"`）。フレーム名ではなくフォルダ名で持つのは、CC が読むのはzipであってFigmaのレイヤーツリーではないため。
+- `themeColorToken` は Variables から選んだテーマカラーのトークン名。値が light/dark の対かどうかは `tokens.json` を引けば分かるので（4.5.1）、`<meta name="theme-color">` を1つ出すか `media` 付きで2つ出すかを CC が機械的に判断できる。`themeColor` は同じ値の解決済み表現で、`tokens.json` が出力されない場合の退避。
+- `favicon` / `ogImage` は zip ルートからの相対パス（4.5.3）。`spec.json` の `screenshot` などがフレームフォルダ相対なのとは基準が違うため、`prompt.md` がどちらの基準かを明記する（4.8.1）。
 
 ### 4.6 Auto Layout → CSS flexbox 対応表
 
@@ -753,7 +751,7 @@ telldes は LLM を持たないので質問を動的に作れない。したが�
 - OGタイトル・OG説明が空なら、タイトル・説明文を流用する。同じ文言を2度書かせないため。
 - favicon / OG 画像のフレームは画面と別のページに置かれる（4.7.4）が、ピッカーには出せる。`manifest.json` に `documentAccess: "dynamic-page"` を置いていないため全ページに同期アクセスでき、フレームを列挙するのに `loadAllPagesAsync` は要らない。
 - レスポンシブ設定が何を解くかは 4.9。favicon / OG画像の書き出しは 4.5.3。
-- 設定値が `spec.json` にどう載るかは 4.5.2.1、CC がどう読むかは 4.8.1。
+- 設定値が `settings.json` にどう載るかは 4.5.4、CC がどう読むかは 4.8.1。
 
 **専用欄にするか共通ルールに書かせるかの線引き**: CC が**値としてそのまま使う**ものだけを専用欄にする（メディアクエリの数値、分岐の ON/OFF、`<html lang>`、`<meta>` の中身）。自由記述では書き方がぶれて機械的に読めない。それ以外は共通ルールに文章で書く。この線引きがあれば、項目が増えたときの振り分けに迷わない。
 
@@ -810,7 +808,7 @@ CCへのコーディング指示。エクスポート時にプラグインが自
 **構成:**
 
 1. **概要**: このzipの内容と使い方
-2. **入力データの読み方**: tokens.json、spec.json（`settings` を含む）、screenshots/、screenshots-dark/、assets/、assets-dark/、site/ の説明
+2. **入力データの読み方**: tokens.json、settings.json、spec.json、screenshots/、screenshots-dark/、assets/、assets-dark/、site/ の説明
 3. **最初にやること**: steering.mdを読み、spec.jsonとnoteから埋められる項目を埋める。不明点はユーザーにヒアリングする。steering.mdの合意が取れてからコーディングに入る
 4. **コーディング手順**:
    - tokens.json → CSS変数定義を生成（ある場合）
@@ -824,14 +822,14 @@ CCへのコーディング指示。エクスポート時にプラグインが自
 6. **Auto Layout → CSS flexbox対応表**（4.6節の内容）
 7. **完了時**: steering.mdのチェックリストで自己検証する
 
-**Export 設定（`settings`）の読み方**を prompt.md が指示する。設定の定義は 4.7.4.2、JSON 上の形は 4.5.2.1 が正で、ここは「読んで何をするか」だけを持つ。
+**Export 設定（`settings.json`）の読み方**を prompt.md が指示する。設定の定義は 4.7.4.2、JSON 上の形は 4.5.4 が正で、ここは「読んで何をするか」だけを持つ。**設定は zip ルートに1つだけある**ので、prompt.md は「各ページを作る前にルートの `settings.json` を読む」ことと、`settings.site.favicon` / `ogImage` は zip ルート相対・`spec.json` の `screenshot` やアセットのパスはフレームフォルダ相対であることを手順として書く。
 
 | 設定 | CC がすること |
 |---|---|
-| `settings.responsive` | mobile-first の `min-width` メディアクエリを作る。各行の `frame` フォルダの spec をその幅での構造として使い、`contentWidth` を中身の包み（コンテナ）に適用する（4.9） |
-| `settings.darkMode` | true なら `tokens.json` の light/dark ペアから `:root` と `[data-theme="dark"]` の両方を作る（4.5.1）。false なら単一値だけ |
-| `settings.site` | `<html lang>` / `<title>` / `<meta name="description">` / `<meta name="theme-color">` / `<link rel="icon">` / OG の `<meta>` に値をそのまま入れる |
-| `settings.rules` | ページ全体に効く指示として読む。note（個別。4.3.7）と食い違う場合は note を採る — 狭い方が後から書かれた判断だから |
+| `responsive` | mobile-first の `min-width` メディアクエリを作る。各行の `frame` フォルダの spec をその幅での構造として使い、`contentWidth` を中身の包み（コンテナ）に適用する（4.9） |
+| `darkMode` | true なら `tokens.json` の light/dark ペアから `:root` と `[data-theme="dark"]` の両方を作る（4.5.1）。false なら単一値だけ |
+| `site` | `<html lang>` / `<title>` / `<meta name="description">` / `<meta name="theme-color">` / `<link rel="icon">` / OG の `<meta>` に値をそのまま入れる |
+| `rules` | ページ全体に効く指示として読む。note（個別。4.3.7）と食い違う場合は note を採る — 狭い方が後から書かれた判断だから |
 
 #### 4.8.2 steering.md（確認・タスク・ルール）
 
