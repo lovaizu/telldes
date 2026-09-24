@@ -1653,11 +1653,11 @@ State
 
 （`/rn:dn` が書き、`/rn:up` が読んでこのプレースホルダに戻す。`Status` は中断中のみ `paused`。）
 
-* **Status**: paused
-* **Date**: 2026-09-22
-* **Last completed**: D-5（Ph-9 の設計書最新化が完了）。本セッションでは State の整理のみで、成果物の変更なし
-* **Next**: **W-1（Ph-9 の実装前提2件を Figma 実機で検証）— ユーザーの実機操作待ち**。①`radius/full`=9999 を短辺 80px の矩形にバインドして Figma がクランプするか ②Figma の変数パネルで手作りした STRING Variable の `scopes` 既定値が `["ALL_SCOPES"]` か。検証用プラグイン「W1 probe」の作り方は W-1 の「進捗」に記録済み。W-1 が済んだら I-1（Setup）→ I-2（UI の作り直し）
-* **Notes**: ブランチ `worktree-figma-plugins` / PR https://github.com/lovaizu/telldes/pull/1（`63adad7` までプッシュ済み）。未追跡ファイルなし。D-4・D-5 の4軸レビュー（QA / Craft / Verification）は未実施 — 作業ルールどおり Ph-9 の実装完了時に1回当てる
+* **Status**: -
+* **Date**: -
+* **Last completed**: -
+* **Next**: -
+* **Notes**: -
 
 ---
 
