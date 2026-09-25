@@ -3,6 +3,7 @@ import type { FindingOwner } from "../core/findings";
 import type { FileData } from "../shared/data";
 import { request } from "./bridge";
 import { Detail } from "./Detail";
+import { counted } from "./format";
 import { ariaBool, placeholderTitle, RowMarks } from "./parts";
 import { TASK } from "./placeholders";
 import { ScreenList } from "./ScreenList";
@@ -57,6 +58,12 @@ function Layout() {
           <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")} title="Tokens to export">
             Tokens {ws.handedTokenCount}
             <TabMarks kinds={["token", "value"]} />
+            {/* Setup sits inside this tab, so the tab says so without being opened. */}
+            <Show when={ws.missingTokenCount}>
+              <span class="mark setup-due" title={`Setup has ${counted(ws.missingTokenCount, "token")} to add`}>
+                +{ws.missingTokenCount}
+              </span>
+            </Show>
           </button>
         </div>
         <Show when={ws.state.filter}>
