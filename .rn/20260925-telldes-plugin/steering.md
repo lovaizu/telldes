@@ -302,6 +302,7 @@ Design: docs/design.md
 **Steps**:
 
 - [ ] 画面（上部の操作、トークン・画面・レイヤーの並び）、Setup・Export 設定・Light / Dark、zip の中身に合わせて書き直す
+- [ ] README と設計書の言葉を画面の言葉にそろえる（画面に出る「Frame」を、文書で「画面」と呼んでいるところなど）
 - [ ] 古い記述（3つのタブ、存在しない steering へのリンク、「幅違いはフレーム名で表す」など）を消し、Web ページの組み分けは Export 設定で宣言すると書く
 - [ ] self-check (OK/NG per completion criterion, record in checks/11.md)
 - [ ] QA expert review (subagent)
