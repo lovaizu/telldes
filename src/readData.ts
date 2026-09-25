@@ -41,8 +41,10 @@ export interface ReadData {
    */
   images: ReadImage[];
   /**
-   * The frames the settings point at by id (favicon / OG image) that are not
-   * on the current page and so not in `nodes` (4.7.4). One entry per id.
+   * The frames the settings point at by id — favicon, OG image, each
+   * responsive row — that are not on the current page and so not in `nodes`
+   * (4.7.4). One entry per id. Ids on the current page are left out only
+   * because `nodes` already has them.
    */
   otherFrames: OtherFrame[];
 }
@@ -237,7 +239,25 @@ export type ReadImage =
   | { imageHash: string; found: false };
 
 export type OtherFrame =
-  | { id: string; found: true; name: string }
+  | {
+      id: string;
+      found: true;
+      name: string;
+      /** Figma's node type; the id may name something that is not a frame. */
+      type: NodeType;
+      /**
+       * A hidden frame counts as missing (4.7.4); ② decides that, not ①.
+       * Absent when the node has no `visible` (a page or the document).
+       */
+      visible?: boolean;
+      /**
+       * The page the node is on, so ② can tell "moved to another page"
+       * from "deleted" when it reports a broken reference (4.7.4.3).
+       * `null` for the document itself, which is on no page.
+       */
+      pageId: string | null;
+      pageName: string | null;
+    }
   /** No node has this id any more (4.7.4.3: kept, and reported by ②). */
   | { id: string; found: false };
 
@@ -245,12 +265,26 @@ export type Theme = "light" | "dark";
 
 /**
  * The Export settings as stored in the file (the four groups of 4.7.4.2,
- * written out as settings.json by 4.5.4). A field is absent when the designer
- * has not entered it. Frames and the theme color are stored by id, not by
- * name, so a rename does not silently break the reference (4.7.4.3).
+ * written out as settings.json by 4.5.4). Frames and the theme color are
+ * stored by id, not by name, so a rename does not silently break the
+ * reference (4.7.4.3).
+ *
+ * Absent is the only "not entered" for a text field: the writer omits the
+ * field rather than store "", the same rule settings.json follows (4.5.4).
+ * The doc does not say how the stored settings spell it; this is the
+ * contract chosen here, so the writer and ② cannot read one blank two ways.
  */
 export interface ExportSettings {
+  /**
+   * Absent or `[]`: no breakpoints — each frame is one width and no media
+   * queries are made (4.9).
+   */
   responsive?: ResponsiveRow[];
+  /**
+   * Absent means OFF. The doc gives only ON / OFF (4.7.4.2); OFF as the
+   * default is the contract chosen here, because ON turns on the theme
+   * checks (4.7.2), which only a designer's choice should do.
+   */
   darkMode?: boolean;
   site?: SiteSettings;
   /** The shared rules, free text. */
@@ -271,9 +305,9 @@ export interface SiteSettings {
   title?: string;
   description?: string;
   lang?: string;
-  /** When absent, the title is used (4.7.4.2). */
+  /** When absent (the doc's "empty"), the title is used (4.7.4.2). */
   ogTitle?: string;
-  /** When absent, the description is used (4.7.4.2). */
+  /** When absent (the doc's "empty"), the description is used (4.7.4.2). */
   ogDescription?: string;
   faviconFrameId?: string;
   ogImageFrameId?: string;

@@ -1,7 +1,8 @@
 import type { ExportSettings, OtherFrame, Theme } from "../readData";
 
-// What telldes keeps in the file itself, by plugin data key. The writers
-// (the note UI, the Export settings, the theme switch) use the same keys.
+// What telldes keeps in the file itself, by plugin data key. These are the
+// keys the writers (the Export settings UI, the theme switch) must use; the
+// existing note code writes the same "note" literal.
 
 /** On a node: the designer's note, plain text (4.3.7). */
 export const NOTE_KEY = "note";
@@ -38,16 +39,21 @@ export function readTheme(): Theme {
 }
 
 /**
- * The favicon / OG image frames live on another page by rule (4.7.4), so
- * `nodes` does not have them; their names come from here instead.
+ * Every frame the settings point at — favicon, OG image, each responsive
+ * row's frame — that is not on the current page (`nodes` has those). The
+ * favicon / OG image frames live on another page by rule (4.7.4); a
+ * responsive row lands here when its frame was moved off this page. What
+ * the frame's page and visibility mean is for ② to decide.
  */
 export async function readOtherFrames(
   settings: ExportSettings | null,
   page: PageNode,
 ): Promise<OtherFrame[]> {
-  const ids = [settings?.site?.faviconFrameId, settings?.site?.ogImageFrameId].filter(
-    (id): id is string => id !== undefined,
-  );
+  const ids = [
+    settings?.site?.faviconFrameId,
+    settings?.site?.ogImageFrameId,
+    ...(settings?.responsive ?? []).map((row) => row.frameId),
+  ].filter((id): id is string => id !== undefined);
   const frames: OtherFrame[] = [];
   for (const id of new Set(ids)) {
     const node = await figma.getNodeByIdAsync(id);
@@ -55,15 +61,24 @@ export async function readOtherFrames(
       frames.push({ id, found: false });
       continue;
     }
+    const nodePage = pageOf(node);
     // By id: Figma does not promise the same wrapper object twice.
-    if (pageIdOf(node) === page.id) continue;
-    frames.push({ id, found: true, name: node.name });
+    if (nodePage?.id === page.id) continue;
+    frames.push({
+      id,
+      found: true,
+      name: node.name,
+      type: node.type,
+      ...("visible" in node ? { visible: node.visible } : {}),
+      pageId: nodePage ? nodePage.id : null,
+      pageName: nodePage ? nodePage.name : null,
+    });
   }
   return frames;
 }
 
-function pageIdOf(node: BaseNode): string | null {
+function pageOf(node: BaseNode): PageNode | null {
   let current: BaseNode | null = node;
   while (current && current.type !== "PAGE") current = current.parent;
-  return current ? current.id : null;
+  return current as PageNode | null;
 }
