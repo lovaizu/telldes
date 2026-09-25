@@ -43,8 +43,8 @@ Design: docs/design.md
 - commit and push every change; one completion marker per task
 - 設計書に無い作り方は、目的（CC がカンプと一致するコードを書ける正確な出力）と設計書の原則から自分で決める。README・実装から読めない理由だけを設計書に書き、報告で伝える。ユーザーに聞くのは目的・意図が不明なときだけ
 - 機能はボタンと同じ名前（Setup / Review / Export / Light・Dark）で呼ぶ
-- 各機能は、#2 の画面の仮の値を本物に差し替え、読み取り・判断・書き込みまで作り切り、実機で試してから次へ進む。画面の形は #3 で承認されたものを保つ
-- テストは #10 まで書かない
+- 各機能は、#2 の画面の仮の値を本物に差し替え、読み取り・判断・書き込みまで作り切り、実機で試してから次へ進む。画面の形は #4 で承認されたものを保つ
+- テストは #11 まで書かない
 - 実機で確かめるためのコードは Telldes に一時的に組み込み、コミットしない。済んだら外してビルドし直す。大文字小文字だけが違うファイル名は付けない
 - レビューの指摘は、目的に効くものだけ直す
 - タスクごとの承認では止まらない。ユーザーの判断が要るのは目的・意図に関わるときだけ
@@ -89,6 +89,7 @@ Design: docs/design.md
 - [x] まだ作っていない機能の結果（Setup で作るもの、違反と知らせ、note、Export 設定、渡らないもの、テーマ）は仮の値で載せ、操作は押せるが Figma に書き込まない。仮の値はこのあとの各機能で本物に差し替える
 - [ ] ユーザーに Figma で触ってもらい、分かりにくいところを直す
   - 1回目の感想（2026-09-25）への直し: 画面の文言を英語にそろえる（README・設計書は日本語のまま）、見た目を Figma 本体に合わせ説明と仮の印を減らす、Export を上部へ移す、上部の error の件数を押すと error のある行だけに絞る。2回目: Light / Dark をファイル名の隣へ（ラベル無し）、上部の右は件数・⟳・Export だけにし Setup はトークンの一覧へ。3回目: ⟳ を「Review」と名前の付いたボタンにし、足りないトークンがあるとき Tokens タブに印を出す
+  - #3 の決定に合わせる: 幅違いのフレームの組み分けを「Same page as」の欄から、Figma の Section で囲む方式に変える（Section 名が Web ページ名）
 - [x] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [x] QA expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium)
@@ -102,7 +103,32 @@ Design: docs/design.md
 - 操作しても Figma のファイルが変わらない。仮の値は仮と分かる形でコードにまとまっていて、各機能のタスクで差し替える場所が決まっている
 - 実物のデータのトークン・画面・レイヤーが一覧に並び、レイヤーを選ぶと Figma でもそのレイヤーが選ばれる
 
-### #3: 画面の承認
+### #3: README と設計書の作り直し
+
+**Purpose**: README と設計書それぞれの目的（誰が、何を知るために読むか）を言葉にし、その目的から2つの文書をゼロから書き直す。
+
+**Prerequisites**: #1
+
+**Steps**:
+
+- [ ] 2つの文書の目的を言葉にし、各文書の冒頭に置く。README は「デザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまで迷わず進める」、設計書は「Telldes を直す人が、変更が目的に合うかを判断できるよう、README と実装から読めない意図と決定を残す」
+- [ ] README を目的から書き直す: 何をするものか → インストール → Figma での作り方（正しく渡るために要ること） → プラグインの画面と操作 → zip の中身と CC への渡し方 → 開発。理由は書かず設計書を指す。Review の error は設計書の原則（出力が壊れるものだけ）から導いたものだけを書く
+- [ ] 設計書を目的から書き直す: 目的・前提・決めたこと（理由と代償）だけ。直した経緯は書かない。未決だった Web ページの組み分けは、Figma の Section で囲む方式（Section 名が Web ページ名。1枚だけの Web ページはフレームのまま）に決めて理由を書く。Telldes 独自の約束を一覧にし、それぞれ公式のやり方で表せない理由を添える
+- [ ] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする。`src/ui/placeholders.ts` のタスク番号を付け替え後の番号に合わせる
+- [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
+- [ ] QA expert review (subagent)
+- [ ] Craft expert review (subagent, per the task's medium)
+- [ ] Verification expert review (subagent, per the task's medium)
+- [ ] Design expert review (subagent)
+
+**Completion criteria**:
+
+- 各文書の冒頭に、その文書の目的（読む人と、答える問い）が書かれ、本文がその目的の範囲に収まっている。README に設計の理由が無く、設計書に使い方の手順が無い
+- README だけを読んで、初めての人がインストールから Export・CC へ渡すまでの手順を追える。書かれた画面・操作・出力が、steering の Acceptance criteria と実装済みの画面の言葉と一致し、まだ作っていない部分は設計で決まっていることだけを書いている
+- 設計書の各決定に理由があり、目的か前提から導けている。直した回数などの経緯が残っていない。Web ページの組み分けの決定と、独自の約束の一覧が書かれている
+- 2つの文書に互いに矛盾する記述が無く、古い記述（3つのタブ、Notes タブ、無い steering へのリンク、フレーム名での対応付け、zip の `steering.md`、Auto Layout 未適用を error にする）が無い
+
+### #4: 画面の承認
 
 **Purpose**: 試作した画面をユーザーに承認してもらい、作り込みの前に形を固める。
 
@@ -116,11 +142,11 @@ Design: docs/design.md
 
 - 試作した画面がユーザーに承認されている
 
-### #4: Setup
+### #5: Setup
 
 **Purpose**: Setup を押すと、推奨の変数・スタイル一式のうち足りないものだけが作られるようにする。
 
-**Prerequisites**: #3
+**Prerequisites**: #4
 
 **Steps**:
 
@@ -128,7 +154,7 @@ Design: docs/design.md
 - [ ] 差を Figma に書き込む窓口を作る（Light・Dark・Base の3コレクション、使える欄の絞り込み、CSS 変数名）
 - [ ] トークンの一覧に Setup を置き、作ったものがその一覧に出るようにする
 - [ ] 空のファイルと、一部を手で作ったファイルで、実機で2回ずつ押して確かめる
-- [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/5.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -140,11 +166,11 @@ Design: docs/design.md
 - 2回目に押しても、変数・スタイル・コレクションが増えない。手で作った同名のものは、値を上書きされず残る
 - 作ったものはトークンの一覧に出る。何も作らなかったときは、そうと分かる
 
-### #5: Review
+### #6: Review
 
 **Purpose**: ページを一度読んだデータから違反と知らせを出し、持ち主の行に並べ、error が残る間は Export できないようにする。
 
-**Prerequisites**: #4
+**Prerequisites**: #5
 
 **Steps**:
 
@@ -154,7 +180,7 @@ Design: docs/design.md
 - [ ] トークン・画面・レイヤーの行に違反と知らせを付けて出し、押すとレイヤーを選ぶ
 - [ ] 開いたときに自動で走らせ、上部の Review に error の件数を出す
 - [ ] 違反を入れたファイルで実機で確かめる
-- [ ] self-check (OK/NG per completion criterion, record in checks/5.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -170,11 +196,11 @@ Design: docs/design.md
 - 違反と知らせは持ち主の行と詳細にだけ出て、Review だけの一覧は無い
 - 読み取りは1回で、判断の部分は Figma の API を呼んでいない
 
-### #6: note
+### #7: note
 
 **Purpose**: レイヤーごとの補足を書いて保存し、持ち主のレイヤーの行とプロパティパネルから開けるようにする。
 
-**Prerequisites**: #5
+**Prerequisites**: #6
 
 **Steps**:
 
@@ -182,7 +208,7 @@ Design: docs/design.md
 - [ ] note の保存先を、Community 公開でプラグイン id（今は仮の `telldes-dev`）が変わっても読めるものにする
 - [ ] レイヤーの詳細で note を読み書きし、レイヤーの一覧の行で note の有無が分かるようにする
 - [ ] 実機で書く・閉じて開き直す・プロパティパネルから開くを確かめる
-- [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -194,11 +220,11 @@ Design: docs/design.md
 - note は Review と同じ読み取りデータに入り、持ち主のレイヤーの行に出る
 - 書きかけの内容が、黙って消えたり別のレイヤーに保存されたりしない
 
-### #7: Export 設定と spec / tokens の書き出し
+### #8: Export 設定と spec / tokens の書き出し
 
 **Purpose**: Export 設定を受け、画面の一覧から zip を書き出し、`tokens.json`・画面ごとの `spec.json`・落としたものを記録した `README.md` を入れる。
 
-**Prerequisites**: #6
+**Prerequisites**: #7
 
 **Steps**:
 
@@ -207,7 +233,7 @@ Design: docs/design.md
 - [ ] 画面の一覧に Export を付け、Review を走らせて error ゼロのときだけ zip を書き出す
 - [ ] Web ページの名前が空・重なりのとき zip のフォルダがぶつからないよう Review で知らせる。一番狭い画面の「切り替える幅」の入れ方を迷わない形にする
 - [ ] 実機で書き出し、中身を読んで確かめる
-- [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -221,18 +247,18 @@ Design: docs/design.md
 - error があると Export が押せない
 - Export 設定がファイルに保存され、開き直しても残る
 
-### #8: Export の画像・アセット・prompt
+### #9: Export の画像・アセット・prompt
 
 **Purpose**: zip に画面・セクション単位の画像、画像アセット、CSS で描けないものの画像、CC への作業指示を入れ、CC に渡せる形にする。
 
-**Prerequisites**: #7
+**Prerequisites**: #8
 
 **Steps**:
 
 - [ ] Figma に画像を書き出させる窓口を作る（スクリーンショット・ラスター・ベクター・CSS で描けないもの）
 - [ ] `prompt.md` を作る（渡すものの読み方、実装の判断は利用者に確かめること）
 - [ ] 実機で書き出し、zip を CC に渡して読み方が伝わるかを1画面で試す
-- [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/9.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -244,11 +270,11 @@ Design: docs/design.md
 - `prompt.md` だけを手がかりに、CC が zip の読み方を迷わず1画面を組める
 - 画像の書き出しに失敗したとき、黙って欠けた zip を出さない
 
-### #9: Light / Dark
+### #10: Light / Dark
 
 **Purpose**: `Light | Dark` の切り替えで変数のつながりを付け替え、ダーク対応 ON のとき Export に両方のテーマを入れる。
 
-**Prerequisites**: #8
+**Prerequisites**: #9
 
 **Steps**:
 
@@ -257,7 +283,7 @@ Design: docs/design.md
 - [ ] ダーク対応 ON の Export で Dark の画像も書き出し、終わったら（失敗しても）Light に戻す
 - [ ] Dark のまま開いたとき戻すよう促す
 - [ ] 実機で切り替え・Export・途中で失敗させる・Dark のまま閉じて開くを確かめる
-- [ ] self-check (OK/NG per completion criterion, record in checks/9.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/10.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -270,18 +296,18 @@ Design: docs/design.md
 - ダーク対応 ON の zip に両テーマの画像が入り、Export 後のファイルは Light
 - Export を途中で失敗させても Light に戻り、Dark で残ったファイルを開くと戻すよう促される
 
-### #10: テスト
+### #11: テスト
 
 **Purpose**: 作った見本から読み取った入力で、判断の部分を正解と丸ごと比べるテストを入れる。
 
-**Prerequisites**: #9
+**Prerequisites**: #10
 
 **Steps**:
 
 - [ ] 作った見本にわざと入れたもの（違反・知らせ・書き出せないもの・テーマ）の一覧を、ここまでの実装に合わせて仕上げる
 - [ ] 作った見本から読み取りデータを取り出し、テストの入力にする
 - [ ] Setup・Review・Export・Light / Dark の判断の結果を、`prompt.md` と一覧に照らした正解と丸ごと比べる
-- [ ] self-check (OK/NG per completion criterion, record in checks/10.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/11.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -293,18 +319,17 @@ Design: docs/design.md
 - 正解は今の出力を写したものではなく、見本にわざと入れたものが1つずつ正解に現れている
 - 判断の部分をわざと1か所壊すと、テストが落ちる
 
-### #11: README の書き直し
+### #12: README の突き合わせ
 
-**Purpose**: README を、新しい画面と流れでデザイナーが迷わず使える内容にする。
+**Purpose**: #3 で書いた README を、できあがった画面と zip に突き合わせ、食い違いを直す。
 
-**Prerequisites**: #10
+**Prerequisites**: #11
 
 **Steps**:
 
-- [ ] 画面（上部の操作、トークン・画面・レイヤーの並び）、Setup・Export 設定・Light / Dark、zip の中身に合わせて書き直す
-- [ ] README と設計書の言葉を画面の言葉にそろえる（画面に出る「Frame」を、文書で「画面」と呼んでいるところなど）
-- [ ] 古い記述（3つのタブ、存在しない steering へのリンク、「幅違いはフレーム名で表す」など）を消し、Web ページの組み分けは Export 設定で宣言すると書く
-- [ ] self-check (OK/NG per completion criterion, record in checks/11.md)
+- [ ] README の手順どおりに実機で操作し、画面・ボタン・Export 設定・zip の中身の記述を実物と突き合わせて直す
+- [ ] README と設計書の言葉を画面の言葉にそろえる
+- [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
 - [ ] Verification expert review (subagent, per the task's medium)
@@ -315,11 +340,11 @@ Design: docs/design.md
 - README に書かれた画面・ボタン・出力が、実物と一致する。設計書と食い違う記述が無い
 - 設計の理由は README に書かず、設計書を指している
 
-### #12: 通し試験
+### #13: 通し試験
 
 **Purpose**: 作った見本とユーザーの LP を最初から最後まで通し、CC が作ったページがカンプと一致することを確かめる。
 
-**Prerequisites**: #11
+**Prerequisites**: #12
 
 **Steps**:
 
@@ -327,7 +352,7 @@ Design: docs/design.md
 - [ ] zip を新しい CC に渡してページを作らせ、スクリーンショットを Export の画像と比べる
 - [ ] 食い違いがあれば原因を特定して直し、やり直す
 - [ ] 一時コード・一時ファイルが残っていないことを確かめる
-- [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
+- [ ] self-check (OK/NG per completion criterion, record in checks/13.md)
 - [ ] QA expert review (subagent)
 - [ ] Verification expert review (subagent, per the task's medium)
 
@@ -337,11 +362,11 @@ Design: docs/design.md
 - 食い違いが残る場合、その原因が「含まれなかったもの」として zip の `README.md` に書かれている
 - 通しの途中で、プラグインがエラーで止まったり、ファイルが Dark のまま残ったりしない
 
-### #13: Evaluation sign-off
+### #14: Evaluation sign-off
 
 **Purpose**: Acceptance criteria の通し結果をユーザーに見せ、承認を得る。
 
-**Prerequisites**: #12
+**Prerequisites**: #13
 
 **Steps**:
 
