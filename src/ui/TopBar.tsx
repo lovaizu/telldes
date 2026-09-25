@@ -1,4 +1,4 @@
-// The whole file's state and the operations on all of it: Light / Dark, Review's counts, and Export,
+// The whole file's state and the operations on all of it: Light / Dark, Review and its counts, and Export,
 // which always writes every Web page. Setup makes tokens, so it sits on the token list instead.
 import type { Finding } from "../core/findings";
 import { counted } from "./format";
@@ -45,15 +45,20 @@ export function TopBar() {
         </div>
       </div>
       <span class="spacer" />
-      <FilterButton severity="error" count={ws.errorCount()} />
-      <FilterButton severity="notice" count={ws.noticeCount()} />
-      {/* Review runs by itself on open, on settings changes and before Export; this is for after fixing something in Figma. */}
-      <button class="icon" title="Review again" aria-label="Review again" onClick={() => ws.runReview()}>
+      {/* Named, not an icon: designers did not find ⟳. It runs by itself too; pressing it is for after fixing something in Figma. */}
+      <button
+        class="review"
+        title="Review runs on open, on settings change and before Export. Click to run it again."
+        onClick={() => ws.runReview()}
+      >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
           <path d="M12.5 8a4.5 4.5 0 1 1-1.32-3.18" stroke-linecap="round" />
           <path d="M11.5 2.5v2.5H9" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
+        Review
       </button>
+      <FilterButton severity="error" count={ws.errorCount()} />
+      <FilterButton severity="notice" count={ws.noticeCount()} />
       <button
         class="primary"
         disabled={ws.screens.length === 0}
