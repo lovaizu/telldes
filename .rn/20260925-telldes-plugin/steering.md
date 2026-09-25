@@ -352,8 +352,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-25
-- **Last completed**: なし（計画のみ）
-- **Next**: #1 土台
-- **Notes**: 計画はユーザーが承認済み（2026-09-25、/rn:dn で「ok なので再開後に進めて」）。/rn:up で #1 から始める。ブランチ `telldes-plugin`、下書きの PR https://github.com/lovaizu/telldes/pull/2
+- **Status**: not suspended
+- **Date**: —
+- **Last completed**: —
+- **Next**: —
+- **Notes**: —
