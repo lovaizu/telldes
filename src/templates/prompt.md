@@ -27,6 +27,8 @@ An LP has a single frame folder (e.g. `lp/`); a multi-page or responsive design 
 ### tokens.json
 W3C Design Tokens format. Each token has `$type` (color, number) and `$value`. Use these to define CSS custom properties.
 
+Every token carries its CSS custom property name in `$extensions["com.github.lovaizu.telldes"].cssVariable` (a typography token has one name per `$value` key). Use exactly that name both to define the property and in `var()`. Do not build names from the token path yourself.
+
 ### spec.json
 Top level: `page`, `viewport.width`, an optional `background` (the frame's own fill, same shape as `fills` — apply to the page/body), and `children`.
 
@@ -46,7 +48,7 @@ Recursive node tree. Each node has:
 - `opacity` — node-level opacity (0–1, when < 1) → CSS `opacity`.
 - `note` — designer annotations (behavior, links, interactions)
 - `screenshot` — reference image path
-- `*Token` fields — token name when a Variable is applied
+- `*Token` fields — token name when a Variable is applied. Find that token in tokens.json (the `/`-separated name is its path) and use its `cssVariable` name
 
 ### screenshots/
 Visual reference for each section and block. Use to verify your output matches the design.
@@ -66,7 +68,7 @@ Visual reference for each section and block. Use to verify your output matches t
 
 Follow this order:
 
-1. **CSS custom properties** — If tokens.json exists, define CSS variables from tokens
+1. **CSS custom properties** — If tokens.json exists, define CSS variables from tokens, using the names in `cssVariable`
 2. **HTML structure** — Build DOM from spec.json hierarchy (section → block → element)
 3. **Layout (CSS flexbox)** — Apply flexbox from layout properties (see mapping table below)
 4. **Visual styles** — Apply fills, text styles, cornerRadius, effects (box-shadow/blur), and opacity from spec

@@ -149,6 +149,8 @@ Setup は各 Variable の `scopes` を次のとおり設定する（Figma 公式
 | font/* | `FONT_FAMILY` |
 | Dark コレクションの全変数 | `[]`（4.3.9） |
 
+Setup は各 Variable の `codeSyntax.WEB` に、名前の `/` を `-` にした `var(--…)` を入れる（`fg/default` → `var(--fg-default)`）。Dev Mode でデザイナーが見る名前と、`tokens.json` で CC が使う CSS 変数名（4.5.1）を同じにするため。
+
 この一式 ― **変数44個（Color Light 14 / Color Dark 14 / Spacing 8 / Radius 5 / Font family 3）＋ Style 11個（Text Style 9 / Effect Style 2）＝ 55個** ― を Setup（4.7.1）がファイルに生成する。Figma Free ではチームライブラリの publish が使えずファイルをまたいで Variables / Style を揃える手段が他に無いため（4.10）、揃えるにはプラグイン自身が作るしかない。生成後の改名・値変更は Figma 純正の Assets パネルで行う（telldes 側に編集UIを持たない）。
 
 **ダーク用の14色も Setup が最初から作る。** Dark コレクションの変数は `scopes: []` でカラーピッカーから隠れるため（4.3.9）、ダーク対応しないファイルに存在してもデザイナーの邪魔にならない。ダークを始めるときは Export 設定を ON にして色を入れるだけで済み、生成のタイミングが1つで済む。4.7.2 原則1 が「Dark コレクションの有無を判定軸にしない」根拠（Setup を実行した全ファイルに Dark がある）も、これで実在する。
@@ -187,7 +189,7 @@ Figma のプラン制限がかかるのは「1コレクションあたりのモ�
 | Dark | 同名の色 | Light と対 |
 | Base | 余白・角丸・書体 | 持たない |
 
-**変数名にテーマを入れない**（`bg-light` にしない）。`tokens.json` がその名前で出ると CSS 変数が `--bg-light` になり、`--bg` が `:root` と `[data-theme="dark"]` で値を変える形（4.5.1）を CC が機械的に作れなくなる。テーマ違いはコレクション名が持つ。
+**変数名にテーマを入れない**（`bg-light` にしない）。`tokens.json` がその名前で出ると CSS 変数名（4.5.1）も `--bg-light` になり、`--bg` が `:root` と `[data-theme="dark"]` で値を変える形（4.5.1）を CC が機械的に作れなくなる。テーマ違いはコレクション名が持つ。
 
 **対を持つのは色だけ**。余白・角丸・書体はテーマで値が変わらないので Base に置く。文字サイズは Text Style（4.3.4）が持つものでコレクションには入らない。二重管理が起きず、付け替えも「バインド中の変数と同名の変数が対のコレクションにあれば差し替える、無ければ触らない」で済み、Base を除外する特別扱いが要らない。
 
@@ -280,27 +282,32 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
   "color": {
     "bg-primary": {
       "$type": "color",
-      "$value": "#3B82F6"
+      "$value": "#3B82F6",
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--color-bg-primary" } }
     },
     "text-primary": {
       "$type": "color",
-      "$value": "#111827"
+      "$value": "#111827",
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--color-text-primary" } }
     }
   },
   "spacing": {
     "section-gap": {
       "$type": "number",
-      "$value": 48
+      "$value": 48,
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--spacing-section-gap" } }
     },
     "content-gap": {
       "$type": "number",
-      "$value": 16
+      "$value": 16,
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--spacing-content-gap" } }
     }
   },
   "font": {
     "heading": {
       "$type": "fontFamily",
-      "$value": "Inter"
+      "$value": "Inter",
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--font-heading" } }
     }
   },
   "typography": {
@@ -312,6 +319,17 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
         "fontWeight": 700,
         "lineHeight": "36px",
         "letterSpacing": "0em"
+      },
+      "$extensions": {
+        "com.github.lovaizu.telldes": {
+          "cssVariable": {
+            "fontFamily": "--heading-md-font-family",
+            "fontSize": "--heading-md-font-size",
+            "fontWeight": "--heading-md-font-weight",
+            "lineHeight": "--heading-md-line-height",
+            "letterSpacing": "--heading-md-letter-spacing"
+          }
+        }
       }
     }
   }
@@ -328,16 +346,30 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 あるトークン名が、別のトークンのグループ接頭辞と一致する場合（例: `color` と `color/primary` が併存）、グループ自身の値は予約キー `$base` に格納する（例: `color.$base` と `color.primary` の両方を保持）。これにより同名の値が失われない。
 
+**CSS 変数名は telldes が決めて、各トークンの `$extensions["com.github.lovaizu.telldes"].cssVariable` に書く。** CC にトークン名から組み立てさせると、組み立て方を CC が推測することになり、デザイナーが Figma の Dev Mode で見ている名前とも食い違いうる（原則B「推測させない」）。CC は `:root` での定義にも `var()` での参照にもこの名前をそのまま使う。置き場所を `$extensions` にするのは、W3C DTCG が道具ごとの追加情報のために用意した欄だからで、キーは他の道具と重ならないよう DTCG が勧める逆ドメイン表記にする。
+
+- **Variable は、`codeSyntax.WEB` に名前があればそれを使う。** Variable をコードでどう書くかを持つ Figma 自身の欄であり、Dev Mode もこれを表示する（原則A）。Figma の作法では WEB の code syntax は `var(--名前)` の形で書くので、その中の `--名前` を取り出す。Setup が作る変数はすべてこれを持つ（4.3.4）
+- **無ければ、Figma 公式の手引きが code syntax の付け方として示すのと同じく、名前の `/` を `-` にして先頭に `--` を付ける**（`fg/default` → `--fg-default`）。Text Style は code syntax を持たないので常にこちらになる
+- ダーク対応ファイルで Light と Dark の対を1つのトークンにする場合（下記）は、Light 側の変数の名前を使う。Dark 側はデザイナーのピッカーに出ず、telldes が差し替えに使う相方だから（4.3.9）
+- 別々のトークンが同じ CSS 変数名になること（`fg/default` と `fg-default`）は確かめない。紛らわしい名前を両方作ったときにしか起きず、まれだから
+- **未決**: `codeSyntax.WEB` に `var(--…)` の形でないもの（`$fg-default` のような別の書き方）が入っている場合の扱い。推奨は「CSS 変数名が書かれていないものとして既定の作り方にする」
+- **未決**: `typography` トークンは値が複合で、CSS 変数1つには収まらない。上の例は推奨案（`$value` の5つのキーごとに名前を書き、名前は Text Style 名から既定の作り方で作った名前に `-font-family` 等を足す）
+
 **ダーク対応ファイル（Light / Dark / Base の3コレクション、4.3.9）の場合**、コレクション名でJSONをグループ化しない。Light・Darkの両コレクションに同名の変数が存在する場合は1つのトークンとして扱い、`$value`を`{ "light": ..., "dark": ... }`の形にする。Baseコレクションの変数（テーマで値が変わらないもの）は単一値のままとする。
 
 ```json
 {
   "bg": {
     "$type": "color",
-    "$value": { "light": "#FFFFFF", "dark": "#1A1A1A" }
+    "$value": { "light": "#FFFFFF", "dark": "#1A1A1A" },
+    "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--bg" } }
   },
   "spacing": {
-    "xs": { "$type": "number", "$value": 4 }
+    "xs": {
+      "$type": "number",
+      "$value": 4,
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--spacing-xs" } }
+    }
   }
 }
 ```
@@ -717,7 +749,7 @@ Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）を zip ル�
 
 本節は3つの異なる出力を定める。(1) **Review（チェック）**: 制作ルール違反を検出し、各違反に改善方法を提示する。Reviewが報告するのはエラーのみで、すべて書き出しのブロッカーである。(2) **書き出し時の除外物告知**: ツールが構造上対象外にするもの ― 違反ではなく、したがって改善方法も持たないもの ― を書き出し時に検出し、zip内 `README.md` に事実として記録する。(3) **付け忘れの知らせ**: 出力は壊れていないが、デザイナーが宣言し忘れたと機械的に分かる箇所を、そのレイヤーのプロパティとして出す（4.7.1）。(1) はデザイナーが直さなければ渡せないもの、(2) は直す義務がないもの、(3) は直すかどうかがデザイナーの判断であるもの。3つは相手も置き場所も違うので混ぜない。
 
-**Review の走査範囲は書き出し対象の範囲**（ページ直下の `FRAME`／`SECTION` とその配下。4.7.4）とする。原則1 の判定軸は「出力が壊れるか」であり、zip に入らないものが壊れていても出力は壊れない。渡さないものを直さないと渡せない、という状態はゲートの趣旨と逆になる。範囲の判定には書き出しと**同じ関数**（`src/export/exportScope.ts` の `isExportedFrame`）を使う。同じ定義を2箇所に持たなければ、Review と zip の対象が黙ってズレることはない。除外物告知のうち Color Style / Variable の使用も既にこの範囲なので（後述）、両者はここで揃う。
+**Review の走査範囲は書き出し対象の範囲**（ページ直下の `FRAME`／`SECTION` とその配下。4.7.4）とする。原則1 の判定軸は「出力が壊れるか」であり、zip に入らないものが壊れていても出力は壊れない。渡さないものを直さないと渡せない、という状態はゲートの趣旨と逆になる。範囲の判定には書き出しと**同じ判定**（②の層に1つだけ置く。4.7.6）を使う。同じ定義を2箇所に持たなければ、Review と zip の対象が黙ってズレることはない。除外物告知のうち Color Style / Variable の使用も既にこの範囲なので（後述）、両者はここで揃う。
 
 **チェックの原則**
 
@@ -907,7 +939,7 @@ telldes は LLM を持たないので質問を動的に作れない。したが�
 | シングルビューの選択追従 | `figma.on('selectionchange')`（4.7.1） |
 | コレクションビューの再構築 | `figma.on('currentpagechange')`（ページ切り替え時。4.7.1・4.7.3） |
 | Variable取得 | `node.boundVariables`, `figma.variables.getLocalVariables()` |
-| トークン一式の生成（Setup） | `figma.variables.createVariableCollection()`, `variable.setValueForMode()`, `variable.scopes`（4.3.4 の表。Dark は `[]`。4.3.9） |
+| トークン一式の生成（Setup） | `figma.variables.createVariableCollection()`, `variable.setValueForMode()`, `variable.scopes`（4.3.4 の表。Dark は `[]`。4.3.9）, `variable.setVariableCodeSyntax('WEB', …)`（4.3.4） |
 | テーマの付け替え | `node.setBoundVariable()`, `figma.variables.setBoundVariableForPaint()`, `figma.variables.setBoundVariableForEffect()`（戻り値で Paint / Effect の配列を作り直して再代入する。4.3.9） |
 | 付け替え対象のスタイル列挙 | `figma.getLocalPaintStylesAsync()`, `figma.getLocalEffectStylesAsync()`（4.3.9 の対象(2)） |
 | Export設定・テーマ状態の保存 | `figma.root.setPluginData()` / `getPluginData()`（4.7.4.3） |
@@ -915,7 +947,104 @@ telldes は LLM を持たないので質問を動的に作れない。したが�
 | favicon / OG画像 | `node.exportAsync` に実寸指定（`constraint: { type: 'WIDTH', value: 180 \| 1200 }`）。4.5.3 |
 | ベクターアセット | `node.exportAsync({ format: 'SVG' })`（`SVG_STRING` は不可 — 文字列をバイト列に戻す `TextEncoder` がプラグインサンドボックスに無い） |
 
-#### 4.7.6 配布
+#### 4.7.6 作りの境目（3層）
+
+プラグインのコードは3つの層に分ける。
+
+| 層 | 受け持つこと | Figma に触るか |
+|---|---|---|
+| ① 読む層 | Figma から読んで、下の「読み取りデータ」にまとめる。②が作った計画どおりに Figma へ書き込み・書き出しを行う（付け替え、画像の書き出し、note・Export 設定・テーマ状態の保存、選択の変更） | 触る |
+| ② 作る層 | 読み取りデータだけから、zip に入るファイルの中身（spec.json・tokens.json・settings.json・README.md・prompt.md・steering.md）、撮る画像の一覧（どのノードを zip のどのパスへ）、チェック結果（error・付け忘れの知らせ・除外物。行は原因単位で、選択に使うノード id を持つ）、付け替えの計画（どのノード・スタイルのどの箇所を、どの変数へ替えるか）、画面に出す行を作る | 触らない |
+| ③ UI | ②の結果を画面に出し、操作を①に渡す。zip を組み立てる（4.7.4） | 触らない |
+
+**設計書の約束（出力の形・チェックの規則・付け替えの計算）は、すべて②に置く。** ②は Figma に触らないので、見本から取った読み取りデータを与えれば Figma なしで確かめられる（4.7.7）。Figma に触る部分はテストで確かめられず実機でしか確かめられないので、①に閉じ込めて薄くする。薄いほど、実機で確かめる量が減る。
+
+**出力とチェックは同じ読み取りデータから作る。** 書き出し範囲の判定と 4.5.2 の命名を②に1つだけ置けば、Review と zip の対象（4.7.2）、zip のフォルダ名と README のパスの先頭（4.5.2）がずれることはない。Export の実行では、チェックを通した読み取りデータからそのまま出力を作る。チェックしたものと書き出したものが別の読み取りにならないようにするため。
+
+**読み取りデータ（①が②に渡すもの）**
+
+形の決め方は3つ。
+
+- **Figma の値をそのまま写す。** 色の #RRGGBB 化、太さの数値化、`path` と `-N`、section / block / element の判定のような変換は設計書の約束でありテストの対象なので、①ではなく②で行う
+- **JSON にできる形にする。** 見本としてリポジトリに置き、テストの入力にするため（4.7.7）。Figma のオブジェクトへの参照は持たず、変数・スタイルは id で指す。`figma.mixed` は JSON にできないので、テキストは区間ごとの値で持つ
+- **読む範囲は「現在のページ全体」と「ファイルのローカルな Variables / Style」。** 書き出し対象外のノードも読む — 裸の Component と書き出し対象外の note は範囲の外にあるものを告知する項目で（4.7.2）、note 一覧はページ全体を出す（4.7.3）。インスタンスの内部も読む（4.7.2 の走査範囲）
+
+画像のバイト列は含めない。画像は Figma でしか作れないので、②が「何をどの名前で撮るか」を決め、①が撮る。
+
+最上位:
+
+| 項目 | 中身 | 使う先 |
+|---|---|---|
+| `pageName` | 現在のページ名 | spec.json の `page` |
+| `nodes` | ページ直下のノード列（木。下表） | 出力・チェック・付け替えのすべて |
+| `variables` | ローカルな Variable 全件（下表） | tokens.json、`*Token`、対象外 Variable の告知、テーマ整合、付け忘れ、付け替え |
+| `collections` | コレクション全件（id・名前・モード） | Light / Dark / Base の判別と対の照合（4.3.9） |
+| `textStyles` / `paintStyles` / `effectStyles` | ローカルな Style 全件（下表） | 下表 |
+| `settings` | 保存されている Export 設定（4.7.4.3）。フレームは node id のまま | settings.json、テーマ整合の有効・無効（4.7.2）、tokens.json の light/dark（4.5.1）、画面ビューの確認 |
+| `theme` | `light` / `dark`（4.7.4.3 の状態） | light に Dark 混入、起動時の復旧の促し（4.7.2）、付け替えの向き |
+| `otherFrames` | 設定が指す node id のうち現在のページに無いもの（favicon / OG 画像。4.7.4）の名前。見つからなければ無いことを示す値 | 参照切れの知らせ（4.7.4.3）、settings.json の `site`（4.5.4） |
+
+ノード（`nodes` の各要素と `children`）:
+
+| 項目 | 使う先 |
+|---|---|
+| `id` | 行クリックでの選択（4.7.1）、撮る画像と付け替えの対象の指定 |
+| `name`, `type`, `children` | `path`・フォルダ名（4.5.2）、section / block / element、書き出し範囲（ページ直下の `FRAME` / `SECTION`）、構造チェック4種、裸の Component（4.7.2）、アセットの判別（4.3.8） |
+| `visible` | **未決**: 非表示のノードを出力・チェックでどう扱うかが設計書に無い |
+| `width`, `height`, `x`, `y`, `layoutPositioning` | `viewport.width`、`FIXED` の `widthPx` / `heightPx`（4.5.2.1）、丸い形の判定（4.7.2）、背景を子に置いたものの検出（検出の仕様は実装で決める。4.7.2） |
+| `layoutMode`, `layoutWrap`, `primaryAxisAlignItems`, `counterAxisAlignItems`, `counterAxisAlignContent`, `paddingTop` / `Right` / `Bottom` / `Left`, `itemSpacing` | spec.json の `layout`（4.5.2、4.6）、Auto Layout 未適用 |
+| `layoutSizingHorizontal` / `Vertical`, `minWidth` / `maxWidth` / `minHeight` / `maxHeight`, `layoutAlign`, `layoutGrow` | `layout.sizing`（4.5.2.1）、サイジングチェック |
+| `fills`, `fillStyleId` | `fills` / `background` / `text.fill`、画像を含むか（4.3.8）、単色 Color Style の告知、色・グラデーション stop の未バインド、付け忘れ、付け替え |
+| `strokes`, `strokeStyleId` | 色（線）の未バインド（4.7.2）、付け替え。**未決**: spec.json に線を出す項目が 4.5.2.1 に無い |
+| `effects`, `effectStyleId` | `effects`（4.5.2.1）、影の色の未バインド、付け替え |
+| `opacity` | ノードの `opacity` |
+| `cornerRadius`, `topLeftRadius` / `topRightRadius` / `bottomRightRadius` / `bottomLeftRadius` | `cornerRadius`（4.5.2.1）、丸い形の判定 |
+| `boundVariables`（塗り・線・影・グラデーション stop の中のものを含む） | `*Token`、色の未バインド、light に Dark 混入、対象外 Variable の告知、付け忘れ、付け替え |
+| `text`: `textAlignHorizontal` と、区間ごとの `characters`・`fontSize`・`fontName`・`fontWeight`・`lineHeight`・`letterSpacing`・`textCase`・`textDecoration`・`fills`・`fillStyleId`・`textStyleId`・`boundVariables` | spec.json の `text`（先頭の区間で解決）と `typographyToken`（全区間が同じ Text Style のときだけ。4.5.2.1）、全区間の色の未バインド・付け替え、テキスト内の Color Style 混在（4.7.2） |
+| `note` | spec.json の `note`、note 一覧（4.7.3）、書き出し対象外の note の告知 |
+
+Variable・コレクション・Style:
+
+| 項目 | 使う先 |
+|---|---|
+| Variable: `id`, `name`, `collectionId`, `resolvedType`, `scopes`, モードごとの値（エイリアスは参照先の id のまま）, `codeSyntax.WEB` | トークン名と `$type`・値（エイリアスは②で解決。4.5.1）、書体かどうか（4.3.4）、CSS 変数名（4.5.1）、対の照合、付け忘れの値の照合、`themeColorToken`（4.5.4） |
+| コレクション: `id`, `name`, モード（id・名前）, 既定のモード | Light / Dark / Base の判別、どのモードの値を出すか |
+| Text Style: `id`, `name`, `fontName`, `fontSize`, `lineHeight`, `letterSpacing`, `boundVariables` | `typography` トークン（4.5.1）、`typographyToken`、`typography/<name>` との衝突の告知（4.7.2） |
+| Paint Style: `id`, `name`, 塗り（`boundVariables` を含む） | グラデーション・複数 fill の Color Style のトークン化（4.3.4）、単色 Color Style の告知、stop の未バインド、付け替えの対象 (2)（4.3.9）。**未決**: グラデーション・複数 fill の Color Style を tokens.json にどう出すか、spec.json からどう指すかが 4.5.1・4.5.2.1 に無い |
+| Effect Style: `id`, `name`, 影（`boundVariables` を含む） | 影の色の未バインド（4.7.2）、付け替えの対象 (2)（4.3.9） |
+
+#### 4.7.7 テスト
+
+**テストは設計書の約束が守られていることだけを確かめる。** 約束とは出力の形（4.5、4.8）・チェックの規則（4.7.2）・付け替えの計算（4.3.9）である。コードの作りを確かめるテストは、作りを変えるたびに書き直しが要るうえ、CC に渡るものが正しいかについては何も言わない。
+
+**②の層に見本の読み取りデータを与え、結果を正解と丸ごと比べる。** 比べる結果は、zip に入るファイルの中身・撮る画像の一覧・チェック結果・付け替えの計画（4.7.6）。一部の項目だけを見るテストは、見ていない項目が崩れても通る。出力の正確さが最優先なので、丸ごと比べる。
+
+**入力は実物の見本ファイルから取る。** 手で作った入力は、Figma が実際に返す形（区間ごとに違う文字の設定、エイリアスの変数、インスタンスの内部など）と食い違いうる。食い違うところこそ出力が壊れるところで、手で作った入力ではそこを確かめられない。
+
+- ①に「読み取りデータを JSON として保存する」機能を置く（開発用）
+- 見本ファイルを作る。中身は Setup を実行した新規ファイルに、ダーク対応の LP 1本・note・わざと入れた違反・除外物・付け忘れ。1つのファイルで出力・チェック・付け替えのすべてに入力を与えるため
+- 見本ファイルを読んで保存した JSON を、リポジトリにテストの入力として置く。わざと入れたものの一覧も一緒に置く。正解を作るときに突き合わせる先であり、チェックが見逃しなく拾ったかはこの一覧でしか判定できないから
+
+**正解は②の出力を写して作らない。** 写せば、今の出力を正解と呼ぶだけになる。正解は設計書と突き合わせて作り、わざと入れたものの一覧と照らして置く。
+
+正解を変えるのは次の2つのときだけ。どちらも正解を丸ごと上書きしない。
+
+- **設計書の約束を変えたとき**: 先に正解を直し、テストが落ちることを確かめてから実装を直す（設計書 → 実装の順を、テストでも崩さない）
+- **見本ファイルを変えたとき**: JSON を取り直し、②の出力と前の正解との差を1件ずつ設計書と照らし、合っている差だけを正解に入れる
+
+テストは Given / When / Then の3つに分けて書く（Given＝どの見本か、When＝②のどの処理か、Then＝正解との比較）。何を用意し、何をして、何を確かめたかを読んだ人が追えるようにするため。
+
+**Figma でしか分からないことはテストにしない。実機で確かめる。** テストで Figma の振る舞いを真似ると、真似が実物と食い違ったときにも通るテストになる。実機で確かめるものは次のとおり。
+
+- ①が読んだ値が実物どおりであること（読み取りデータに上の項目がすべて入っていること）
+- Setup の結果（変数44個・Style 11個ができ、2回目で増えない、`scopes`・`codeSyntax.WEB`、Dark がピッカーに出ない、Text Style の書体と影の色が変数につながっている。4.3.4）
+- 画像の書き出し（スクリーンショット・アセットとダーク用・`site/`。`.ico` がブラウザで favicon として出ること。4.5.3）
+- 付け替えの書き込み（Dark で見た目が暗くなる、往復でバインドが元に戻る、途中で失敗しても light に戻る、dark のまま開き直したときの復旧の促し。4.3.9、4.7.4.4）
+- 画面（3ビュー、選択への追従、ページ切り替え時の作り直し、件数の「未着／失敗／受信済み」、Figma のテーマへの追従、zip のダウンロード。4.7.1）
+- プラグインの実行環境との違い。テストは Node で走るので、Node にあってプラグインの実行環境に無いもの（`TextEncoder` など。4.7.5）はテストでは原理的に見つからない
+- zip を CC に渡したとき、ダークモードとレスポンシブが反映されたコードができること
+
+#### 4.7.8 配布
 
 Figma Community に公開する（現状は開発版プラグインとして読み込む。手順は README「インストール」）。Community 公開を選ぶのは、Free 版ではプライベートプラグインが使えず、組織内限定配布ができないため（4.10）。ソースコードはGitHubで管理。
 
@@ -933,7 +1062,7 @@ CCへのコーディング指示。エクスポート時にプラグインが自
 2. **入力データの読み方**: tokens.json、settings.json、spec.json、screenshots/、screenshots-dark/、assets/、assets-dark/、site/ の説明
 3. **最初にやること**: steering.mdを読み、spec.jsonとnoteから埋められる項目を埋める。不明点はユーザーにヒアリングする。steering.mdの合意が取れてからコーディングに入る
 4. **コーディング手順**:
-   - tokens.json → CSS変数定義を生成（ある場合）
+   - tokens.json → CSS変数定義を生成（ある場合）。変数名は tokens.json に書かれた名前をそのまま使い、トークン名から作らない（4.5.1）
    - spec.json → 階層構造からHTML DOM構造を構築
    - layout プロパティ → CSS flexboxスタイルを生成（対応表付き）
    - fills, text 等 → ビジュアルスタイルを生成
