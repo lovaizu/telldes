@@ -3,8 +3,9 @@
 import type { Calls, Request, Response } from "../shared/messages";
 import { assertNever } from "../shared/never";
 import { readFile } from "./read";
+import { selectLayer } from "./select";
 
-figma.showUI(__html__, { width: 360, height: 560, themeColors: true });
+figma.showUI(__html__, { width: 680, height: 580, themeColors: true });
 
 figma.ui.onmessage = async (request: Request) => {
   let response: Response;
@@ -20,7 +21,9 @@ function handle(request: Request): Promise<Calls[Request["type"]]["result"]> {
   switch (request.type) {
     case "read":
       return readFile();
+    case "select":
+      return selectLayer(request.layerId);
     default:
-      return assertNever(request.type);
+      return assertNever(request);
   }
 }

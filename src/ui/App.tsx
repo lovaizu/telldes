@@ -1,12 +1,15 @@
-import { createSignal, For, Match, Switch } from "solid-js";
-import { countLayers, screensOf } from "../core/screens";
+import { createSignal, Match, Switch } from "solid-js";
+import type { FindingOwner } from "../core/findings";
 import type { FileData } from "../shared/data";
 import { request } from "./bridge";
+import { Detail } from "./Detail";
+import { ariaBool, RowMarks, Tentative } from "./parts";
+import { ScreenList } from "./ScreenList";
+import { TokenList } from "./TokenList";
+import { TopBar } from "./TopBar";
+import { createWorkspace, useWorkspace, WorkspaceContext } from "./workspace";
 
-type ReadState =
-  | { status: "reading" }
-  | { status: "done"; data: FileData }
-  | { status: "failed"; message: string };
+type ReadState = { status: "reading" } | { status: "done"; data: FileData } | { status: "failed"; message: string };
 
 export function App() {
   const [state, setState] = createSignal<ReadState>({ status: "reading" });
@@ -17,17 +20,19 @@ export function App() {
   );
 
   return (
-    <main>
-      <Switch>
-        <Match when={state().status === "reading"}>
-          <p>読み込み中…</p>
-        </Match>
-        <Match when={narrow(state(), "failed")}>
-          {(failed) => <p class="error">読み込めませんでした: {failed().message}</p>}
-        </Match>
-        <Match when={narrow(state(), "done")}>{(done) => <FileSummary file={done().data} />}</Match>
-      </Switch>
-    </main>
+    <Switch>
+      <Match when={state().status === "reading"}>
+        <p class="message">読み込み中…</p>
+      </Match>
+      <Match when={narrow(state(), "failed")}>{(failed) => <p class="message error">読み込めませんでした: {failed().message}</p>}</Match>
+      <Match when={narrow(state(), "done")} keyed>
+        {(done) => (
+          <WorkspaceContext value={createWorkspace(done.data)}>
+            <Layout />
+          </WorkspaceContext>
+        )}
+      </Match>
+    </Switch>
   );
 }
 
@@ -36,42 +41,49 @@ function narrow<S extends ReadState["status"]>(state: ReadState, status: S): Ext
   return state.status === status ? (state as Extract<ReadState, { status: S }>) : undefined;
 }
 
-function FileSummary(props: { file: FileData }) {
-  const tokens = () => props.file.tokens;
-  const screens = () => screensOf(props.file.page);
-
+function Layout() {
+  const ws = useWorkspace();
   return (
-    <>
-      <p>
-        {props.file.fileName} / {props.file.page.name}
-      </p>
-
-      <h2>トークン</h2>
-      <ul>
-        <Row label="変数コレクション" count={tokens().collections.length} />
-        <Row label="変数" count={tokens().variables.length} />
-        <Row label="Text Style" count={tokens().textStyles.length} />
-        <Row label="Effect Style" count={tokens().effectStyles.length} />
-        <Row label="Color Style" count={tokens().paintStyles.length} />
-      </ul>
-
-      <h2>画面（{screens().length}）とレイヤー数</h2>
-      <ul>
-        <For each={screens()} fallback={<li>ページ直下にフレームがありません</li>}>
-          {(screen) => (
-            <Row label={`${screen.name}  ${screen.width}×${screen.height}`} count={countLayers(screen)} />
-          )}
-        </For>
-      </ul>
-    </>
+    <div class="layout">
+      <TopBar />
+      <nav class="pane-list" aria-label="一覧">
+        <div class="tabs" role="tablist">
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")}>
+            画面 {ws.screens.length}
+            <TabMarks kinds={["screen", "layer"]} />
+          </button>
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")}>
+            トークン {ws.groups.reduce((n, g) => n + g.tokens.length, 0)}
+            <TabMarks kinds={["token", "value"]} />
+          </button>
+        </div>
+        <Switch>
+          <Match when={ws.state.tab === "screens"}>
+            <ScreenList />
+          </Match>
+          <Match when={ws.state.tab === "tokens"}>
+            <TokenList />
+          </Match>
+        </Switch>
+      </nav>
+      <main class="pane-detail">
+        <Detail />
+      </main>
+      <footer class={["status", { error: !!ws.state.status?.error }]} role="status">
+        {ws.state.status?.text ?? "行を選ぶと詳細が出て、Figma でもそのレイヤーが選ばれます"}
+        {ws.state.status?.task !== undefined && (
+          <>
+            {" "}
+            <Tentative task={ws.state.status.task} /> Figma には書き込んでいません
+          </>
+        )}
+      </footer>
+    </div>
   );
 }
 
-function Row(props: { label: string; count: number }) {
-  return (
-    <li>
-      <span>{props.label}</span>
-      <span class="count">{props.count}</span>
-    </li>
-  );
+/** The errors and notices owned by the objects in a tab, so none hide behind the other tab. */
+function TabMarks(props: { kinds: FindingOwner["kind"][] }) {
+  const ws = useWorkspace();
+  return <RowMarks findings={ws.state.findings.filter((f) => props.kinds.includes(f.owner.kind))} />;
 }
