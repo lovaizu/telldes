@@ -14,7 +14,7 @@ export function ScreenList() {
   return (
     <div class="list">
       <h3 title="What Export writes">
-        {counted(ws.webPages().length, "Web page")} · {counted(ws.screens.length, "screen")}
+        {counted(ws.webPages().length, "Web page")} · {counted(ws.screens.length, "frame")}
       </h3>
       <ul class="tree">
         <For each={webPages()} fallback={<li class="empty">{ws.state.filter ? `No rows with ${ws.state.filter}s here` : "No visible frames on this Figma page"}</li>}>
@@ -65,7 +65,7 @@ function WebPageNode(props: { webPage: WebPage }) {
           onClick={() => ws.open({ kind: "webPage", id: props.webPage.id })}
         >
           <span class="name">{ws.webPageName(props.webPage.id)}</span>
-          <span class="sub">{counted(props.webPage.screenIds.length, "screen")}</span>
+          <span class="sub">{counted(props.webPage.screenIds.length, "frame")}</span>
           <RowMarks findings={[]} below={!expanded() && ws.hasFindingsBelow(key())} />
         </button>
       </div>

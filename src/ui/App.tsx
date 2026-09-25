@@ -50,8 +50,8 @@ function Layout() {
       <nav class="pane-list" aria-label="Lists">
         <div class="tabs" role="tablist">
           {/* Both counts are of what is handed over; what is not is listed, and counted, inside each tab. */}
-          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")} title="Screens to export">
-            Screens {ws.screens.length}
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")} title="Frames to export">
+            Frames {ws.screens.length}
             <TabMarks kinds={["screen", "layer"]} />
           </button>
           <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")} title="Tokens to export">
