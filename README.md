@@ -1,247 +1,146 @@
-# telldes
+# Telldes
 
 Figma plugin that exports design specs as AI-ready coding packages — design it, tell it, ship it.
 
-Figma で LP / HP をデザインし、Claude Code（CC）にコーディングさせるためのプラグイン。デザイナーはこの README の作り方に従ってデザインし、プラグインで検証して zip を書き出し、その zip をそのまま CC に渡す。
+Figma で作った LP / HP のデザインを、Claude Code（以下 CC）がカンプと同じ見た目のコードにできる zip として書き出す Figma プラグイン。
+
+この README は、Telldes を初めて使うデザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまでを迷わず進められるように書いてある。なぜこの形なのかは [`docs/design.md`](docs/design.md) にある。
+
+流れは次のとおり。Setup で推奨の変数・スタイル一式を作り、Figma でデザインし、Review で渡すと壊れるところを直し、note で Figma に描けないことを書き、Export で zip を書き出す。
 
 ```
-デザイン → Review（検証） → Export（書き出し） → zip を CC に渡す
+Setup → デザイン → Review → note → Export → zip を CC に渡す
 ```
-
-設計判断・意図・決定事項は [`docs/design.md`](docs/design.md)。ここには「何をするか」だけを書く。
 
 ## インストール
-
-現状は開発版プラグインとして読み込む（Figma Community への公開は未実施）。
 
 ```
 bun install
 bun run build
 ```
 
-Figma → Plugins → Development → Import plugin from manifest… → リポジトリの `manifest.json` を選ぶ。Free プランで動く。
-
-## 用語
-
-LP / HP の構造を4階層で扱う。この階層を Figma のレイヤーツリーでそのまま表現する。
-
-| 階層 | 定義 | 例 |
-|---|---|---|
-| **ページ** | LP / HP 全体。1つの垂直 Auto Layout フレーム | LP 全体 |
-| **セクション** | ページ直下の意味的なまとまり | header, hero, features, pricing, footer |
-| **ブロック** | セクション内の意味のあるまとまり。入れ子にできる | plans, plan-pro, features, item |
-| **エレメント** | 末端の要素。子を持たない | heading, price, icon, cta, description |
-
-```
-ページ
-├── セクション: header
-│   ├── ブロック: logo
-│   │   └── エレメント: image
-│   └── ブロック: nav
-│       ├── エレメント: link
-│       └── エレメント: link
-├── セクション: hero
-│   └── ブロック: content
-│       ├── エレメント: heading
-│       ├── エレメント: description
-│       └── エレメント: cta
-└── セクション: footer
-```
+Figma → Plugins → Development → Import plugin from manifest… で、このリポジトリの `manifest.json` を選ぶ。無償版（Starter）の Drafts で動く。今は開発版として読み込む（Community への公開は未実施）。
 
 ## Figma での作り方
 
-### ページ構造
+### 渡す画面
 
-ページ全体を1つの垂直 Auto Layout フレームにする。ページ直下の子はすべてセクション。
+1つの Figma のページに、渡す画面だけを置く。そのページの直下にある表示中のフレームが、すべて画面として渡る。部品置き場や下書きは別の Figma のページに置く。
 
-```
-Page（VERTICAL Auto Layout）
-├── header
-├── hero
-├── features
-├── pricing
-└── footer
-```
+渡らないもの:
 
-LP はフレーム1つ。HP はページごとにフレームを作る（例: `top`, `about`, `contact`）。それぞれが zip 内のフォルダになる。
+- 非表示のレイヤー
+- ページ直下のフレーム以外（裸の Component / Component Set、Rectangle など）
 
-### Auto Layout 必須
+渡らないものは、プラグインの Frames の一覧に「Not exported」として並び、zip の `README.md` にも書かれる。
 
-すべてのフレームに Auto Layout を適用する。手動配置は禁止。子を持つフレームに Auto Layout が無いと Review でエラーになり、Export できない。
+### Web ページと幅
 
-例外: 装飾アイコンなど「レイアウトを持たない」もの（円と矢印を重ねたサークルアローのように内部パーツを絶対配置するもの）は、Frame ではなく **Group** でまとめる。Group は Auto Layout チェックの対象外。
+zip の書き出しの単位を「Web ページ」と呼ぶ（HP なら top・about など。zip のフォルダ1つ）。1つの Web ページを幅ごとに別のフレームで描く（例: 1440 と 375）。幅違いのフレームは Figma の Section で囲む。Section 名が Web ページ名（zip のフォルダ名）になる。1枚だけの Web ページは Section で囲まずフレームのままでよく、フレーム名がフォルダ名になる。
 
-### サイジング
+どの幅からそのフレームを使うか（From width）と、コンテンツ幅（Content width）は、プラグインでそのフレームの Export 設定（書き出しの設定欄。「プラグインの画面」の節）に入れる。
 
-サイズ指定は次の3つだけ。
+### トークン
 
-| パターン | Figma 設定 |
-|---|---|
-| コンテンツに合わせる | Hug contents |
-| 親を埋める | Fill container |
-| 固定値 | Fixed + 数値 |
+Figma の Variables（COLOR・FLOAT）、Text Style、Effect Style がトークンとして `tokens.json` に出る。使うかは自由で、使わなくても値がそのまま出て、正しさは変わらない。Color Style と STRING / BOOLEAN の Variables はトークンにならず、使った所は zip の `README.md` に「含まれなかったもの」として書かれる。
 
-minWidth / maxWidth / minHeight / maxHeight も使える。
-
-### 色・数値・タイポグラフィのトークン化
-
-トークンにしたい値は Figma の Variables（色は COLOR、余白やサイズは FLOAT）と Text Style で定義する。Variables を使うかどうかは自由 — 使わなくても出力の正しさは変わらない（値がそのまま出る）。
-
-| Figma の仕組み | 用途 | 書き出し |
-|---|---|---|
-| Variables（COLOR） | 色 | `tokens.json` に出る |
-| Variables（FLOAT） | 余白・サイズなどの数値 | `tokens.json` に出る |
-| Text Style | タイポグラフィ | `tokens.json` に出る |
-| Color Style | 色 | 使わない。使うと書き出し時の README に「含まれなかったもの」として記録される |
-| Variables（STRING / BOOLEAN） | — | トークンにならない。同上 |
-
-トークン名の付け方は自由。共通の語彙として次の名前を勧める（Setup が作るのもこの一式）。共通にするのは名前だけで、値はデザインごとに変えてよい。ここに無い一回限りの値は、値のままでよい。
+変数のコレクションは Light・Dark・Base の3つに分ける（Light・Dark はテーマで変わる色、Base はテーマで変わらない値）。Setup を押すと、この3つのコレクションと Text Style・Effect Style に、次の推奨一式のうち足りないものだけが、使える欄の絞り込みと CSS 変数名つきで作られる。2回押しても増えず、手で作った同名のものは上書きされない。名前は共通の語彙で、値はデザインごとに変えてよい。
 
 ```
-色（ライト・ダーク各14）  bg / surface / border / fg/default / fg/muted
-                          primary/default / primary/hover / primary/on / link
-                          code/bg / code/fg / notice/bg / notice/fg / shadow
-余白                      spacing/xs=4 / sm=8 / md=16 / lg=24 / xl=32 / 2xl=48 / 3xl=64 / 4xl=96
-角丸                      radius/sm=4 / md=8 / lg=16 / xl=24 / full=9999
-書体                      font/heading / body / mono
-文字（Text Style）        display / heading-lg / heading-md / heading-sm / lead / body / label / caption / code
-影（Effect Style）        shadow-sm / shadow-md
+色（Light・Dark 各14）  bg / surface / border / fg/default / fg/muted
+                        primary/default / primary/hover / primary/on / link
+                        code/bg / code/fg / notice/bg / notice/fg / shadow
+Base                    spacing/xs=4 sm=8 md=16 lg=24 xl=32 2xl=48 3xl=64 4xl=96
+                        radius/sm=4 md=8 lg=16 xl=24 full=9999
+                        font/heading body mono
+Text Style              display / heading-lg / heading-md / heading-sm / lead / body / label / caption / code
+Effect Style            shadow-sm / shadow-md
 ```
 
-`radius/full` だけは意味を持つ名前で、つないだ角丸は常に丸（`border-radius: 9999px`）として出る。
+### ダーク対応
 
-### 背景
+ダーク対応するときは、ファイルの Export 設定で Dark support を ON にする。ON のあいだは色をすべて Light の変数につなぐ。つないでいない色は Dark に付け替わらず、Review で error（直さないと Export できない違反）になる。上部の Light | Dark でキャンバスの見た目を切り替えて確かめる。OFF なら、変数につないでいなくても何も言われない。
 
-背景はフレームの **fill** にする。背景専用の子レイヤーを作らない。
+### 作り方のコツ
 
-```
-✅ hero (fills: [背景画像, 半透明オーバーレイ])
-   └── content
-       ├── heading
-       └── cta
+error にはならないが、渡り方が変わる。
 
-❌ hero
-   ├── bg-image
-   ├── overlay
-   └── content
-```
+- Auto Layout で組むと、伸び縮み（Hug / Fill / Fixed、min / max）がそのまま伝わる。Auto Layout の無いフレームの子は、座標のまま渡る
+- 背景はフレームの fill にする。子レイヤーにすると、そのまま子として渡る
+- 繰り返す要素は Component にする
+- レイヤー名は CC がそのまま読む。役割が分かる名前（header / nav / heading / cta など）が伝わりやすい。Figma のデフォルト名（Frame 1 など）や、同じ親の中の同名もそのまま渡る（zip の中では番号が付いて区別される）
 
-### レイヤー名
+### note
 
-同じ親の中でユニークであればよい。親の名前を繰り返さない。
+Figma のプロパティで伝わらないこと（動き、ホバー、リンク先、意図、アクセシビリティ）は、レイヤーごとにプラグインで note として書く。自由な文章でよい。すべての Web ページに効くことは、ファイルの Export 設定の Rules for every page に書く。
 
-```
-✅ pricing > plans > plan-pro > features > item > icon
-❌ pricing > pricing-plans > pricing-plan-pro > plan-pro-features > ...
-```
+## プラグインの画面
 
-- 同じ親の中で同名は禁止
-- Figma のデフォルト名（"Frame 1", "Rectangle 3" など）は禁止
-- 繰り返す要素は Figma Components でインスタンス化する。同名インスタンスはレイヤー順で区別される
+- 左: Frames と Tokens の2つのタブの一覧
+- 右: 一覧で開いたもの（ファイル・Web ページ・フレーム・レイヤー・トークン・トークンにしていない値）の詳細
+- 上部: ファイル名（押すとファイルの設定）、Light | Dark、Review ボタンと「● n errors ○ n notices」、Export
+- 下: 結果の1行
 
-**CC が解釈する特別な名前:** 次の名前を使うと、CC が対応する HTML 要素にする。使わなければ `<div>`（ブロック）または `<p>`（テキスト）になる。
+### Setup
 
-| レイヤー名 | HTML |
-|---|---|
-| `header`（セクション） | `<header>` |
-| `footer`（セクション） | `<footer>` |
-| `nav` を含むブロック | `<nav>` |
-| その他のセクション | `<section>` |
-| `heading`（ページ内で最初） | `<h1>` |
-| `heading`（セクション直下） | `<h2>` |
-| `heading`（ブロック内） | `<h3>` |
-| `heading` 以外のテキスト | `<p>` |
-| `cta` または `button` を含むエレメント | `<button>` |
-
-note にリンク先が書いてあれば `<a>` になる。
-
-### note（補足情報）
-
-Figma のプロパティでは伝わらないことを、プラグインの Notes タブで書く。必要なノードにだけ付ける。内容は自分の言葉で自由に書いてよい — CC が読んで実装を判断する。
-
-| 用途 | 例 |
-|---|---|
-| 動きの仕様 | 「スクロールしても常に画面上部に固定表示」 |
-| インタラクション | 「ホバーで背景色が濃くなる」「選択すると詳細ページへ遷移」 |
-| デザイン意図 | 「このプランを最も目立たせたい」 |
-| リンク先 | 「リンク先: /signup?plan=pro」 |
-| アクセシビリティ | 「スクリーンリーダー用ラベル: 会社ロゴ」 |
-| カルーセルなど | 「画像をループ表示。自動再生3秒間隔」 |
-
-### 画像
-
-画像を含むノードは書き出し時に自動でアセットになる。特別な準備は要らない。
-
-| 種類 | 形式 | 出力先の例 |
-|---|---|---|
-| 写真・ラスター画像 | PNG（2x） | `assets/images/hero--content--image.png` |
-| アイコン・ロゴ（ベクター） | SVG | `assets/icons/header--logo--icon.svg` |
-
-### レスポンシブ
-
-デスクトップ（1440px）とモバイル（375px）を別フレームで作る。対応関係はフレーム名で表す（例: `top-desktop` / `top-mobile`）。グリッドは Auto Layout の WRAP と子の minWidth / maxWidth で表現する。
-
-## プラグインの使い方
-
-タブは3つ。
+Tokens の一覧の先頭にある。足りないトークンがあるとき、Tokens タブに「+n」の印が出る。
 
 ### Review
 
-ページ内の全レイヤーを検査し、違反と直し方を一覧する。出るのはエラーだけで、すべて直さないと Export できない。項目をクリックすると該当レイヤーが選択される。
+開いたとき・設定を変えたとき・Export の前に自動で走る。Figma で直したあとは Review ボタンで走らせ直す。
 
-| 検出 | 表示される直し方 |
+- error: 直さないと Export できない
+- notice: 知らせるだけ
+
+違反・知らせは、持ち主（ファイル・トークン・値・フレーム・レイヤー）の行に ● ○ で出る。詳細に内容と直し方、使っている所が並び、使っている所を押すと Figma でそのレイヤーが選ばれる。同じ原因（同じ色30か所など）は1行にまとまる。上部の「● n errors」「○ n notices」を押すと、一覧がその行だけに絞られる。
+
+error になるもの:
+
+- Dark support ON で、変数につないでいない色
+- Dark support ON で、Dark コレクションが無い
+- Web ページ名（Section 名・フレーム名）が空か重複している（zip のフォルダがぶつかる）
+
+notice になるもの:
+
+- トークンと同じ値なのに、つないでいない
+- Section で組んだフレームに From width が無い
+
+### note
+
+レイヤーの詳細で書いて Save。note のある行に ✎ が付く。Figma のプロパティパネルからも開ける。画面の外（渡らない所）のレイヤーの note は渡らず、zip の `README.md` に書かれる。
+
+### Export 設定
+
+持ち主の詳細にある。ファイルに保存され、開き直しても残る。
+
+| 持ち主 | 欄 |
 |---|---|
-| Auto Layout 未適用のフレーム | Auto Layout を適用してください |
-| Figma デフォルト名のレイヤー | 意味のある名前を付けてください |
-| 同じ親の中の重複レイヤー名 | 名前を変更して区別してください |
-| 背景を子レイヤーとして配置 | フレームの fill に設定してください |
-| Hug / Fill / Fixed 以外のサイジング | Hug / Fill / Fixed のいずれかに設定してください |
+| ファイル | Dark support、Rules for every page |
+| Web ページ | Page title（1枚だけの Web ページでは、そのフレームの詳細） |
+| フレーム | From width (px)、Content width (px) |
 
-### Notes
+### Light | Dark
 
-選択中のレイヤーの note を読み書きする。note があるレイヤーには Figma のプロパティパネルに「Edit note」ボタンが出る。
-
-入力欄の下に、このページで note が付いているレイヤーの一覧が出る（レイヤーパスと本文）。クリックするとそのレイヤーが選択され、画面がそこへ移動する。一覧はプラグイン起動時・note 保存時・ページ切り替え時に更新される。それ以外（レイヤーの削除や undo、他の人の編集）では更新されないので、古い行が残ることがある。クリックしたレイヤーがこのページに無いとき（削除済みなど）は、その旨が表示されて一覧が更新される。一覧を作れなかったときもその旨が表示され、note が 0 件のときとは区別される。
-
-入力欄に書きかけの内容があるまま一覧をクリックすると、選択が変わって書きかけの内容は消える（保存ボタンを押すまで保存されない）。画面フレームの外に置いたレイヤーに付けた note は一覧には出るが、書き出したスペックには含まれない（zip の `README.md` に記録されるだけ）。
+この Figma のページ全体の変数のつながりを、Light と Dark で付け替える（プラグイン自体の見た目ではない）。今どちらかが常に見える。Dark support ON なら Export は両方の画像を書き出し、終わると（失敗しても）Light に戻す。Dark のまま残ったファイルを開くと、戻すよう促される。
 
 ### Export
 
-エラーがゼロのときだけ実行できる。zip がダウンロードされる。
+error が 0 のときだけ押せる。zip がダウンロードされる。
 
-```
-telldes-export/
-├── prompt.md          ← CC への作業指示（自動生成）
-├── steering.md        ← CC との確認・タスク・ルール（テンプレート）
-├── tokens.json        ← デザイントークン（Variables または Text Style がある場合のみ）
-├── README.md          ← zip の内容と、今回の書き出しに含まれなかったもの
-├── {フレーム名}/       ← ページ直下のフレームごと
-│   ├── spec.json      ← デザインスペック
-│   ├── screenshots/   ← セクション・ブロック単位の画像
-│   └── assets/
-│       ├── images/
-│       └── icons/
-```
+## zip の中身と CC への渡し方
 
-**書き出されないもの** — 違反ではないので Review には出ない。代わりに zip 内の `README.md` に記録される。
+- `prompt.md`: CC への作業指示
+- `tokens.json`: トークン
+- `README.md`: 入っているものと、含まれなかったもの
+- Web ページごとのフォルダ: 幅ごとのフレームの `spec.json`、画面全体とその中のまとまりごとの画像、画像アセット（写真は PNG、アイコン・ロゴは SVG）、CSS で描けないものの画像
 
-- Color Style を使っている箇所（色は Variables から出す）
-- STRING / BOOLEAN の Variables を使っている箇所
-- ページ直下に裸で置いた Component / Component Set の定義（画面フレーム内にインスタンスとして配置するか、ライブラリページへ移す）
-- Variable 名 `typography/〜` と同名の Text Style がある場合（`tokens.json` で衝突する）
-- 画面フレームの外に置いたレイヤーに付けた note（レイヤーパスと本文が記録される）
-
-## CC に渡す
-
-zip を展開せずそのまま CC に渡す。`prompt.md` に作業指示が入っている。
+zip は展開せず、そのまま CC に渡す。読み方は `prompt.md` に入っている。
 
 ## 開発
 
 ```
-bun run build   # dist/ui.html と dist/code.js
-bun run dev     # 監視ビルド
-bun run test    # vitest
+bun run build       # 型検査とビルド（dist/ui.html と dist/code.js）
+bun run typecheck   # 型検査だけ
 ```
 
-- 設計書: [`docs/design.md`](docs/design.md)
-- 作業の進め方・タスク: [`.rn/20260524-build-plugin/steering.md`](.rn/20260524-build-plugin/steering.md)
+設計の意図と決めたことは [`docs/design.md`](docs/design.md)。
