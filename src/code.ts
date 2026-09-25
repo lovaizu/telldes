@@ -27,6 +27,10 @@ import { exportScreenshots } from "./export/screenshotExporter";
 import { exportAssets } from "./export/assetExporter";
 import { createTokens } from "./setup/tokenFactory";
 import { readFigma } from "./read";
+// PROBE(B-1): remove after the on-device run
+import { SETTINGS_KEY, THEME_KEY } from "./read/pluginData";
+import type { ExportSettings } from "./readData";
+// END PROBE(B-1)
 
 figma.showUI(__html__, { width: 360, height: 480 });
 
@@ -188,6 +192,54 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       figma.ui.postMessage(message);
     }
   }
+
+  // PROBE(B-1): remove after the on-device run
+  // Nothing writes the settings or the theme yet, so these let the device
+  // run read real values: a frame on another page, a missing id, and a
+  // responsive row on each side of the current page.
+  if (msg.type === "probe-write-settings") {
+    try {
+      const firstFrame = (page: PageNode) =>
+        page.children.find((child) => child.type === "FRAME")?.id;
+      const here = figma.currentPage;
+      const otherPage = figma.root.children.find(
+        (page) => page.id !== here.id && firstFrame(page) !== undefined,
+      );
+      const otherId = otherPage ? firstFrame(otherPage) : undefined;
+      const hereId = firstFrame(here);
+      const settings: ExportSettings = {
+        darkMode: true,
+        site: {
+          title: "Probe title",
+          faviconFrameId: otherId,
+          ogImageFrameId: "0:999999",
+        },
+        responsive: [
+          ...(hereId ? [{ minWidth: 0, frameId: hereId, contentWidth: { unit: "%" as const, value: 100 } }] : []),
+          ...(otherId ? [{ minWidth: 1024, frameId: otherId, contentWidth: { unit: "px" as const, value: 1120 } }] : []),
+        ],
+        rules: "Probe rules.",
+      };
+      figma.root.setPluginData(SETTINGS_KEY, JSON.stringify(settings));
+      figma.root.setPluginData(THEME_KEY, "dark");
+      figma.ui.postMessage({
+        type: "probe-result",
+        message: `Wrote settings (favicon/responsive other page: ${otherId ?? "none"}, responsive current page: ${hereId ?? "none"}, OG: 0:999999) and theme "dark"`,
+      });
+    } catch (err) {
+      figma.ui.postMessage({ type: "probe-result", message: `Probe failed: ${err}` });
+    }
+  }
+  if (msg.type === "probe-clear-settings") {
+    try {
+      figma.root.setPluginData(SETTINGS_KEY, "");
+      figma.root.setPluginData(THEME_KEY, "");
+      figma.ui.postMessage({ type: "probe-result", message: "Cleared settings and theme" });
+    } catch (err) {
+      figma.ui.postMessage({ type: "probe-result", message: `Probe failed: ${err}` });
+    }
+  }
+  // END PROBE(B-1)
 
   if (msg.type === "run-export") {
     // Everything from here on runs inside the try: a throw in the checks or in

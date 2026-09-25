@@ -153,10 +153,21 @@ const App: Component = () => {
   const [exportDone, setExportDone] = createSignal(false);
   const [reading, setReading] = createSignal(false);
   const [readDataError, setReadDataError] = createSignal("");
+  // PROBE(B-1): remove after the on-device run
+  const [probeResult, setProbeResult] = createSignal("");
+  const sendProbe = (type: string) =>
+    parent.postMessage({ pluginMessage: { type } }, "*");
+  // END PROBE(B-1)
 
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
     if (!msg) return;
+    // PROBE(B-1): remove after the on-device run
+    if (msg.type === "probe-result") {
+      setProbeResult(msg.message);
+      return;
+    }
+    // END PROBE(B-1)
     handlePluginMessage(msg, {
       setResults,
       setHasRun,
@@ -389,6 +400,17 @@ const App: Component = () => {
             <Show when={readDataError()}>
               <div class="export-error">{readDataError()}</div>
             </Show>
+            {/* PROBE(B-1): remove after the on-device run */}
+            <button class="run-btn" onClick={() => sendProbe("probe-write-settings")}>
+              Probe: write test settings
+            </button>
+            <button class="run-btn" onClick={() => sendProbe("probe-clear-settings")}>
+              Probe: clear settings
+            </button>
+            <Show when={probeResult()}>
+              <div class="pass">{probeResult()}</div>
+            </Show>
+            {/* END PROBE(B-1) */}
           </div>
         )}
       </main>
