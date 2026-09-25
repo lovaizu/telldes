@@ -10,18 +10,18 @@ import { colorHex, counted } from "./format";
 
 /** The task that replaces each placeholder, and the feature it builds, shown on hover over the fake value. */
 export const TASK = {
-  setup: { number: 4, feature: "Setup" },
-  review: { number: 5, feature: "Review" },
-  note: { number: 6, feature: "note" },
-  exportSettings: { number: 7, feature: "Export settings" },
-  export: { number: 7, feature: "Export" },
-  assets: { number: 8, feature: "image and asset export" },
-  theme: { number: 9, feature: "Light / Dark" },
+  setup: { number: 5, feature: "Setup" },
+  review: { number: 6, feature: "Review" },
+  note: { number: 7, feature: "note" },
+  exportSettings: { number: 8, feature: "Export settings" },
+  export: { number: 8, feature: "Export" },
+  assets: { number: 9, feature: "image and asset export" },
+  theme: { number: 10, feature: "Light / Dark" },
 } as const;
 
 export type TaskKey = keyof typeof TASK;
 
-// ---- #4 Setup: what Setup would create ----
+// ---- #5 Setup: what Setup would create ----
 
 /** The recommended set from README, by the collection or style kind it goes in. */
 const RECOMMENDED: Record<string, string[]> = (() => {
@@ -59,7 +59,7 @@ export function setupPlan(file: FileData): PlannedToken[] {
   });
 }
 
-// ---- #6 note: notes kept in memory only ----
+// ---- #7 note: notes kept in memory only ----
 
 /** Fake notes: one sample on the first text layer of the first screen. */
 export function initialNotes(index: Map<string, LayerEntry>): Record<string, string> {
@@ -71,7 +71,7 @@ export function initialNotes(index: Map<string, LayerEntry>): Record<string, str
   return {};
 }
 
-// ---- #7 Export settings: kept in memory only ----
+// ---- #8 Export settings: kept in memory only ----
 
 export interface FileSettings {
   darkSupport: boolean;
@@ -107,14 +107,14 @@ export function initialSettings(screens: LayerData[]): Settings {
   };
 }
 
-// ---- #7 Export: what Export would write ----
+// ---- #8 Export: what Export would write ----
 
 export function exportResult(webPageCount: number, screenCount: number, droppedCount: number): string {
   const frames = screenCount > webPageCount ? ` (${counted(screenCount, "frame")})` : "";
   return `Export would write telldes-export.zip: ${counted(webPageCount, "page")}${frames}, and a README.md listing ${counted(droppedCount, "item")} not exported.`;
 }
 
-// ---- #8 Images and assets: what Export would hand over as files ----
+// ---- #9 Images and assets: what Export would hand over as files ----
 
 export interface AssetCount {
   images: number;
@@ -133,13 +133,13 @@ export function assetCount(index: Map<string, LayerEntry>, screenId: string): As
   return count;
 }
 
-// ---- #9 Light / Dark ----
+// ---- #10 Light / Dark ----
 
 export type Theme = "light" | "dark";
 
 export const initialTheme: Theme = "light";
 
-// ---- #5 Review: findings on real objects ----
+// ---- #6 Review: findings on real objects ----
 
 /**
  * Fake Review. It looks at real layers and tokens so the findings land on
