@@ -84,15 +84,15 @@ Design: docs/design.md
 
 **Steps**:
 
-- [ ] OOUI の手順で画面を設計する: オブジェクト（ファイル・トークン・画面・レイヤー）とその属性・関係を取り出し、Setup から Light / Dark までのすべての機能を、どのオブジェクトの属性・操作になるかに割り当てる → 一覧と詳細のビューを決める → レイアウトを決める
-- [ ] トークン・画面・レイヤーの一覧と詳細を、#1 で読んだ実物のデータで出す
-- [ ] まだ作っていない機能の結果（Setup で作るもの、違反と知らせ、note、Export 設定、渡らないもの、テーマ）は仮の値で載せ、操作は押せるが Figma に書き込まない。仮の値はこのあとの各機能で本物に差し替える
+- [x] OOUI の手順で画面を設計する: オブジェクト（ファイル・トークン・画面・レイヤー）とその属性・関係を取り出し、Setup から Light / Dark までのすべての機能を、どのオブジェクトの属性・操作になるかに割り当てる → 一覧と詳細のビューを決める → レイアウトを決める
+- [x] トークン・画面・レイヤーの一覧と詳細を、#1 で読んだ実物のデータで出す
+- [x] まだ作っていない機能の結果（Setup で作るもの、違反と知らせ、note、Export 設定、渡らないもの、テーマ）は仮の値で載せ、操作は押せるが Figma に書き込まない。仮の値はこのあとの各機能で本物に差し替える
 - [ ] ユーザーに Figma で触ってもらい、分かりにくいところを直す
-- [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] self-check (OK/NG per completion criterion, record in checks/2.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [x] Design expert review (subagent)
 
 **Completion criteria**:
 
@@ -204,6 +204,7 @@ Design: docs/design.md
 - [ ] Export 設定（切り替える幅・コンテンツ幅・ダーク対応・題名・共通ルール）を、#2 で割り当てたオブジェクトの属性として作り、保存する
 - [ ] 読み取りデータから `spec.json`・`tokens.json`・`README.md` を作る判断を作る（設計書の出力の4つの約束を守る）
 - [ ] 画面の一覧に Export を付け、Review を走らせて error ゼロのときだけ zip を書き出す
+- [ ] Web ページの名前が空・重なりのとき zip のフォルダがぶつからないよう Review で知らせる。一番狭い画面の「切り替える幅」の入れ方を迷わない形にする
 - [ ] 実機で書き出し、中身を読んで確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/7.md)
 - [ ] QA expert review (subagent)
@@ -300,7 +301,7 @@ Design: docs/design.md
 **Steps**:
 
 - [ ] 画面（上部の操作、トークン・画面・レイヤーの並び）、Setup・Export 設定・Light / Dark、zip の中身に合わせて書き直す
-- [ ] 古い記述（3つのタブ、存在しない steering へのリンクなど）を消す
+- [ ] 古い記述（3つのタブ、存在しない steering へのリンク、「幅違いはフレーム名で表す」など）を消し、Web ページの組み分けは Export 設定で宣言すると書く
 - [ ] self-check (OK/NG per completion criterion, record in checks/11.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -354,8 +355,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: —
-- **Last completed**: —
-- **Next**: —
-- **Notes**: —
+- **Status**: paused
+- **Date**: 2026-09-25
+- **Last completed**: #1 土台
+- **Next**: #2 画面の試作（残りは「ユーザーに Figma で触ってもらい、分かりにくいところを直す」だけ）
+- **Notes**: ブランチ `telldes-plugin`、PR https://github.com/lovaizu/telldes/pull/2 。#2 は直し2回（f4044a8, e950508）まで済み、dist もビルド済み。再開したら、ユーザーに Figma で触った感想を聞き、直してから checks/2.md の QA・専門家の欄を埋めて #2 を完了し、#3 の承認へ。再レビュー（f4044a8）は A 以外 OK、A は e950508 で直し、差分はこちらで確認済み
