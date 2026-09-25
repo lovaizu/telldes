@@ -1,4 +1,5 @@
 // Small pieces shared by the lists and the details.
+import type { JSX } from "@solidjs/web";
 import { For, Show } from "solid-js";
 import type { Finding } from "../core/findings";
 import { TASK, type TaskKey } from "./placeholders";
@@ -7,12 +8,21 @@ import { useWorkspace } from "./workspace";
 /** ARIA states want the strings "true" / "false", not a boolean. */
 export const ariaBool = (value: boolean) => (value ? "true" : "false");
 
-/** Marks a value as a placeholder that the given task replaces. */
-export function Tentative(props: { task: TaskKey }) {
-  const task = () => TASK[props.task];
+/** Hover text naming the task that replaces a placeholder. */
+export function placeholderTitle(key: TaskKey): string {
+  const task = TASK[key];
+  return `Placeholder. Task #${task.number} (${task.feature}) replaces it.`;
+}
+
+/**
+ * Wraps a placeholder value. The screen says once, in the status line, that
+ * results are placeholders; here only the hover text names the task, so the
+ * marks do not crowd the screen.
+ */
+export function Tentative(props: { task: TaskKey; children: JSX.Element }) {
   return (
-    <span class="tentative" title={`仮の結果です。#${task().number} ${task().feature} で本物に差し替えます`}>
-      仮 #{task().number}
+    <span class="tentative" title={placeholderTitle(props.task)}>
+      {props.children}
     </span>
   );
 }
@@ -31,16 +41,16 @@ export function RowMarks(props: { findings: Finding[]; note?: boolean; below?: b
   return (
     <span class="marks">
       <Show when={props.note}>
-        <span class="mark note" title="note あり">✎</span>
+        <span class="mark note" title="Has a note">✎</span>
       </Show>
       <Show when={count("error")}>
-        <span class="mark error" title="error">● {count("error")}</span>
+        <span class="mark error" title="Errors">● {count("error")}</span>
       </Show>
       <Show when={count("notice")}>
-        <span class="mark notice" title="知らせ">○ {count("notice")}</span>
+        <span class="mark notice" title="Notices">○ {count("notice")}</span>
       </Show>
       <Show when={props.below}>
-        <span class="mark below" title="中のレイヤーに error か知らせがあります">…</span>
+        <span class="mark below" title="Errors or notices inside">…</span>
       </Show>
     </span>
   );
@@ -53,23 +63,23 @@ export function Findings(props: { findings: Finding[] }) {
     <Show when={props.findings.length}>
       <section class="block">
         <h3>
-          error と知らせ <Tentative task="review" />
+          <Tentative task="review">Errors and notices</Tentative>
         </h3>
         <ul class="findings">
           <For each={props.findings}>
             {(finding) => (
               <li class={["finding", finding.severity]}>
                 <p>
-                  <span class="severity">{finding.severity === "error" ? "error" : "知らせ"}</span> {finding.message}
+                  <span class="severity">{finding.severity === "error" ? "Error" : "Notice"}</span> {finding.message}
                 </p>
-                <p class="fix">直し方: {finding.fix}</p>
+                <p class="fix">Fix: {finding.fix}</p>
                 <Show when={finding.layerIds.length}>
-                  <p class="where">使っている所（押すと Figma で選びます）</p>
+                  <p class="where">Used in</p>
                   <ul class="places">
                     <For each={finding.layerIds}>
                       {(id) => (
                         <li>
-                          <button class="link" onClick={() => void ws.selectInFigma(id)}>
+                          <button class="link" title="Select in Figma" onClick={() => void ws.selectInFigma(id)}>
                             {ws.index.get(id)?.path.join(" / ") ?? id}
                           </button>
                         </li>

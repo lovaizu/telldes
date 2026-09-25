@@ -4,7 +4,7 @@ import type { JSX } from "@solidjs/web";
 import { createSignal, For, Match, Show, Switch } from "solid-js";
 import type { LayerEntry } from "../core/screens";
 import type { LayerData, VariableData } from "../shared/data";
-import { colorCss, colorHex, dropReasonText, round, size, tokenDropText, variableValue } from "./format";
+import { colorCss, colorHex, counted, dropReasonText, round, size, tokenDropText, variableValue } from "./format";
 import { Findings, Swatch, Tentative } from "./parts";
 import * as placeholder from "./placeholders";
 import { useWorkspace, type Selection } from "./workspace";
@@ -44,10 +44,10 @@ function Facts(props: { children: JSX.Element }) {
   return <dl class="facts">{props.children}</dl>;
 }
 
-function Fact(props: { label: string; children: JSX.Element }) {
+function Fact(props: { label: string; title?: string; children: JSX.Element }) {
   return (
     <>
-      <dt>{props.label}</dt>
+      <dt title={props.title}>{props.label}</dt>
       <dd>{props.children}</dd>
     </>
   );
@@ -59,48 +59,56 @@ function FileDetail() {
   const ws = useWorkspace();
   return (
     <>
-      <p class="kind">ファイル</p>
+      <p class="kind">File</p>
       <h2>{ws.file.fileName}</h2>
       <Facts>
-        <Fact label="Figma のページ">{ws.file.page.name}</Fact>
-        <Fact label="テーマ">
-          {ws.state.theme === "dark" ? "Dark" : "Light"} <Tentative task="theme" />
+        <Fact label="Figma page">{ws.file.page.name}</Fact>
+        <Fact label="Theme">
+          <Tentative task="theme">{ws.state.theme === "dark" ? "Dark" : "Light"}</Tentative>
         </Fact>
-        <Fact label="渡す Web ページ">{ws.webPages().length}</Fact>
-        <Fact label="渡す画面">{ws.screens.length}</Fact>
-        <Fact label="渡らないもの">{ws.dropped.length}</Fact>
-        <Fact label="変数">{ws.file.tokens.variables.length}</Fact>
-        <Fact label="スタイル">
-          Text {ws.file.tokens.textStyles.length} / Effect {ws.file.tokens.effectStyles.length} / Color {ws.file.tokens.paintStyles.length}
+        <Fact label="Web pages">{ws.webPages().length}</Fact>
+        <Fact label="Screens">{ws.screens.length}</Fact>
+        <Fact label="Not exported">{ws.dropped.length}</Fact>
+        <Fact label="Variables">{ws.file.tokens.variables.length}</Fact>
+        <Fact label="Styles">
+          Text {ws.file.tokens.textStyles.length} · Effect {ws.file.tokens.effectStyles.length} · Color {ws.file.tokens.paintStyles.length}
         </Fact>
       </Facts>
 
       <section class="block">
-        <h3>
-          Export 設定 <Tentative task="exportSettings" />
-        </h3>
-        <label class="check">
+        <SettingsHeading />
+        <label
+          class="check"
+          title="When on, colors not linked to a variable are errors, and Export adds Dark images. When off, there is no Dark."
+        >
           <input
             type="checkbox"
             checked={ws.state.settings.file.darkSupport}
             onChange={(e) => ws.setFileSettings({ darkSupport: e.currentTarget.checked })}
           />
-          ダーク対応
+          Dark support
         </label>
-        <p class="help">ON にすると、変数につないでいない色が error になり、Export に Dark の画像も入ります。OFF の間は Dark に切り替えられません</p>
         <label class="field">
-          <span>共通ルール</span>
+          <span>Rules for every Web page</span>
           <textarea
-            rows={5}
-            placeholder="すべての Web ページに効くことを文章で（例: 見出しは Noto Sans JP を読み込む）"
+            rows={4}
+            placeholder="In plain words, e.g. load Noto Sans JP for headings"
             value={ws.state.settings.file.commonRules}
             onInput={(e) => ws.setFileSettings({ commonRules: e.currentTarget.value })}
           />
         </label>
-        <p class="help">変えるとすぐ Review し直します。ファイルにはまだ保存しません</p>
       </section>
       <Findings findings={ws.findingsOf({ kind: "file" })} />
     </>
+  );
+}
+
+/** One heading for the settings of each owner; they stay in memory until the task the hover names. */
+function SettingsHeading() {
+  return (
+    <h3>
+      <Tentative task="exportSettings">Export settings</Tentative>
+    </h3>
   );
 }
 
@@ -127,25 +135,25 @@ function TokenDetail(props: { id: string }) {
             <Show when={textStyle()}>
               {(s) => (
                 <>
-                  <Fact label="書体">
+                  <Fact label="Font">
                     {s().fontName.family} {s().fontName.style}
                   </Fact>
-                  <Fact label="大きさ">{round(s().fontSize)}px</Fact>
-                  <Fact label="行の高さ">{unitValue(s().lineHeight)}</Fact>
-                  <Fact label="字間">{unitValue(s().letterSpacing)}</Fact>
+                  <Fact label="Size">{round(s().fontSize)}px</Fact>
+                  <Fact label="Line height">{unitValue(s().lineHeight)}</Fact>
+                  <Fact label="Letter spacing">{unitValue(s().letterSpacing)}</Fact>
                 </>
               )}
             </Show>
             <Show when={effectStyle()}>
               {(s) => (
-                <Fact label="効果">
+                <Fact label="Effects">
                   <For each={s().effects}>{(effect) => <div>{effect.type}</div>}</For>
                 </Fact>
               )}
             </Show>
             <Show when={paintStyle()}>
               {(s) => (
-                <Fact label="塗り">
+                <Fact label="Fill">
                   <For each={s().paints}>
                     {(paint) => (
                       <div>
@@ -170,15 +178,15 @@ function TokenDetail(props: { id: string }) {
   );
 }
 
-const KIND_LABEL = { variable: "変数", textStyle: "Text Style", effectStyle: "Effect Style", paintStyle: "Color Style" } as const;
+const KIND_LABEL = { variable: "Variable", textStyle: "Text Style", effectStyle: "Effect Style", paintStyle: "Color Style" } as const;
 
 function VariableFacts(props: { variable: VariableData }) {
   const ws = useWorkspace();
   const collection = () => ws.file.tokens.collections.find((c) => c.id === props.variable.variableCollectionId);
   return (
     <>
-      <Fact label="コレクション">{collection()?.name}</Fact>
-      <Fact label="種類">{props.variable.resolvedType}</Fact>
+      <Fact label="Collection">{collection()?.name}</Fact>
+      <Fact label="Type">{props.variable.resolvedType}</Fact>
       <For each={collection()?.modes ?? []}>
         {(mode) => {
           const shown = () => {
@@ -186,23 +194,23 @@ function VariableFacts(props: { variable: VariableData }) {
             return value === undefined ? { text: "" } : variableValue(value, ws.file.tokens.variables);
           };
           return (
-            <Fact label={`値（${mode.name}）`}>
+            <Fact label={`Value (${mode.name})`}>
               <Swatch color={shown().swatch} /> {shown().text}
             </Fact>
           );
         }}
       </For>
-      <Fact label="CSS 変数名">{props.variable.codeSyntax.WEB ?? "（なし）"}</Fact>
-      <Fact label="使える欄">{props.variable.scopes.join(", ") || "（なし）"}</Fact>
+      <Fact label="CSS name">{props.variable.codeSyntax.WEB ?? "(none)"}</Fact>
+      <Fact label="Scopes">{props.variable.scopes.join(", ") || "(none)"}</Fact>
       <Show when={props.variable.description}>
-        <Fact label="説明">{props.variable.description}</Fact>
+        <Fact label="Description">{props.variable.description}</Fact>
       </Show>
     </>
   );
 }
 
 function unitValue(value: { unit: string; value?: number }): string {
-  if (value.unit === "AUTO" || value.value === undefined) return "自動";
+  if (value.unit === "AUTO" || value.value === undefined) return "Auto";
   return value.unit === "PERCENT" ? `${round(value.value)}%` : `${round(value.value)}px`;
 }
 
@@ -210,7 +218,7 @@ function ValueDetail(props: { value: string }) {
   const ws = useWorkspace();
   return (
     <>
-      <p class="kind">トークンにしていない値</p>
+      <p class="kind">Value without a token</p>
       <h2>
         <Swatch color={props.value} /> {props.value}
       </h2>
@@ -227,11 +235,11 @@ function WebPageDetail(props: { id: string }) {
   const settings = () => ws.state.settings.webPages[props.id];
   return (
     <>
-      <p class="kind">Web ページ</p>
+      <p class="kind">Web page</p>
       <h2>{ws.webPageName(props.id)}</h2>
       <Facts>
-        <Fact label="zip の中">{ws.webPageName(props.id)}/</Fact>
-        <Fact label="画面（幅ごと）">
+        <Fact label="Folder in zip">{ws.webPageName(props.id)}/</Fact>
+        <Fact label="Screens" title="One per width. To add a screen, choose this Web page in that screen's Export settings.">
           <For each={webPage()?.screenIds ?? []}>
             {(id) => (
               <div>
@@ -245,20 +253,20 @@ function WebPageDetail(props: { id: string }) {
         </Fact>
       </Facts>
       <section class="block">
-        <h3>
-          Export 設定 <Tentative task="exportSettings" />
-        </h3>
-        <label class="field">
-          <span>名前</span>
+        <SettingsHeading />
+        <label class="field" title="The folder name in the zip">
+          <span>Name</span>
           <input type="text" value={settings()?.name ?? ""} onInput={(e) => ws.setWebPageSettings(props.id, { name: e.currentTarget.value })} />
-          <small class="help">zip の中のフォルダ名</small>
         </label>
-        <label class="field">
-          <span>題名</span>
-          <input type="text" value={settings()?.title ?? ""} onInput={(e) => ws.setWebPageSettings(props.id, { title: e.currentTarget.value })} />
-          <small class="help">ブラウザのタブに出る題名。幅が変わっても同じなので、画面ではなく Web ページに付けます</small>
+        <label class="field" title="Shown in the browser tab. The same at every width, so it belongs to the Web page, not a screen.">
+          <span>Title</span>
+          <input
+            type="text"
+            placeholder="Shown in the browser tab"
+            value={settings()?.title ?? ""}
+            onInput={(e) => ws.setWebPageSettings(props.id, { title: e.currentTarget.value })}
+          />
         </label>
-        <p class="help">どの画面がこの Web ページに入るかは、各画面の Export 設定で選びます。ファイルにはまだ保存しません</p>
       </section>
     </>
   );
@@ -270,23 +278,23 @@ function LayerDetail(props: { entry: LayerEntry }) {
   const isScreen = () => props.entry.screenId === layer().id;
   return (
     <>
-      <p class="kind">{isScreen() ? "画面" : "レイヤー"}</p>
+      <p class="kind">{isScreen() ? "Screen" : "Layer"}</p>
       <h2>{layer().name}</h2>
       <Show when={props.entry.path.length > 1}>
         <p class="path">{props.entry.path.join(" / ")}</p>
       </Show>
-      <Show when={props.entry.dropped}>{(reason) => <p class="dropped-note">渡らない: {dropReasonText(reason(), layer())}</p>}</Show>
+      <Show when={props.entry.dropped}>{(reason) => <p class="dropped-note">Not exported: {dropReasonText(reason(), layer())}</p>}</Show>
       <p>
-        <button onClick={() => void ws.selectInFigma(layer().id)}>Figma で選ぶ</button>
+        <button onClick={() => void ws.selectInFigma(layer().id)}>Select in Figma</button>
       </p>
       <Facts>
-        <Fact label="種類">{layer().type}</Fact>
+        <Fact label="Type">{layer().type}</Fact>
         <Show when={size(layer())}>
-          <Fact label="大きさ">{size(layer())}</Fact>
+          <Fact label="Size">{size(layer())}</Fact>
         </Show>
         <Show when={isScreen() && ws.webPageOf(layer().id)}>
           {(webPage) => (
-            <Fact label="Web ページ">
+            <Fact label="Web page">
               <button class="link" onClick={() => ws.open({ kind: "webPage", id: webPage().id })}>
                 {ws.webPageName(webPage().id)}
               </button>
@@ -314,7 +322,7 @@ function LayerFacts(props: { layer: LayerData }) {
   const fills = () => {
     const fills = props.layer.fills;
     if (fills === undefined) return [];
-    if (!Array.isArray(fills)) return [{ text: "（文字ごとに違う）" }];
+    if (!Array.isArray(fills)) return [{ text: "Mixed" }];
     const bound = props.layer.boundVariables["fills"];
     return fills.map((paint, i) => {
       const alias = Array.isArray(bound) ? bound[i] : undefined;
@@ -327,20 +335,20 @@ function LayerFacts(props: { layer: LayerData }) {
   return (
     <>
       <Show when={props.layer.layoutSizingHorizontal}>
-        <Fact label="サイズの決め方">
-          横 {props.layer.layoutSizingHorizontal} / 縦 {props.layer.layoutSizingVertical}
+        <Fact label="Resizing">
+          W {props.layer.layoutSizingHorizontal} · H {props.layer.layoutSizingVertical}
         </Fact>
       </Show>
       <Show when={autoLayout()?.layoutMode !== "NONE" && autoLayout()}>
         {(a) => (
           <Fact label="Auto Layout">
-            {a().layoutMode} / 間隔 {round(a().itemSpacing)} / 余白 {round(a().paddingTop)} {round(a().paddingRight)} {round(a().paddingBottom)}{" "}
+            {a().layoutMode} · gap {round(a().itemSpacing)} · padding {round(a().paddingTop)} {round(a().paddingRight)} {round(a().paddingBottom)}{" "}
             {round(a().paddingLeft)}
           </Fact>
         )}
       </Show>
       <Show when={fills().length}>
-        <Fact label="塗り">
+        <Fact label="Fill">
           <For each={fills()}>
             {(fill) => (
               <div>
@@ -350,9 +358,9 @@ function LayerFacts(props: { layer: LayerData }) {
           </For>
         </Fact>
       </Show>
-      <Show when={props.layer.text}>{(text) => <Fact label="文字">{text().characters}</Fact>}</Show>
-      <Show when={props.layer.component}>{(c) => <Fact label="元のコンポーネント">{c().mainComponentName ?? "（見つからない）"}</Fact>}</Show>
-      <Show when={props.layer.children}>{(children) => <Fact label="子">{children().length}</Fact>}</Show>
+      <Show when={props.layer.text}>{(text) => <Fact label="Text">{text().characters}</Fact>}</Show>
+      <Show when={props.layer.component}>{(c) => <Fact label="Main component">{c().mainComponentName ?? "(missing)"}</Fact>}</Show>
+      <Show when={props.layer.children}>{(children) => <Fact label="Children">{children().length}</Fact>}</Show>
     </>
   );
 }
@@ -361,8 +369,10 @@ function AssetFacts(props: { screenId: string }) {
   const ws = useWorkspace();
   const count = placeholder.assetCount(ws.index, props.screenId);
   return (
-    <Fact label="渡す画像">
-      写真 {count.images}・アイコン {count.icons} <Tentative task="assets" />
+    <Fact label="Images">
+      <Tentative task="assets">
+        {counted(count.images, "photo")} · {counted(count.icons, "icon")}
+      </Tentative>
     </Fact>
   );
 }
@@ -373,42 +383,40 @@ function ScreenSettings(props: { screenId: string }) {
   const current = () => ws.webPageOf(props.screenId)?.id;
   /** A screen that joined another Web page can go back to one of its own. */
   const ownIsFree = () => !ws.webPages().some((w) => w.id === props.screenId);
-  const field = (key: "fromWidth" | "contentWidth", label: string, help: string) => (
-    <label class="field">
+  const field = (key: "fromWidth" | "contentWidth", label: string, help: string, empty: string) => (
+    <label class="field" title={help}>
       <span>{label}</span>
       <input
         type="number"
         min={0}
+        placeholder={empty}
         value={settings()?.[key] ?? ""}
         onInput={(e) => ws.setScreenSettings(props.screenId, { [key]: e.currentTarget.value })}
       />
-      <small class="help">{help}</small>
     </label>
   );
   return (
     <section class="block">
-      <h3>
-        Export 設定 <Tentative task="exportSettings" />
-      </h3>
-      <label class="field">
-        <span>Web ページ</span>
+      <SettingsHeading />
+      <label class="field" title="Give the screens for each width of one Web page the same Web page. Not guessed from names.">
+        <span>Web page</span>
         <select onChange={(e) => ws.setScreenSettings(props.screenId, { webPageId: e.currentTarget.value })}>
           <For each={ws.webPages()}>
             {(webPage) => (
               <option value={webPage.id} selected={webPage.id === current()}>
-                {ws.webPageName(webPage.id)}（画面 {webPage.screenIds.length}）
+                {ws.webPageName(webPage.id)} ({counted(webPage.screenIds.length, "screen")})
               </option>
             )}
           </For>
           <Show when={ownIsFree()}>
-            <option value={props.screenId}>この画面だけの Web ページにする</option>
+            <option value={props.screenId}>A new Web page for this screen</option>
           </Show>
         </select>
-        <small class="help">同じ Web ページの幅違いの画面なら、同じものを選ぶ。名前からは推し量りません</small>
       </label>
-      {field("fromWidth", "切り替える幅（px）", "画面の幅がこれ以上のとき、この画面の見た目に切り替える")}
-      {field("contentWidth", "コンテンツ幅（px）", "中身が広がる最大の幅。空なら画面いっぱい")}
-      <p class="help">変えるとすぐ Review し直します。ファイルにはまだ保存しません</p>
+      <div class="field-row">
+        {field("fromWidth", "From width (px)", "This screen is used when the browser is at least this wide.", "")}
+        {field("contentWidth", "Content width (px)", "The widest the content gets. Empty: the full width.", "Full width")}
+      </div>
     </section>
   );
 }
@@ -421,21 +429,21 @@ function NoteEditor(props: { layerId: string }) {
   return (
     <section class="block">
       <h3>
-        note <Tentative task="note" />
+        <Tentative task="note">note</Tentative>
       </h3>
       <textarea
-        rows={4}
+        rows={3}
         aria-label="note"
-        placeholder="Figma のプロパティでは伝わらないこと（動き、リンク先、意図など）"
+        placeholder="What Figma can't show: motion, links, intent…"
         value={draft()}
         onInput={(e) => setDraft(e.currentTarget.value)}
       />
       <div class="actions">
         <Show when={draft() !== saved()}>
-          <span class="help">未保存</span>
+          <span class="help">Not saved</span>
         </Show>
         <button disabled={draft() === saved()} onClick={() => ws.saveNote(props.layerId, draft())}>
-          保存
+          Save
         </button>
       </div>
     </section>

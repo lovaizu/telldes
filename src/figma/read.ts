@@ -89,7 +89,7 @@ async function readLayer(node: SceneNode, parent: SceneNode | null): Promise<Lay
     layer = await readOwnFields(node, parent);
   } catch (error) {
     const cause = error instanceof Error ? error.message : String(error);
-    throw new Error(`レイヤー「${node.name}」(${node.type}, id ${node.id}): ${cause}`);
+    throw new Error(`Layer "${node.name}" (${node.type}, id ${node.id}): ${cause}`);
   }
   // Outside the try, so a failing child is named once, by itself.
   if ("children" in node) {
