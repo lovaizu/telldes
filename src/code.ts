@@ -195,8 +195,13 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
 
   // PROBE(B-1): remove after the on-device run
   // Nothing writes the settings or the theme yet, so these let the device
-  // run read real values: a frame on another page, a missing id, and a
-  // responsive row on each side of the current page.
+  // run read real values. What each written id exercises:
+  // - favicon = a frame on another page: found on another page.
+  // - OG image "0:999999": missing, reached through the site settings.
+  // - responsive row "0:999998": missing, reached only through a responsive
+  //   row, so it proves responsive frame ids are read.
+  // - responsive row on the current page: skipped as same-page.
+  // - responsive row reusing the favicon's id: merged into one entry.
   if (msg.type === "probe-write-settings") {
     try {
       const firstFrame = (page: PageNode) =>
@@ -217,6 +222,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
         responsive: [
           ...(hereId ? [{ minWidth: 0, frameId: hereId, contentWidth: { unit: "%" as const, value: 100 } }] : []),
           ...(otherId ? [{ minWidth: 1024, frameId: otherId, contentWidth: { unit: "px" as const, value: 1120 } }] : []),
+          { minWidth: 1440, frameId: "0:999998", contentWidth: { unit: "px" as const, value: 1280 } },
         ],
         rules: "Probe rules.",
       };
@@ -224,7 +230,7 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       figma.root.setPluginData(THEME_KEY, "dark");
       figma.ui.postMessage({
         type: "probe-result",
-        message: `Wrote settings (favicon/responsive other page: ${otherId ?? "none"}, responsive current page: ${hereId ?? "none"}, OG: 0:999999) and theme "dark"`,
+        message: `Wrote settings (favicon/responsive other page: ${otherId ?? "none"}, responsive current page: ${hereId ?? "none"}, OG missing: 0:999999, responsive missing: 0:999998) and theme "dark"`,
       });
     } catch (err) {
       figma.ui.postMessage({ type: "probe-result", message: `Probe failed: ${err}` });
