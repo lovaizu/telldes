@@ -74,6 +74,8 @@ Recursive node tree. Only visible layers, paints and effects are included. Each 
   - `fill` (+ `fillToken`, and `fillOpacity` 0–1 when present) → `color`, or
   - `fills` (same shape as node `fills`, computed on the text box) → write them as `background`, then `background-clip: text; -webkit-background-clip: text; color: transparent`.
   - `stroke` (when present) `{ width, color, colorToken?, paintOrder? }` → `-webkit-text-stroke: {width}px {color}` and, if `paintOrder` is present, `paint-order: {paintOrder}`.
+  - `link` (when present) → wrap the text in `<a>`: a string is the URL; `{ "path": … }` points at another node in the spec — link to that element within the page (give it an `id`).
+  - `runs` (when present) — the whole text split in order into pieces `{ characters, …fields }`. The `text` values above are the base style; each piece lists only the fields that differ from the base (same names and shapes as in `text`, e.g. `fontWeight`, `fill`, `fillToken`, `typographyToken`, `link`). Write pieces with fields as `<span>` (or `<a>` when they have `link`); pieces with only `characters` are plain text. Their `characters` joined together equal `text.characters`.
 - `fills` — see Fills below.
 - `strokes` — see Strokes below.
 - `cornerRadius` — a number (uniform) or `{ topLeft, topRight, bottomRight, bottomLeft }` → `border-radius`.
@@ -81,6 +83,8 @@ Recursive node tree. Only visible layers, paints and effects are included. Each 
 - `effects`, `shadowProperty` — see Effects below.
 - `opacity` — node-level opacity (0–1, when < 1) → CSS `opacity`.
 - `blendMode` — node blend mode (CSS name) → `mix-blend-mode`.
+- `position` — for children that Auto Layout does not place (children of a Group, and absolutely positioned children): CSS offsets relative to the parent box, e.g. `{ "left": "24px", "top": "16px" }` or `{ "right": "8px", "bottom": "calc(50% + 4px)" }`. Give the parent `position: relative` and the child `position: absolute` with these values exactly.
+- `rotate` — CSS angle in degrees (clockwise) → `transform-origin: 0 0; transform: rotate({rotate}deg)`.
 - `asset` (+ `assetOverflow`) — see Assets below.
 - `note` — designer annotations (behavior, links, interactions)
 - `screenshot` — reference image path
@@ -95,11 +99,11 @@ Hidden Figma layers are not in spec.json, screenshots or assets. Drawing that CS
 | type | Fields | CSS |
 |---|---|---|
 | `SOLID` | `color`, `colorToken?`, `opacity?` | a color |
-| `IMAGE` | `scaleMode` (FILL/FIT/CROP/TILE), `asset`, `opacity?` | `url(asset)` |
+| `IMAGE` | `asset`, `backgroundSize`, `backgroundPosition`, `backgroundRepeat`, `opacity?` | `url(asset) {backgroundPosition} / {backgroundSize} {backgroundRepeat}` |
 | `GRADIENT_LINEAR` | `angle`, `gradientStops`, `opacity?` | `linear-gradient({angle}deg, {color} {position×100}%, …)` |
 | `GRADIENT_RADIAL` | `size {x,y}`, `center {x,y}`, `gradientStops`, `opacity?` | `radial-gradient({size.x}% {size.y}% at {center.x}% {center.y}%, …)` |
 | `GRADIENT_ANGULAR` | `angle`, `center {x,y}`, `gradientStops`, `opacity?` | `conic-gradient(from {angle}deg at {center.x}% {center.y}%, …)` |
-| any gradient with `asset` and no `gradientStops` | `asset` | `url(asset)` stretched to the box (`0 0 / 100% 100%`) — CSS cannot draw this gradient, so it is delivered as an image |
+| any gradient or image with only `asset` (no stops / background fields) | `asset` | `url(asset) 0 0 / 100% 100% no-repeat` — CSS cannot draw this paint (diamond or skewed gradient, rotated or adjusted image), so Figma rendered it as an image |
 
 - `gradientStops` is `[{ position, color, colorToken? }]`. All gradient values are already converted to CSS: `position` is the CSS stop position (may be below 0 or above 1 — write it as is), `angle` is a CSS angle (0 = up, clockwise), `size`/`center` are percentages of the box. Do not recompute them.
 - Several fills → one `background` with the layers in reverse order (CSS lists the top layer first). A SOLID layer that is not the bottom one becomes `linear-gradient(color, color)`, because a plain color is allowed only as the bottom layer.
@@ -150,7 +154,7 @@ Hidden Figma layers are not in spec.json, screenshots or assets. Drawing that CS
 #### Assets
 
 - A node with `asset` is exported whole: an SVG (vectors) or a PNG at 2x (image leaf nodes). Its fills, strokes and effects are baked into the file and are not in spec.json. Place it at the node's size; if `assetOverflow { top, right, bottom, left }` is present, the image extends that many px beyond the node box (outside strokes, shadows) — let it overflow by those amounts (negative margins or absolute positioning) rather than shrinking it.
-- `IMAGE` fills point at the original image file (`asset`); use it as a background placed according to the fill's `scaleMode`.
+- `IMAGE` fills point at the original image file (`asset`); place it with the entry's `backgroundSize` / `backgroundPosition` / `backgroundRepeat` exactly as given.
 - Use the paths exactly as given. Do not build file names yourself.
 
 ### screenshots/ and screenshots-dark/
@@ -219,24 +223,25 @@ Default: `<div>` for blocks, `<p>` for text without a special name.
 | `primaryAxisAlign: "CENTER"` | `justify-content: center` |
 | `primaryAxisAlign: "MAX"` | `justify-content: flex-end` |
 | `primaryAxisAlign: "SPACE_BETWEEN"` | `justify-content: space-between` |
-| `counterAxisAlign: "MIN"` | `align-items: flex-start` |
+| `counterAxisAlign: "MIN"` (also when absent — always write it; the CSS default `stretch` would stretch HUG children) | `align-items: flex-start` |
 | `counterAxisAlign: "CENTER"` | `align-items: center` |
 | `counterAxisAlign: "MAX"` | `align-items: flex-end` |
 | `counterAxisAlign: "BASELINE"` | `align-items: baseline` |
-| `sizing.width: "FILL"` | `width: 100%` |
-| `sizing.width: "HUG"` | `width: fit-content` |
-| `sizing.width: "FIXED"` | `width: {sizing.widthPx}px` |
-| `sizing.height: "FILL"` | `height: 100%` |
-| `sizing.height: "HUG"` | `height: auto` |
-| `sizing.height: "FIXED"` | `height: {sizing.heightPx}px` |
 | `sizing.minWidth/maxWidth/minHeight/maxHeight` | `min-width`/`max-width`/`min-height`/`max-height` |
-| node `layoutAlign: "STRETCH"` | `align-self: stretch` |
-| node `layoutGrow: 1` | `flex-grow: 1` |
 | `counterAxisAlignContent: "SPACE_BETWEEN"` (wrap) | `align-content: space-between` |
 
+**Sizing** (`sizing.width` / `sizing.height`) depends on whether that axis is the parent's main axis: `width` is the main axis when the parent's `direction` is HORIZONTAL, the cross axis when VERTICAL (and the reverse for `height`).
+
+| Mode | Main axis | Cross axis |
+|---|---|---|
+| `FILL` | `flex: 1 1 0` + `min-width: 0` (`min-height: 0` in a VERTICAL parent) | `align-self: stretch` |
+| `HUG` | no size + `flex-shrink: 0` | no size |
+| `FIXED` | `width: {widthPx}px` (`height: {heightPx}px` in a VERTICAL parent) + `flex-shrink: 0` | `width: {widthPx}px` / `height: {heightPx}px` |
+
+Do not use `width: 100%` / `height: 100%` for FILL: next to FIXED or HUG siblings it overflows and shrinks them, and `height: 100%` does nothing inside a HUG parent.
+
 Notes:
-- For a `FIXED` axis, the pixel value is in `sizing.widthPx` / `sizing.heightPx`. A non-container element that is an Auto Layout child carries its `sizing` under `layout` with no `direction`.
-- `layoutAlign` and `layoutGrow` appear at the node root (not inside `layout`).
+- A non-container element that is an Auto Layout child carries its `sizing` under `layout` with no `direction`.
 
 ## 7. Completion
 

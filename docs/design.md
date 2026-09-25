@@ -69,13 +69,13 @@ Group を例外にする判断: 装飾アイコンのように内部パーツを
 
 #### 4.3.3 サイジング
 
-Hug / Fill / Fixed の3つに限定するのは、CSS への対応が一意に決まるものだけを許すため。
+Hug / Fill / Fixed の3つに限定するのは、CSS への対応が一意に決まるものだけを許すため。CSS はその軸が親の並びの向き（主軸）か、それと直交する向き（交差軸）かで決まる。対応表は 4.5.2.1「layout.sizing」が正。
 
-| Figma設定 | CSS出力 |
-|---|---|
-| Hug contents | サイズ指定なし |
-| Fill container | `flex-grow: 1` / `width: 100%` |
-| Fixed + 数値 | `width: Npx` / `height: Npx` |
+| Figma設定 | 主軸 | 交差軸 |
+|---|---|---|
+| Hug contents | サイズ指定なし＋`flex-shrink: 0` | サイズ指定なし |
+| Fill container | `flex: 1 1 0` ＋ `min-width: 0`（縦並びは `min-height: 0`） | `align-self: stretch` |
+| Fixed + 数値 | `width: Npx`（縦は `height`）＋`flex-shrink: 0` | `width: Npx` / `height: Npx` |
 
 minWidth/maxWidth/minHeight/maxHeight は同じく一意に対応するため許す（spec.json では `layout.sizing` に載る。4.5.2.1）。
 
@@ -288,7 +288,6 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
 | 数値の `$value` | 単位の無い数 | 寸法は `value`・`unit` を持つオブジェクト | Figma の変数は単位を持たない。単位は下の `cssValue` が持つ |
 | テーマ違い | `$value` を `{ "light": …, "dark": … }` にする（下記） | 定めが無い | 同じ名前の2つの値を1つのトークンとして CC に渡すため |
 | typography の `lineHeight` / `letterSpacing` | CSS の値の文字列（`"36px"` / `"150%"` / `"normal"`） | 数・寸法 | Figma の行の高さは px・%・AUTO の3通りで、CSS の書き方にしないと単位が落ちる |
-| 影の内側 | `inset: true` を足す | 型の定めに無い | Figma の内側の影を黙って落とさないため |
 | グラデーション | stop の色を1つずつ `color` のトークンにする（下記）。DTCG の `gradient` 型は使わない | stop の並びを1つの値にする | stop の位置はノードごとに違い、並びを1つの CSS 変数にしても使えない（下記） |
 
 ```json
@@ -398,7 +397,7 @@ Variablesの構造をそのままJSON化する。デザイナーの命名がそ�
 
 `typography` グループは Text Style から出力する（4.3.4「Text Style は named typography token として出力し、spec から参照」）。Variables ではなく Text Style が源泉である点が color/spacing と異なるが、`tokens.json` 上のトークンとしての扱いは同じ。`$type` は `"typography"`、`$value` は `fontFamily` / `fontSize` / `fontWeight` / `fontStyle` / `lineHeight` / `letterSpacing` を持つ複合値とする。トークン名（上記例の `heading-md`）は Text Style 名をそのまま用いる。命名は自由だが、4.3.4 の推奨トークン体系（`display` / `heading-lg` / `heading-md` / `heading-sm` / `lead` / `body` / `label` / `caption` / `code`）に従うことを推奨する。
 
-`$value` は Text Style の canonical な定義値であり、個々のノードに対する解決済みメトリクスではない。そのため 4.5.2.1 の `text.*` フィールドで採用している「既定値は省略」という間引き規約はここには適用されず、各値が既定的かどうかに関わらず6つのキーを常にすべて含める（例の `"letterSpacing": "0em"` はこの規約により省略しない）。`lineHeight` が Text Style 上 AUTO 設定の場合も同様に省略や `"AUTO"` という文字列での出力はせず、CSS の `line-height: normal` に相当するキーワード文字列 `"normal"` を `$value.lineHeight` に出力する（Figma Plugin API は AUTO 設定の描画後 line-height をpx値として提供しないため、CSS 側の意味的な等価表現を用いる）。これは mixed 値を先頭文字の値で解決する他フィールドの方針と同じく、`$value` が常に具体的な解決値を持つようにするためである。
+`$value` は Text Style の canonical な定義値であり、個々のノードに対する解決済みメトリクスではない。そのため 4.5.2.1 の `text.*` フィールドで採用している「既定値は省略」という間引き規約はここには適用されず、各値が既定的かどうかに関わらず6つのキーを常にすべて含める（例の `"letterSpacing": "0em"` はこの規約により省略しない）。`lineHeight` が Text Style 上 AUTO 設定の場合も同様に省略や `"AUTO"` という文字列での出力はせず、CSS の `line-height: normal` に相当するキーワード文字列 `"normal"` を `$value.lineHeight` に出力する（Figma Plugin API は AUTO 設定の描画後 line-height をpx値として提供しないため、CSS 側の意味的な等価表現を用いる）。`$value` が常に具体的な解決値を持つようにするためである。
 
 **太さと斜体は Text Style の書体名（`fontName.style`）から決める。** Text Style は API に太さの値を持たず、書体名（`Bold`・`Semi Bold Italic` など）しか持たないため。空白・`-`・`_` を除き、大文字小文字を区別せず、次の語を長いものから順に探して最初に当たったものを採る（`Bold` が `ExtraBold` の一部に当たらないようにするため）。
 
@@ -627,7 +626,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 | type | フィールド | CSS |
 |---|---|---|
 | `SOLID` | `color`（#RRGGBB / #RRGGBBAA）, `colorToken?`, `opacity?` | 単色 |
-| `IMAGE` | `scaleMode`（`FILL`/`FIT`/`CROP`/`TILE`）, `asset`, `opacity?` | `url(asset)` の背景。`asset` は塗りの元の画像ファイル（下記「アセット」） |
+| `IMAGE` | `asset`, `backgroundSize`, `backgroundPosition`, `backgroundRepeat`, `opacity?` | `url(asset) {backgroundPosition} / {backgroundSize} {backgroundRepeat}`。`asset` は塗りの元の画像ファイル（下記「アセット」） |
 | `GRADIENT_LINEAR` | `angle`, `gradientStops`, `opacity?` | `linear-gradient({angle}deg, {色} {位置}, …)` |
 | `GRADIENT_RADIAL` | `size`（`{ x, y }`）, `center`（`{ x, y }`）, `gradientStops`, `opacity?` | `radial-gradient({size.x}% {size.y}% at {center.x}% {center.y}%, …)` |
 | `GRADIENT_ANGULAR` | `angle`, `center`, `gradientStops`, `opacity?` | `conic-gradient(from {angle}deg at {center.x}% {center.y}%, …)` |
@@ -637,6 +636,18 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 - `size` と `center` はノードの幅・高さに対する %、`angle` は CSS の角度（度。0 が上、時計回り）
 - `opacity` は塗りの不透明度が 1 未満の場合のみ付与する数値（0〜1）。半透明オーバーレイ（4.3.5）の再現に使う。CSS の背景には1枚ごとの不透明度が無いので、CC は色のアルファに掛ける。トークンの色には `color-mix(in srgb, var(--…) {opacity×100}%, transparent)` を使う（アルファを掛けたのと同じ色になり、トークンを使ったまま書ける）
 - IMAGE / GRADIENT を含む全種類の塗りを `fills` に出力する（SOLID 以外を欠落させない）。
+- **画像の塗りの置き方は、②が `scaleMode` から CSS の値にして載せる**（下表）。`scaleMode` のまま渡すと、CC が対応を当てることになる
+
+| `scaleMode` | Figma の置き方 | `backgroundSize` | `backgroundPosition` | `backgroundRepeat` |
+|---|---|---|---|---|
+| `FILL` | 箱を覆うまで拡大縮小し、はみ出しを切る。中央に置く | `cover` | `center` | `no-repeat` |
+| `FIT` | 箱に収まるまで拡大縮小する。中央に置く | `contain` | `center` | `no-repeat` |
+| `TILE` | 元の大きさに `scalingFactor` を掛けた大きさで敷き詰める | `{画像の幅×scalingFactor}px {画像の高さ×scalingFactor}px` | `0 0` | `repeat` |
+| `CROP` | 画像の中の切り抜いた範囲（`imageTransform`）を箱に合わせる | `{100 / 横の倍率}% {100 / 縦の倍率}%` | `{tx / (1 − 横の倍率) × 100}% {ty / (1 − 縦の倍率) × 100}%` | `no-repeat` |
+
+- `CROP` の `imageTransform` は、箱の 0〜1 の座標を画像の 0〜1 の座標へ写す行列で、横の倍率・縦の倍率は箱に見えている範囲が画像の幅・高さに占める割合、tx・ty はその範囲の左上の位置。% で書くのは、箱の寸法が変わっても同じ範囲が見えるようにするため（倍率が 1 の軸は位置 `0%`）
+- `TILE` の画像の幅と高さは、元の画像の画素数（読み取りデータの `images`）
+- **CSS で同じにならない画像の塗り — `rotation` が 0 でないもの、`filters`（露出・コントラストなど）が1つでも 0 でないもの、`imageTransform` が回転を含むもの — は、塗り1枚を画像にして渡す**（CSS で描けないグラデーションと同じ。下記）。CSS の背景は画像を回せず、Figma の画像の調整と同じ計算の CSS の `filter` も無い。このときは `backgroundSize` などを出さず、`asset` を箱いっぱいに敷く
 - 塗りが複数あるとき、`fills` は Figma と同じく下の塗りから並ぶ。CSS の `background` は上の層から書くので、CC は並びを逆にする。一番下以外の単色の塗りは `linear-gradient(色, 色)` にする（`background` で単色を置けるのは一番下の層だけだから）。どちらも CC に任せると推測になるので、ここで決めておく（原則B）。
 - `blendMode` は塗りの描き方が `NORMAL` 以外のときだけ付ける。値は CSS の名前（`MULTIPLY` → `multiply`、`COLOR_BURN` → `color-burn` のように小文字にして `_` を `-` にしたもの）で、CC は `background-blend-mode` の同じ層に書く。CSS に同じものが無い `LINEAR_BURN` / `LINEAR_DODGE` と、一番下の塗りの描き方（ノードの後ろにあるものと混ぜる。`background-blend-mode` は要素の中の層どうししか混ぜない）は出さず、再現できない描画として告知する（4.7.2）。黙って `normal` で描かせると色が変わったことに誰も気づかない
 - ノードの `fillStyleId` がグラデーション・複数 fill の Color Style を指すときは、ノードに `fillsToken`（例 `"fills/brand-gradient"`）を付ける。命名は `tokens.json` の `fills` トークン名（4.5.1）と対応する。**そのノードの塗りの `colorToken`（単色の塗りと stop）は、Variable ではなく Style のトークン（`fills/<Style 名>/<塗りの番号>` と `…/<stop の番号>`）を指す。** Style を当てたことがデザイナーの宣言であり、Style の中身が Variable を指していても、使う名前は Style の方だから。このときの `color` は Style のトークンと同じく塗りの不透明度を含み（4.5.1）、`opacity` は付けない — 2度掛けを起こさないため。単色の Color Style はトークンにならない（除外物。4.7.2）ので付けない。
@@ -646,7 +657,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 - **線形**: Figma で同じ位置になる点の集まり（色の等しい線）は、ノードの実寸の上で平行な直線になる。この線に垂直な向きを `angle` にする。CSS のグラデーションの線は箱の中心を通り、両端が箱の角を通る色の等しい線に乗る長さを持つので、その両端での Figma の位置を t0・t1 として、各 stop の位置 p を `(p − t0) / (t1 − t0)` に直す。CSS の線の長さは角度と縦横比で決まり Figma のハンドルとは一致しないので、Figma の位置をそのまま % にするとノードごとにずれる。ハンドルが斜めに歪められていても色の等しい線は平行な直線のままなので、線形はいつも CSS で同じに描ける
 - **円形**: ハンドルが作る楕円の半径を `size`、中心を `center` にする。stop の位置は Figma のまま（どちらも中心が 0、楕円の縁が 1）。楕円の軸が箱の辺と平行でない（傾いている）ものは `radial-gradient` では描けない
 - **角度**: 中心を `center`、始まりの向きを `angle` にし、stop の位置は1周を 1 とする数のまま。ハンドルが直角で同じ長さでない（向きによって伸び方が違う）ものは `conic-gradient` では描けない
-- **CSS で同じに描けないもの — `GRADIENT_DIAMOND` のすべてと、上の2つの描けない場合 — は、塗り1枚を画像にして渡す。** ダイヤモンドは CSS にも SVG にも同じ形のグラデーションが無い。近い形を CC に作らせれば推測になり、告知だけにすると描かれない。塗りの画像なら Figma 自身の描画そのものになる。①が、ノードと同じ大きさの長方形を一時的に作ってその塗り1枚だけを持たせ、PNG（2倍）で書き出して消す（ノードそのものを書き出すと子が焼き込まれるため）。`type` は元のまま残し、`gradientStops` などは出さない — CC が描き直さないように
+- **CSS で同じに描けないもの — `GRADIENT_DIAMOND` のすべてと、上の2つの描けない場合、上記の画像の塗り — は、塗り1枚を画像にして渡す。** ダイヤモンドは CSS にも SVG にも同じ形のグラデーションが無い。近い形を CC に作らせれば推測になり、告知だけにすると描かれない。塗りの画像なら Figma 自身の描画そのものになる。①が、ノードと同じ大きさの長方形を一時的に作ってその塗り1枚だけを持たせ、PNG（2倍）で書き出して消す（ノードそのものを書き出すと子が焼き込まれるため）。`type` は元のまま残し、`gradientStops` などは出さない — CC が描き直さないように
 
 **strokes（線）**
 
@@ -681,11 +692,12 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 | `strokeAlign` | CSS |
 |---|---|
 | CENTER | `-webkit-text-stroke: {太さ}px {色}` |
-| OUTSIDE | `-webkit-text-stroke: {太さ×2}px {色}; paint-order: stroke fill`（線を先に描き、内側の半分を文字の塗りで隠す） |
+| OUTSIDE | `-webkit-text-stroke: {太さ×2}px {色}; paint-order: stroke fill`（線を先に描き、内側の半分を文字の塗りで隠す）。文字の色が不透明な単色1枚（`text.fill` で `fillOpacity` が無く、アルファが 1）のときだけ |
 | INSIDE | CSS に手段が無い |
 
 - ②はこの値を計算済みで `text.stroke`（`{ "width": n, "color": …, "colorToken"?: …, "paintOrder"?: "stroke fill" }`）に載せ、テキストのノードには `strokes` 一式を出さない。形が箱の線と違うのは、描くプロパティが違うからで、箱の線の形で渡すと CC が `::after` を作ってしまう
-- 描けないもの — INSIDE、単色でない線・複数の線・破線、文字の塗りが不透明でない OUTSIDE（隠したはずの内側の半分が透ける） — は出さず、再現できない描画として告知する（4.7.2）
+- 描けないもの — INSIDE、単色でない線・複数の線・破線、文字の色が不透明な単色1枚でない OUTSIDE — は出さず、再現できない描画として告知する（4.7.2）。OUTSIDE を不透明な単色に限るのは、半透明なら隠したはずの内側の半分が透け、`text.fills`（`background-clip: text` と `color: transparent`）では文字の塗りが線の上に描かれず内側の半分を隠せないため（文字が細く見える）
+- 区間ごとに文字の色が違うテキストの OUTSIDE は、すべての区間の色が不透明な単色のときだけ描ける
 
 **アセットにしたノードは、線・塗り・影を出さない。** ノードを丸ごと書き出したアセット（下記「アセット」）には、Figma がそれらを焼き込み済みで、CSS でも描けば二重になる。
 
@@ -722,7 +734,7 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 |---|---|---|
 | テキスト | 文字の形 | `text-shadow` |
 | 表示されている塗りを持つノード | ノードの箱 | `box-shadow` |
-| 塗りの無いフレーム・グループ | 中身の形 | `filter`（`drop-shadow()`） |
+| 表示されている塗りの無いノード（フレーム・グループ・線だけの長方形など） | 中身と線の形 | `filter`（`drop-shadow()`） |
 
 - `text-shadow` と `drop-shadow()` は `spread` と内側の影を表せず、`drop-shadow()` は並べると別々の影にならない（4.5.1）。これらに当たる影と、CSS に手段の無いもの — 半透明の塗りの下に影を透かす設定（`showShadowBehindNode`。`box-shadow` は箱の下には描かれない）、`NORMAL` 以外の描き方 — は出さず、再現できない描画として告知する（4.7.2）
 - `filter` にぼかし（`LAYER_BLUR`）も入るノードでは、1つの `filter` に `drop-shadow()`、`blur()` の順で並べる
@@ -736,7 +748,7 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 |---|---|---|
 | ノードの `asset`（と `assetOverflow`） | ノードを丸ごと書き出したもの。ベクター（Vector・Boolean・Star・Polygon・Ellipse・Line）は SVG、画像の塗りを持つ末端のノードは PNG（2倍） | `assets/icons/{ファイル名}.svg` / `assets/images/{ファイル名}.png` |
 | 塗りの `asset`（`IMAGE`） | 塗りの元の画像そのもの（子を持つノードの背景画像など） | `assets/images/{ファイル名}--fill-{塗りの番号}.{元の形式}` |
-| 塗りの `asset`（CSS で描けないグラデーション） | 塗り1枚の画像（上記） | `assets/images/{ファイル名}--fill-{塗りの番号}.png` |
+| 塗りの `asset`（CSS で描けないグラデーション・画像の塗り） | 塗り1枚の画像（上記） | `assets/images/{ファイル名}--fill-{塗りの番号}.png` |
 | `strokeAsset` | 線だけの SVG（上記） | `assets/icons/{ファイル名}--stroke.svg` |
 
 - `{ファイル名}` はレイヤーパスを `--` で結合したもの（4.3.8）。塗りの番号は Figma の塗りの並び（下から、1始まり、非表示の塗りも数える）で、1つのノードに画像の塗りが2枚あっても別のファイルになる
@@ -745,7 +757,7 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 
 **text（タイポグラフィのメトリクス）**
 
-`text` には `characters` / `fontSize` / `fontFamily` / `fontWeight` に加え、描画に効くメトリクスを CSS 相当で出力する（該当時のみ）。`figma.mixed` の場合は先頭文字の値で解決する。
+`text` には `characters` / `fontSize` / `fontFamily` / `fontWeight` に加え、描画に効くメトリクスを CSS 相当で出力する（該当時のみ）。1つのテキストの中で設定が区間ごとに違う場合（一部だけ太字・リンクの色など）は、最も多くの文字を占める設定を `text` の値とし、それと違う区間を `text.runs` に出す（下記）。
 
 | フィールド | 値の例 | 備考 |
 |---|---|---|
@@ -757,8 +769,17 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 | `fontStyle` | `italic` | 書体名（`fontName.style`）に `Italic` / `Oblique` を含むときのみ（4.5.1 と同じ判定） |
 
 - `fontWeight` は区間が持つ太さの値をそのまま使う。書体名から決めるのは、太さの値を持たない Text Style のときだけ（4.5.1）
+- `link`: 区間に Figma のリンク（`hyperlink`）が付いていれば、その URL の文字列。リンク先が Figma のノードなら `{ "path": リンク先の path }`（書き出し範囲の外や別ページのノードなら、飛び先が zip に無いので出さず、再現できない描画として告知する。4.7.2）。CC は `<a>` にし、ノードへのリンクはその要素へのページ内リンクにする
 
-- `typographyToken`: ノードの `textStyleId` が単一の Text Style を指している場合のみ付与する文字列（例 `"typography/heading-md"`。命名は `tokens.json` の `typography` トークン名（4.5.1）と対応する）。`textStyleId` が `figma.mixed`（複数の Text Style が混在）の場合、単一のトークン名で表せないため `typographyToken` は付与しない（他フィールドのような先頭文字での解決は行わない）。Text Style が適用されていないノードも同様に省略する。
+**text.runs（区間ごとに違う設定）**
+
+区間ごとの設定が1つでも違えば、`text.runs` に文字列全体を先頭から区切った並びを出す。各要素は `characters` と、`text` の値と違うフィールドだけを持つ（`fontWeight`・`fill`・`fillToken`・`typographyToken`・`link` など、`text` と同じ名前と形）。違いの無い区間は `characters` だけを持つ。CC は違いを持つ区間を `<span>`（`link` があれば `<a>`）にして書く。
+
+- 先頭の区間の値で全体を代表させると、一部だけ太字の見出しやリンクの色が黙って消える（原則B「欠けていると分かる」）。区切った並びにするのは、文字の位置（開始と終了の番号）で渡すと CC が文字列を数えて切る必要があり、絵文字などで数え間違えるため
+- 基準を最も多くの文字を占める設定にするのは、`<span>` の数を最も少なくするため。同じ数なら先に現れる設定
+- 全体に1つずつしか無い設定（`textAlign`・線・影）は区間に出ない
+
+- `typographyToken`: 区間が Text Style を指している場合に付与する文字列（例 `"typography/heading-md"`。命名は `tokens.json` の `typography` トークン名（4.5.1）と対応する）。`text` には基準の設定の Text Style を、違う Text Style の区間には `text.runs` の側に付ける。Text Style が適用されていない区間は省略する。
 - `typographyToken` と `fontSizeToken` / `fillToken` などのプロパティ単位のトークンは独立しており、併存しうる。`typographyToken` は適用された Text Style を表し、`fontSizeToken` / `fillToken` は個々のプロパティに直接バインドされた Variable を表すため、両者は排他的ではない。同一ノードがどちらか一方のみ、両方、またはいずれも持たない場合があり、各フィールドは加算的（additive）に付与される。
 
 **opacity（ノード不透明度）**
@@ -778,6 +799,38 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 - `width` / `height` はサイジングモード（`FILL` / `HUG` / `FIXED`）。`FIXED` の場合は実ピクセル値 `widthPx` / `heightPx` を併せて付与する。
 - 4.3.3 で許可される最小/最大サイズが設定されている場合、`minWidth` / `maxWidth` / `minHeight` / `maxHeight`（数値）を付与する。
 - Auto Layout コンテナ以外のノード（末端要素など）でも、Auto Layout の子であればサイジング情報を持つ。その場合 `layout` は `direction` 等を持たず `sizing` のみを含む。
+- **CSS は軸ごとに、その軸が親の `direction` と同じ向き（主軸）かどうかで決まる。** `width` は親が横並びなら主軸、縦並びなら交差軸（`height` はその逆）。
+
+| モード | 主軸 | 交差軸 |
+|---|---|---|
+| `FILL` | `flex: 1 1 0` と `min-width: 0`（縦並びは `min-height: 0`） | `align-self: stretch` |
+| `HUG` | サイズを書かない。`flex-shrink: 0` | サイズを書かない |
+| `FIXED` | `width: {widthPx}px`（縦並びは `height`）と `flex-shrink: 0` | `width` / `height` に px |
+
+- `FILL` を `width: 100%` にしないのは、兄弟に Fixed や Hug があると 100% のうえに兄弟の幅が足されてあふれ、縮められる側（CSS の既定 `flex-shrink: 1`）が Fixed の兄弟まで縮めるため。縦の `height: 100%` は、親の高さが Hug（中身で決まる）だと基準の高さが無く効かない。主軸を `flex: 1 1 0` にするのは、Figma が Fill の兄弟どうしで残りの幅を「中身の幅が揃うように」分ける（Figma ヘルプ「Use auto layout with CSS Flexbox in mind」: 線と padding の分を除いた中身の広さで分ける、CSS の border-box と同じ）からで、`flex-basis: 0` と `box-sizing: border-box`（4.6）の組み合わせが同じ分け方になる。`min-width: 0` は、中身の最小幅で Fill が広がらないようにするため（Figma の Fill は中身に押し広げられない）
+- `FIXED` と主軸の `HUG` に `flex-shrink: 0` を付けるのは、Figma では Fill 以外の子は縮まないため
+- 交差軸の `HUG` がサイズを書かないだけで済むのは、親が常に `align-items` を書くから（4.6。`counterAxisAlign` が無ければ `MIN` ＝ `flex-start`）。CSS の既定 `stretch` のままだと Hug の子が引き伸ばされる
+- Figma の `layoutAlign` / `layoutGrow` は出さない。どちらも Fill を表す Figma の内部の値で、`layoutSizingHorizontal` / `Vertical` が同じことを Fill / Hug / Fixed の形で持っている。2箇所に書けば食い違いうる（原則B「1箇所にだけある」）
+
+**position（Auto Layout の流れの外にある子）**
+
+Auto Layout が位置を決めない子 — Group の子と、`layoutPositioning: ABSOLUTE` の子 — は `position` を持つ。子を持つフレームに Auto Layout が無い場合は error なので（4.3.2）、ほかには生じない。持たせないと、CC はスクリーンショットから位置を当てることになる（原則B「推測させない」）。
+
+- `position` は CSS に書く値そのもの（`{ "left": "24px", "top": "16px" }` など）で、親の箱の左上を基準にする。CC は親に `position: relative`、子に `position: absolute` を付けて書く
+- Group の子は `left` / `top` の px。Figma は Group の子の座標を Group ではなくその外側のフレームを基準に持つので、②が Group の位置を引いて Group 基準に直す。Group は子を描くための入れ物で、寸法も子から決まり、伸び縮みしない
+- `ABSOLUTE` の子は、Figma の制約（`constraints`）が親の寸法が変わったときの振る舞いを宣言しているので、それを CSS の基準に写す。カンプの寸法ではどれも同じ位置になる
+
+| 制約（横。縦も同じ） | `position` |
+|---|---|
+| `MIN`（左） | `left: {x}px` |
+| `MAX`（右） | `right: {親の幅 − x − 幅}px` |
+| `STRETCH`（左右） | `left` と `right` の両方（幅は書かない） |
+| `CENTER` | `left: calc(50% + {x − 親の幅/2}px)` |
+| `SCALE` | `left` と `width` を親の幅に対する % で |
+
+- **回転**は、回転だけの変換（反転や歪みを含まない）なら `rotate`（CSS の角度。度、時計回り）を出し、CC は `transform-origin: 0 0; transform: rotate({rotate}deg)` と書く。Figma の回転はノードの左上を中心とし、反時計回りを正とするので、②が符号を反対にする。回転した子の `position` は制約に関わらず `left` / `top` の px にする — 回った箱の基準を右端や中央に写すと、どこを基準にしたかが一意に決まらないため
+- Auto Layout の流れの中にある子の回転、反転や歪みを含む変換、回転した Group は出さず、再現できない描画として告知する（4.7.2）。CSS の `transform` は並びに場所を取らず、Figma の並び（回った外形で場所を取る）と同じにならないため
+- アセットにしたノード（4.5.2.1「アセット」）の回転は画像に焼き込まれているので出さない
 
 **background（ページ背景）**
 
@@ -861,16 +914,11 @@ Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）を zip ル�
 | `primaryAxisAlignItems: "CENTER"` | `justify-content: center` |
 | `primaryAxisAlignItems: "MAX"` | `justify-content: flex-end` |
 | `primaryAxisAlignItems: "SPACE_BETWEEN"` | `justify-content: space-between` |
-| `counterAxisAlignItems: "MIN"` | `align-items: flex-start` |
+| `counterAxisAlignItems: "MIN"`（既定。出力に無いときもこれ） | `align-items: flex-start`（省略しない。CSS の既定は `stretch`） |
 | `counterAxisAlignItems: "CENTER"` | `align-items: center` |
 | `counterAxisAlignItems: "MAX"` | `align-items: flex-end` |
 | `counterAxisAlignItems: "BASELINE"` | `align-items: baseline` |
-| `primaryAxisSizingMode: "AUTO"` | `flex-basis: auto` |
-| `primaryAxisSizingMode: "FIXED"` | 固定サイズ |
-| `counterAxisSizingMode: "AUTO"` | コンテンツ依存 |
-| `counterAxisSizingMode: "FIXED"` | 固定サイズ |
-| 子の `layoutAlign: "STRETCH"` | `align-self: stretch` |
-| 子の `layoutGrow: 1` | `flex-grow: 1` |
+| 子の `layoutSizingHorizontal` / `Vertical` | 主軸・交差軸ごとの対応（4.5.2.1「layout.sizing」） |
 | `counterAxisAlignContent: "SPACE_BETWEEN"` (wrap時) | `align-content: space-between` |
 | `counterAxisSpacing` (wrap時) | 横並びなら `row-gap`（`itemSpacing` は `column-gap`）、縦並びなら `column-gap`（`itemSpacing` は `row-gap`） |
 
@@ -1044,7 +1092,7 @@ Reviewが報告するのはエラーのみとする。エラーは書き出し�
 - 非表示のレイヤー → 描かれていないので `spec.json`・スクリーンショット・アセットに出ない（4.5.2）。**最上位の非表示レイヤー（祖先はすべて表示されているもの）ごとに1件**とし、その配下は数に含めて並べない。配下まで並べると、非表示にしたグループ1つで数十行になる。非表示のページ直下フレームもここに入る（画面にならない。4.7.4）。配下に note があれば、レイヤーパスと本文も記録する（note は `spec.json` にしか届かないため、ここに書かなければ消える）。インスタンスの中のものは次の2つでまとめる（Color Style 使用をインスタンスの数だけ並べないのと同じ理由）
   - **部品の真偽値プロパティで表示を切り替えているレイヤー**（`componentPropertyReferences.visible` を持つもの）は、プロパティごとに1件とし、部品名・プロパティ名・件数・代表レイヤーパス（最大3件）を持たせる（「Card の Show badge がオフ: 12 箇所」）。表示の切り替えをプロパティで持たせるのは Figma の作法そのもので（原則A）、1つずつ並べると作法どおりに作ったファイルほど告知が長くなる
   - それ以外で、**同じ主コンポーネントのインスタンスの中の同じ位置にある**（最も近い祖先のインスタンスから、子の並びの番号をたどって同じになる）非表示のレイヤーは1件にまとめ、件数と代表レイヤーパス（最大3件）を持たせる。部品側で非表示にしてあるのか、インスタンスごとに非表示にしたのかは読み取りデータからは決められない — 主コンポーネントは別のページに置くのが定石で（4.7.4）、読む範囲の外にある。そこで「同じ部品の同じ位置で非表示」という読める事実だけでまとめる。位置を名前ではなく番号でたどるのは、同じ名前の兄弟（重複名の違反）があっても取り違えないため
-- **再現できない描画** → Figma では描かれているが、CSS で同じに描く手段が無いので `spec.json` に出さなかったもの（4.5.2.1 が挙げるもの: テキストの INSIDE の線、`text-shadow` などで表せない影、CSS に同じものが無い描き方、切り抜きと重なる線、ページ直下フレーム自身の線・影・角丸など）。**種類ごとに1件**とし、件数と代表レイヤーパス（最大3件）を持たせる。近い形に置き換えて出すと、CC はそれが近似だと知らずに正しい値として使うので、出さずに告知し、デザインを CSS で描ける形に直すかどうかをデザイナーに委ねる
+- **再現できない描画** → Figma では描かれているが、CSS で同じに描く手段が無いので `spec.json` に出さなかったもの（4.5.2.1 が挙げるもの: テキストの INSIDE の線、`text-shadow` などで表せない影、CSS に同じものが無い描き方、切り抜きと重なる線、流れの中の回転や反転、ページ直下フレーム自身の線・影・角丸、飛び先が zip に無いリンクなど）。**種類ごとに1件**とし、件数と代表レイヤーパス（最大3件）を持たせる。近い形に置き換えて出すと、CC はそれが近似だと知らずに正しい値として使うので、出さずに告知し、デザインを CSS で描ける形に直すかどうかをデザイナーに委ねる
 - **決められない値** → 書体名から太さが決まらない Text Style（4.5.1）と、単位が決まらない数値トークン（4.5.1）。**Text Style・Variable ごとに1件**
 
 **除外物告知の走査範囲:** README に載る項目は、読み手がzipの中身と突き合わせられるものでなければならない。したがって走査範囲をカテゴリごとに次のとおり定める。
@@ -1189,7 +1237,7 @@ Export の実行（確認ビューの「実行」）は、ダークモード対�
 | テーマの付け替え | `node.fills = …` / `node.strokes = …` / `node.effects = …`、テキストの区間は `node.setRangeFills(start, end, paints)`、スタイルは `paintStyle.paints = …` / `effectStyle.effects = …`（どれも②が作った配列をそのまま代入する。4.3.9）。Paint・Effect 以外の欄（角丸・余白など）は `node.setBoundVariable(field, variable)` |
 | インスタンスの主コンポーネント | `instance.getMainComponentAsync()`（読み取りデータの `mainComponentId` / `mainComponentName` を作る。4.7.2） |
 | 描画範囲 | `node.absoluteBoundingBox`, `node.absoluteRenderBounds`（はみ出す子の判定と `assetOverflow`。4.5.2.1） |
-| 塗りの元の画像 | `figma.getImageByHash(hash).getBytesAsync()`（4.5.2.1「アセット」） |
+| 塗りの元の画像 | `figma.getImageByHash(hash).getBytesAsync()`（4.5.2.1「アセット」）、画素数は `getSizeAsync()`（`TILE` の大きさ。4.5.2.1） |
 | 塗り・線だけの画像 | `figma.createRectangle()` に塗り1枚か線だけを持たせて `exportAsync` し、`remove()` する（4.5.2.1） |
 | 付け替え対象のスタイル列挙 | `figma.getLocalPaintStylesAsync()`, `figma.getLocalEffectStylesAsync()`（4.3.9 の対象(2)） |
 | Export設定・テーマ状態の保存 | `figma.root.setPluginData()` / `getPluginData()`（4.7.4.3） |
@@ -1237,7 +1285,7 @@ Export の実行（確認ビューの「実行」）は、ダークモード対�
 | `textStyles` / `paintStyles` / `effectStyles` | ローカルな Style 全件（下表） | 下表 |
 | `settings` | 保存されている Export 設定（4.7.4.3）。フレームは node id のまま | settings.json、テーマ整合の有効・無効（4.7.2）、tokens.json の light/dark（4.5.1）、画面ビューの確認 |
 | `theme` | `light` / `dark`（4.7.4.3 の状態） | light に Dark 混入、起動時の復旧の促し（4.7.2）、付け替えの向き |
-| `images` | 書き出し範囲の表示されている `IMAGE` の塗りが指す画像ごとに、`imageHash` と先頭の12バイト | 塗りの元の画像のファイル名と拡張子（4.5.2.1） |
+| `images` | 書き出し範囲の表示されている `IMAGE` の塗りが指す画像ごとに、`imageHash`・先頭の12バイト・画素数（幅・高さ） | 塗りの元の画像のファイル名と拡張子、`TILE` の `backgroundSize`（4.5.2.1） |
 | `otherFrames` | 設定が指す node id のうち現在のページに無いもの（favicon / OG 画像。4.7.4）の名前。見つからなければ無いことを示す値 | 参照切れの知らせ（4.7.4.3）、settings.json の `site`（4.5.4） |
 
 ノード（`nodes` の各要素と `children`）:
@@ -1249,19 +1297,20 @@ Export の実行（確認ビューの「実行」）は、ダークモード対�
 | `visible` | 非表示のノードを出力・撮影・アセット・チェックから外す（4.5.2）、非表示のレイヤーの告知（4.7.2） |
 | `mainComponentId`, `mainComponentName`（インスタンスのみ） | 非表示のレイヤーの告知で、同じ部品の同じ位置のもの・同じプロパティのものを1件にまとめ、部品名を出す（4.7.2）。Figma のノードにこの名前の欄は無く、①が `getMainComponentAsync()` の結果の id と名前（バリアントなら Component Set の名前）から作る |
 | `componentPropertyReferences`（`visible` のみ） | 真偽値プロパティで隠したレイヤーをプロパティごとにまとめる（4.7.2） |
-| `width`, `height`, `x`, `y`, `layoutPositioning` | `viewport.width`、`FIXED` の `widthPx` / `heightPx`（4.5.2.1）、丸い形の判定（4.7.2）、背景を子に置いたものの検出（検出の仕様は実装で決める。4.7.2）、グラデーションの計算（4.5.2.1） |
+| `width`, `height`, `x`, `y`, `layoutPositioning` | `viewport.width`、`FIXED` の `widthPx` / `heightPx`（4.5.2.1）、丸い形の判定（4.7.2）、背景を子に置いたものの検出（検出の仕様は実装で決める。4.7.2）、グラデーションの計算、`position`（4.5.2.1） |
+| `relativeTransform`, `rotation`, `constraints` | `position` の基準と `rotate`、回転だけの変換かどうか（4.5.2.1） |
 | `absoluteBoundingBox`, `absoluteRenderBounds` | はみ出す子があるか（`clipsContent`）、`assetOverflow`（4.5.2.1） |
 | `clipsContent` | `clipsContent`、切り抜きと重なる線（4.5.2.1） |
 | `blendMode` | ノードの `blendMode`（4.5.2.1） |
-| `layoutMode`, `layoutWrap`, `primaryAxisAlignItems`, `counterAxisAlignItems`, `counterAxisAlignContent`, `primaryAxisSizingMode`, `counterAxisSizingMode`, `paddingTop` / `Right` / `Bottom` / `Left`, `itemSpacing`, `counterAxisSpacing` | spec.json の `layout`（4.5.2、4.5.2.1、4.6）、Auto Layout 未適用 |
-| `layoutSizingHorizontal` / `Vertical`, `minWidth` / `maxWidth` / `minHeight` / `maxHeight`, `layoutAlign`, `layoutGrow` | `layout.sizing`（4.5.2.1）、サイジングチェック |
+| `layoutMode`, `layoutWrap`, `primaryAxisAlignItems`, `counterAxisAlignItems`, `counterAxisAlignContent`, `paddingTop` / `Right` / `Bottom` / `Left`, `itemSpacing`, `counterAxisSpacing` | spec.json の `layout`（4.5.2、4.5.2.1、4.6）、Auto Layout 未適用 |
+| `layoutSizingHorizontal` / `Vertical`, `minWidth` / `maxWidth` / `minHeight` / `maxHeight` | `layout.sizing`（4.5.2.1）、サイジングチェック |
 | `fills`（Paint のまま。`visible`・`opacity`・`blendMode`・`imageHash`・`gradientTransform`・`gradientStops` を含む）, `fillStyleId` | `fills` / `background` / `text.fill` / `text.fills`・`fillsToken`・アセット（4.5.2.1）、画像を含むか（4.3.8）、単色 Color Style の告知、色・グラデーション stop の未バインド、付け忘れ、付け替え |
 | `strokes`, `strokeStyleId`, `strokeWeight`, `strokeTopWeight` / `Right` / `Bottom` / `Left`, `strokeAlign`, `dashPattern`, `strokesIncludedInLayout` | spec.json の `strokes` 一式・`strokesToken`・`text.stroke`・線の SVG（4.5.2.1）、色（線）の未バインド（4.7.2）、単色 Color Style の告知、再現できない描画、付け替え |
 | `effects`（`visible`・`blendMode`・`showShadowBehindNode` を含む）, `effectStyleId` | `effects`・`effectsToken`・`shadowProperty`（4.5.2.1）、影の色の未バインド、再現できない描画、付け替え |
 | `opacity` | ノードの `opacity` |
 | `cornerRadius`, `topLeftRadius` / `topRightRadius` / `bottomRightRadius` / `bottomLeftRadius` | `cornerRadius`（4.5.2.1）、丸い形の判定 |
 | `boundVariables`（塗り・線・影・グラデーション stop の中のものを含む） | `*Token`、色の未バインド、light に Dark 混入、対象外 Variable の告知、付け忘れ、付け替え |
-| `text`: `textAlignHorizontal` と、区間ごとの `characters`・`fontSize`・`fontName`・`fontWeight`・`lineHeight`・`letterSpacing`・`textCase`・`textDecoration`・`fills`・`fillStyleId`・`textStyleId`・`boundVariables` | spec.json の `text`（先頭の区間で解決）と `typographyToken`（全区間が同じ Text Style のときだけ。4.5.2.1）、全区間の色の未バインド・付け替え、テキスト内の Color Style 混在（4.7.2） |
+| `text`: `textAlignHorizontal` と、区間ごとの `characters`・`fontSize`・`fontName`・`fontWeight`・`lineHeight`・`letterSpacing`・`textCase`・`textDecoration`・`fills`・`fillStyleId`・`textStyleId`・`hyperlink`・`boundVariables` | spec.json の `text`（最も多くの文字を占める設定）と `text.runs`・`typographyToken`・`link`（4.5.2.1）、全区間の色の未バインド・付け替え、テキスト内の Color Style 混在（4.7.2） |
 | `note` | spec.json の `note`、note 一覧（4.7.3）、書き出し対象外の note・非表示のレイヤーの note の告知 |
 
 Variable・コレクション・Style:
@@ -1311,6 +1360,10 @@ Variable・コレクション・Style:
 - `strokesIncludedInLayout` の振る舞い。INSIDE の線だけが中身の配置に数えられ、辺ごとの太さならその辺の padding にだけ効くこと、CENTER / OUTSIDE は数えないこと（4.5.2.1）
 - Figma の線は子より上に描かれること（`::after` を子より上に置く前提。4.5.2.1）
 - Figma の effects の並びが下の影からであること（CSS で逆にする前提。4.5.1、4.5.2.1）
+- 塗りと OUTSIDE / CENTER の線を持つノードの影が、線の外側の縁から落ちるか。それまでは、影は塗りの箱（ノードの寸法）から落ちるものとして `box-shadow` をそのまま書く — `box-shadow` はノードの箱から落ち、`::after` の線は影の形に入らない。線の外側の縁から落ちると分かったら、線がはみ出す幅を `spread` に足す規則に改める（4.5.2.1）
+- サイジングの対応（4.5.2.1「layout.sizing」）が Figma と同じ寸法になること。Fill の兄弟に padding や INSIDE の線の違いがあるとき、Fixed の兄弟が縮まないこと、Hug の親の中の縦の Fill
+- `ABSOLUTE` の子の制約の写し方と、回転の向き・中心（4.5.2.1「position」）。回転したノードを書き出したアセットに回転が焼き込まれること
+- 画像の塗りの置き方（4.5.2.1）。`FILL` / `FIT` が中央に置かれること、`TILE` の大きさが元の画素数×`scalingFactor` であること、`CROP` の `imageTransform` が箱から画像への向きの行列であること
 - 塗りの描き方（`blendMode`）が、そのノードの塗りの層どうしだけを混ぜること（`background-blend-mode` に写す前提。4.5.2.1）
 - 数値の変数の単位（4.5.1）。`OPACITY` の変数が 0〜100 の数を持つこと、`LINE_HEIGHT` / `LETTER_SPACING` の変数が px として効くこと
 - ②が作った配列の代入でバインドされること。`boundVariables` を持つ Paint・Effect・stop を `fills` などに代入し、`setRangeFills` でテキストの区間に代入したとき、変数につながった状態になること（4.3.9、4.7.6）
