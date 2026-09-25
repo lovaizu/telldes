@@ -357,8 +357,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-26
+- **Last completed**: #1 土台
+- **Next**: #2 画面の試作（残りは「ユーザーに Figma で触ってもらい、分かりにくいところを直す」だけ。直しは8回目 f8df257 まで済み）
+- **Notes**: ブランチ `telldes-plugin`、PR https://github.com/lovaizu/telldes/pull/2 。未決: 幅違いのフレームを1つの Web page にまとめる指定を、A) Figma の Section で囲む（Section 名がページ名。設計書の「組はデータから決められないので画面ごとに選んでもらう」を変える）か、B) 今の「Same page as」のままか。ユーザーに A/B を提示中（A を推奨）。決まったら直して再度触ってもらい、checks/2.md の QA・専門家の欄を埋めて #2 を完了し、#3 の承認へ。checks/2.md の Self-check 欄は修正8回目まで書いてあり未コミット（この wip に含める）
