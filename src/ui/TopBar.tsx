@@ -5,6 +5,8 @@ import { counted } from "./format";
 import { ariaBool, placeholderTitle, RowMarks } from "./parts";
 import { useWorkspace } from "./workspace";
 
+const CANVAS_THEME_TITLE = "Switches this page's variables between Light and Dark. The plugin itself follows Figma's theme.";
+
 export function TopBar() {
   const ws = useWorkspace();
   return (
@@ -21,6 +23,28 @@ export function TopBar() {
         </span>
         <span class="page-name">{ws.file.page.name}</span>
       </button>
+      {/* The design's theme, not the plugin's: the plugin follows Figma's theme, so this sits with the file's own state. */}
+      <div class="canvas-theme" title={`${CANVAS_THEME_TITLE}\n${placeholderTitle("theme")}`}>
+        <span class="canvas-theme-label">Canvas</span>
+        <div class="segmented" role="group" aria-label="Canvas theme">
+          <button aria-pressed={ariaBool(ws.state.theme === "light")} onClick={() => ws.setTheme("light")}>
+            Light
+          </button>
+          {/* aria-disabled, not disabled: the button stays hoverable and clickable, so the reason can be shown. */}
+          <button
+            aria-pressed={ariaBool(ws.state.theme === "dark")}
+            aria-disabled={ariaBool(!ws.state.settings.file.darkSupport)}
+            title={
+              ws.state.settings.file.darkSupport
+                ? `${CANVAS_THEME_TITLE}\n${placeholderTitle("theme")}`
+                : "Dark support is off, so there is no Dark"
+            }
+            onClick={() => ws.setTheme("dark")}
+          >
+            Dark
+          </button>
+        </div>
+      </div>
       <span class="spacer" />
       <button title="Add the recommended tokens this file is missing" onClick={() => ws.runSetup()}>
         Setup
@@ -38,20 +62,6 @@ export function TopBar() {
       >
         Export
       </button>
-      <div class="segmented" role="group" aria-label="Theme" title={placeholderTitle("theme")}>
-        <button aria-pressed={ariaBool(ws.state.theme === "light")} onClick={() => ws.setTheme("light")}>
-          Light
-        </button>
-        {/* aria-disabled, not disabled: the button stays hoverable and clickable, so the reason can be shown. */}
-        <button
-          aria-pressed={ariaBool(ws.state.theme === "dark")}
-          aria-disabled={ariaBool(!ws.state.settings.file.darkSupport)}
-          title={ws.state.settings.file.darkSupport ? placeholderTitle("theme") : "Dark support is off, so there is no Dark"}
-          onClick={() => ws.setTheme("dark")}
-        >
-          Dark
-        </button>
-      </div>
     </header>
   );
 }
