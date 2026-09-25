@@ -59,15 +59,15 @@ Design: docs/design.md
 
 **Steps**:
 
-- [ ] `package.json`・`tsconfig.json`・`manifest.json`・Vite 設定を作る（画面は1つの HTML、Figma 側は1つの JS に）
-- [ ] Figma からファイルを読み、JSON にできるデータにまとめる窓口を作る（Review・Export もこれを使う）
-- [ ] 画面と Figma 側のやり取りの型を作り、読んだデータを画面に渡す
-- [ ] `bun run build` し、ユーザーに読み込んで開いてもらう
-- [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] `package.json`・`tsconfig.json`・`manifest.json`・Vite 設定を作る（画面は1つの HTML、Figma 側は1つの JS に）
+- [x] Figma からファイルを読み、JSON にできるデータにまとめる窓口を作る（Review・Export もこれを使う）
+- [x] 画面と Figma 側のやり取りの型を作り、読んだデータを画面に渡す
+- [x] `bun run build` し、ユーザーに読み込んで開いてもらう
+- [x] self-check (OK/NG per completion criterion, record in checks/1.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [x] Design expert review (subagent)
 
 **Completion criteria**:
 
