@@ -1,18 +1,18 @@
 // Small pieces shared by the lists and the details.
 import { For, Show } from "solid-js";
 import type { Finding } from "../core/findings";
+import { TASK, type TaskKey } from "./placeholders";
 import { useWorkspace } from "./workspace";
 
 /** ARIA states want the strings "true" / "false", not a boolean. */
 export const ariaBool = (value: boolean) => (value ? "true" : "false");
 
-const FEATURE_OF_TASK: Record<number, string> = { 4: "Setup", 5: "Review", 6: "note", 7: "Export", 9: "Light / Dark" };
-
 /** Marks a value as a placeholder that the given task replaces. */
-export function Tentative(props: { task: number }) {
+export function Tentative(props: { task: TaskKey }) {
+  const task = () => TASK[props.task];
   return (
-    <span class="tentative" title={`仮の結果です。#${props.task} ${FEATURE_OF_TASK[props.task] ?? ""} で本物に差し替えます`}>
-      仮 #{props.task}
+    <span class="tentative" title={`仮の結果です。#${task().number} ${task().feature} で本物に差し替えます`}>
+      仮 #{task().number}
     </span>
   );
 }
@@ -53,7 +53,7 @@ export function Findings(props: { findings: Finding[] }) {
     <Show when={props.findings.length}>
       <section class="block">
         <h3>
-          error と知らせ <Tentative task={5} />
+          error と知らせ <Tentative task="review" />
         </h3>
         <ul class="findings">
           <For each={props.findings}>

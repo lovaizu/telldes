@@ -6,6 +6,7 @@ import type { LayerEntry } from "../core/screens";
 import type { LayerData, VariableData } from "../shared/data";
 import { colorCss, colorHex, dropReasonText, round, size, tokenDropText, variableValue } from "./format";
 import { Findings, Swatch, Tentative } from "./parts";
+import * as placeholder from "./placeholders";
 import { useWorkspace, type Selection } from "./workspace";
 
 export function Detail() {
@@ -27,6 +28,9 @@ export function Detail() {
         </Match>
         <Match when={as("value")?.value} keyed>
           {(value) => <ValueDetail value={value} />}
+        </Match>
+        <Match when={ws.webPages().find((w) => w.id === as("webPage")?.id)?.id} keyed>
+          {(id) => <WebPageDetail id={id} />}
         </Match>
         <Match when={ws.index.get(as("layer")?.id ?? "")} keyed>
           {(entry) => <LayerDetail entry={entry} />}
@@ -58,10 +62,11 @@ function FileDetail() {
       <p class="kind">ファイル</p>
       <h2>{ws.file.fileName}</h2>
       <Facts>
-        <Fact label="ページ">{ws.file.page.name}</Fact>
+        <Fact label="Figma のページ">{ws.file.page.name}</Fact>
         <Fact label="テーマ">
-          {ws.state.theme === "dark" ? "Dark" : "Light"} <Tentative task={9} />
+          {ws.state.theme === "dark" ? "Dark" : "Light"} <Tentative task="theme" />
         </Fact>
+        <Fact label="渡す Web ページ">{ws.webPages().length}</Fact>
         <Fact label="渡す画面">{ws.screens.length}</Fact>
         <Fact label="渡らないもの">{ws.dropped.length}</Fact>
         <Fact label="変数">{ws.file.tokens.variables.length}</Fact>
@@ -72,28 +77,29 @@ function FileDetail() {
 
       <section class="block">
         <h3>
-          Export 設定 <Tentative task={7} />
+          Export 設定 <Tentative task="exportSettings" />
         </h3>
         <label class="check">
           <input
             type="checkbox"
-            checked={ws.state.fileSettings.darkSupport}
+            checked={ws.state.settings.file.darkSupport}
             onChange={(e) => ws.setFileSettings({ darkSupport: e.currentTarget.checked })}
           />
           ダーク対応
         </label>
-        <p class="help">ON にすると、変数につないでいない色が error になり、Export に Dark の画像も入ります。Review で反映されます</p>
+        <p class="help">ON にすると、変数につないでいない色が error になり、Export に Dark の画像も入ります。OFF の間は Dark に切り替えられません</p>
         <label class="field">
           <span>共通ルール</span>
           <textarea
             rows={5}
-            placeholder="ページ全体に効くことを文章で（例: 見出しは Noto Sans JP を読み込む）"
-            value={ws.state.fileSettings.commonRules}
+            placeholder="すべての Web ページに効くことを文章で（例: 見出しは Noto Sans JP を読み込む）"
+            value={ws.state.settings.file.commonRules}
             onInput={(e) => ws.setFileSettings({ commonRules: e.currentTarget.value })}
           />
         </label>
-        <p class="help">ファイルにはまだ保存しません</p>
+        <p class="help">変えるとすぐ Review し直します。ファイルにはまだ保存しません</p>
       </section>
+      <Findings findings={ws.findingsOf({ kind: "file" })} />
     </>
   );
 }
@@ -213,7 +219,50 @@ function ValueDetail(props: { value: string }) {
   );
 }
 
-// ---- Screens and layers ----
+// ---- Web pages, screens and layers ----
+
+function WebPageDetail(props: { id: string }) {
+  const ws = useWorkspace();
+  const webPage = () => ws.webPages().find((w) => w.id === props.id);
+  const settings = () => ws.state.settings.webPages[props.id];
+  return (
+    <>
+      <p class="kind">Web ページ</p>
+      <h2>{ws.webPageName(props.id)}</h2>
+      <Facts>
+        <Fact label="zip の中">{ws.webPageName(props.id)}/</Fact>
+        <Fact label="画面（幅ごと）">
+          <For each={webPage()?.screenIds ?? []}>
+            {(id) => (
+              <div>
+                <button class="link" onClick={() => ws.openLayer(id)}>
+                  {ws.index.get(id)?.layer.name}
+                </button>{" "}
+                <span class="help">{size(ws.index.get(id)!.layer)}</span>
+              </div>
+            )}
+          </For>
+        </Fact>
+      </Facts>
+      <section class="block">
+        <h3>
+          Export 設定 <Tentative task="exportSettings" />
+        </h3>
+        <label class="field">
+          <span>名前</span>
+          <input type="text" value={settings()?.name ?? ""} onInput={(e) => ws.setWebPageSettings(props.id, { name: e.currentTarget.value })} />
+          <small class="help">zip の中のフォルダ名</small>
+        </label>
+        <label class="field">
+          <span>題名</span>
+          <input type="text" value={settings()?.title ?? ""} onInput={(e) => ws.setWebPageSettings(props.id, { title: e.currentTarget.value })} />
+          <small class="help">ブラウザのタブに出る題名。幅が変わっても同じなので、画面ではなく Web ページに付けます</small>
+        </label>
+        <p class="help">どの画面がこの Web ページに入るかは、各画面の Export 設定で選びます。ファイルにはまだ保存しません</p>
+      </section>
+    </>
+  );
+}
 
 function LayerDetail(props: { entry: LayerEntry }) {
   const ws = useWorkspace();
@@ -235,8 +284,17 @@ function LayerDetail(props: { entry: LayerEntry }) {
         <Show when={size(layer())}>
           <Fact label="大きさ">{size(layer())}</Fact>
         </Show>
+        <Show when={isScreen() && ws.webPageOf(layer().id)}>
+          {(webPage) => (
+            <Fact label="Web ページ">
+              <button class="link" onClick={() => ws.open({ kind: "webPage", id: webPage().id })}>
+                {ws.webPageName(webPage().id)}
+              </button>
+            </Fact>
+          )}
+        </Show>
         <Show when={isScreen()}>
-          <Fact label="zip の中">{layer().name}/</Fact>
+          <AssetFacts screenId={layer().id} />
         </Show>
         <LayerFacts layer={layer()} />
       </Facts>
@@ -299,15 +357,28 @@ function LayerFacts(props: { layer: LayerData }) {
   );
 }
 
+function AssetFacts(props: { screenId: string }) {
+  const ws = useWorkspace();
+  const count = placeholder.assetCount(ws.index, props.screenId);
+  return (
+    <Fact label="渡す画像">
+      写真 {count.images}・アイコン {count.icons} <Tentative task="assets" />
+    </Fact>
+  );
+}
+
 function ScreenSettings(props: { screenId: string }) {
   const ws = useWorkspace();
-  const settings = () => ws.state.screenSettings[props.screenId];
-  const field = (key: "fromWidth" | "contentWidth" | "title", label: string, help: string, numeric: boolean) => (
+  const settings = () => ws.state.settings.screens[props.screenId];
+  const current = () => ws.webPageOf(props.screenId)?.id;
+  /** A screen that joined another Web page can go back to one of its own. */
+  const ownIsFree = () => !ws.webPages().some((w) => w.id === props.screenId);
+  const field = (key: "fromWidth" | "contentWidth", label: string, help: string) => (
     <label class="field">
       <span>{label}</span>
       <input
-        type={numeric ? "number" : "text"}
-        min={numeric ? 0 : undefined}
+        type="number"
+        min={0}
         value={settings()?.[key] ?? ""}
         onInput={(e) => ws.setScreenSettings(props.screenId, { [key]: e.currentTarget.value })}
       />
@@ -317,12 +388,27 @@ function ScreenSettings(props: { screenId: string }) {
   return (
     <section class="block">
       <h3>
-        Export 設定 <Tentative task={7} />
+        Export 設定 <Tentative task="exportSettings" />
       </h3>
-      {field("fromWidth", "切り替える幅（px）", "画面の幅がこれ以上のとき、この画面の見た目に切り替える", true)}
-      {field("contentWidth", "コンテンツ幅（px）", "中身が広がる最大の幅。空なら画面いっぱい", true)}
-      {field("title", "ページの題名", "ブラウザのタブに出る題名", false)}
-      <p class="help">ファイルにはまだ保存しません</p>
+      <label class="field">
+        <span>Web ページ</span>
+        <select onChange={(e) => ws.setScreenSettings(props.screenId, { webPageId: e.currentTarget.value })}>
+          <For each={ws.webPages()}>
+            {(webPage) => (
+              <option value={webPage.id} selected={webPage.id === current()}>
+                {ws.webPageName(webPage.id)}（画面 {webPage.screenIds.length}）
+              </option>
+            )}
+          </For>
+          <Show when={ownIsFree()}>
+            <option value={props.screenId}>この画面だけの Web ページにする</option>
+          </Show>
+        </select>
+        <small class="help">同じ Web ページの幅違いの画面なら、同じものを選ぶ。名前からは推し量りません</small>
+      </label>
+      {field("fromWidth", "切り替える幅（px）", "画面の幅がこれ以上のとき、この画面の見た目に切り替える")}
+      {field("contentWidth", "コンテンツ幅（px）", "中身が広がる最大の幅。空なら画面いっぱい")}
+      <p class="help">変えるとすぐ Review し直します。ファイルにはまだ保存しません</p>
     </section>
   );
 }
@@ -335,7 +421,7 @@ function NoteEditor(props: { layerId: string }) {
   return (
     <section class="block">
       <h3>
-        note <Tentative task={6} />
+        note <Tentative task="note" />
       </h3>
       <textarea
         rows={4}

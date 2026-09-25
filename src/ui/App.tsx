@@ -1,4 +1,4 @@
-import { createSignal, Match, Switch } from "solid-js";
+import { createSignal, Match, Show, Switch } from "solid-js";
 import type { FindingOwner } from "../core/findings";
 import type { FileData } from "../shared/data";
 import { request } from "./bridge";
@@ -48,12 +48,13 @@ function Layout() {
       <TopBar />
       <nav class="pane-list" aria-label="一覧">
         <div class="tabs" role="tablist">
-          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")}>
+          {/* Both counts are of what is handed over; what is not is listed, and counted, inside each tab. */}
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")} title="渡す画面の数">
             画面 {ws.screens.length}
             <TabMarks kinds={["screen", "layer"]} />
           </button>
-          <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")}>
-            トークン {ws.groups.reduce((n, g) => n + g.tokens.length, 0)}
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")} title="渡すトークンの数">
+            トークン {ws.handedTokenCount}
             <TabMarks kinds={["token", "value"]} />
           </button>
         </div>
@@ -71,12 +72,14 @@ function Layout() {
       </main>
       <footer class={["status", { error: !!ws.state.status?.error }]} role="status">
         {ws.state.status?.text ?? "行を選ぶと詳細が出て、Figma でもそのレイヤーが選ばれます"}
-        {ws.state.status?.task !== undefined && (
-          <>
-            {" "}
-            <Tentative task={ws.state.status.task} /> Figma には書き込んでいません
-          </>
-        )}
+        <Show when={ws.state.status?.task}>
+          {(task) => (
+            <>
+              {" "}
+              <Tentative task={task()} /> Figma には書き込んでいません
+            </>
+          )}
+        </Show>
       </footer>
     </div>
   );
