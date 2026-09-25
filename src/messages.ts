@@ -1,5 +1,6 @@
 import type { CheckResult } from "./checks/types";
 import type { ExclusionReport } from "./export/exclusions";
+import type { ReadData } from "./readData";
 
 // The plugin → UI message payloads. postMessage is `any` on both ends and the
 // repo runs no `tsc` step, so these buy no build-time check — only code.ts and
@@ -91,6 +92,17 @@ export interface SetupErrorMessage {
   message: string;
 }
 
+/** The read data, asked for by the UI to save as a sample file (4.7.7). */
+export interface ReadDataMessage {
+  type: "read-data";
+  data: ReadData;
+}
+
+export interface ReadDataErrorMessage {
+  type: "read-data-error";
+  message: string;
+}
+
 /** Every message the UI can receive, so its handler can branch on one type. */
 export type PluginMessage =
   | CheckResultsMessage
@@ -101,4 +113,6 @@ export type PluginMessage =
   | ExportErrorMessage
   | ExportDataMessage
   | SetupDoneMessage
-  | SetupErrorMessage;
+  | SetupErrorMessage
+  | ReadDataMessage
+  | ReadDataErrorMessage;

@@ -10,6 +10,7 @@ import type {
   PluginMessage,
   SelectionNote,
 } from "./messages";
+import type { ReadData } from "./readData";
 import { buildExportZip } from "./export/zipBuilder";
 
 type Tab = "check" | "note" | "export";
@@ -70,6 +71,8 @@ interface MessageHandlers extends ReviewSetters {
   /** The layer the Notes tab is on, so a stale `note-saved` can be ignored. */
   selectedNodeId: () => string | undefined;
   startExport: (msg: ExportDataMessage) => void;
+  saveReadData: (data: ReadData) => void;
+  setReadDataError: (message: string) => void;
 }
 
 /**
@@ -99,6 +102,21 @@ export function handlePluginMessage(
   }
   // The zip build is async and clears "Exporting..." itself.
   if (msg.type === "export-data") handlers.startExport(msg);
+  if (msg.type === "read-data") handlers.saveReadData(msg.data);
+  if (msg.type === "read-data-error") handlers.setReadDataError(msg.message);
+}
+
+/** Hands a file to the browser's download, as the plugin UI cannot write files. */
+function download(blob: Blob, fileName: string): void {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // Defer revocation so the async download isn't cancelled (Chromium race).
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 /** One heading per level, its results beneath it, groups in first-seen order. */
@@ -133,6 +151,8 @@ const App: Component = () => {
   const [exporting, setExporting] = createSignal(false);
   const [exportError, setExportError] = createSignal("");
   const [exportDone, setExportDone] = createSignal(false);
+  const [reading, setReading] = createSignal(false);
+  const [readDataError, setReadDataError] = createSignal("");
 
   window.onmessage = (event: MessageEvent) => {
     const msg = event.data.pluginMessage;
@@ -150,6 +170,11 @@ const App: Component = () => {
       setExporting,
       selectedNodeId: () => selectionNote()?.nodeId,
       startExport: handleExportData,
+      saveReadData,
+      setReadDataError: (message) => {
+        setReadDataError(message);
+        setReading(false);
+      },
     });
   };
 
@@ -163,15 +188,7 @@ const App: Component = () => {
         steeringTemplate,
       });
       const blob = await zip.generateAsync({ type: "blob" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "telldes-export.zip";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // Defer revocation so the async download isn't cancelled (Chromium race).
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      download(blob, "telldes-export.zip");
 
       setExportDone(true);
       setExporting(false);
@@ -196,6 +213,20 @@ const App: Component = () => {
     setExportError("");
     setExportDone(false);
     parent.postMessage({ pluginMessage: { type: "run-export" } }, "*");
+  };
+
+  // The read data as a file, to keep as a sample for testing the build layer
+  // (old design doc 4.7.7). Indented so a sample diffs readably in the repo.
+  const saveReadData = (data: ReadData) => {
+    const json = JSON.stringify(data, null, 2);
+    download(new Blob([json], { type: "application/json" }), "telldes-read-data.json");
+    setReading(false);
+  };
+
+  const requestReadData = () => {
+    setReading(true);
+    setReadDataError("");
+    parent.postMessage({ pluginMessage: { type: "save-read-data" } }, "*");
   };
 
   const saveNote = () => {
@@ -351,6 +382,12 @@ const App: Component = () => {
                 Export complete — hand the zip to CC. It includes prompt.md
                 and steering.md to get it started.
               </div>
+            </Show>
+            <button class="run-btn" onClick={requestReadData} disabled={reading()}>
+              {reading() ? "Reading..." : "Save read data (JSON)"}
+            </button>
+            <Show when={readDataError()}>
+              <div class="export-error">{readDataError()}</div>
             </Show>
           </div>
         )}

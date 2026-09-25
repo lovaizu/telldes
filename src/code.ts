@@ -13,6 +13,8 @@ import type {
   LayerNote,
   NoteSavedMessage,
   NotesListMessage,
+  ReadDataErrorMessage,
+  ReadDataMessage,
   SelectionNote,
   SelectionNoteMessage,
   SetupDoneMessage,
@@ -24,6 +26,7 @@ import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
 import { exportAssets } from "./export/assetExporter";
 import { createTokens } from "./setup/tokenFactory";
+import { readFigma } from "./read";
 
 figma.showUI(__html__, { width: 360, height: 480 });
 
@@ -167,6 +170,20 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       const message: SetupErrorMessage = {
         type: "setup-error",
         message: `Setup failed: ${err instanceof Error ? err.message : err}`,
+      };
+      figma.ui.postMessage(message);
+    }
+  }
+
+  if (msg.type === "save-read-data") {
+    // Contained like run-setup: a read that fails must say why in the UI.
+    try {
+      const message: ReadDataMessage = { type: "read-data", data: await readFigma() };
+      figma.ui.postMessage(message);
+    } catch (err) {
+      const message: ReadDataErrorMessage = {
+        type: "read-data-error",
+        message: `Reading failed: ${err instanceof Error ? err.message : err}`,
       };
       figma.ui.postMessage(message);
     }
