@@ -3,19 +3,22 @@
 // section names the task that replaces it. Nothing here writes to Figma, and
 // the UI marks every value that comes from here with 仮 and the task number.
 import type { Finding } from "../core/findings";
-import type { LayerEntry } from "../core/screens";
+import type { LayerEntry, WebPage } from "../core/screens";
 import type { FileData, LayerData } from "../shared/data";
 import { colorHex } from "./format";
 
-/** The task that replaces each placeholder, shown next to the fake value. */
+/** The task that replaces each placeholder, and the feature it builds, shown next to the fake value. */
 export const TASK = {
-  setup: 4,
-  review: 5,
-  note: 6,
-  exportSettings: 7,
-  export: 7,
-  theme: 9,
+  setup: { number: 4, feature: "Setup" },
+  review: { number: 5, feature: "Review" },
+  note: { number: 6, feature: "note" },
+  exportSettings: { number: 7, feature: "Export 設定" },
+  export: { number: 7, feature: "Export" },
+  assets: { number: 8, feature: "画像・アセットの書き出し" },
+  theme: { number: 9, feature: "Light / Dark" },
 } as const;
+
+export type TaskKey = keyof typeof TASK;
 
 // ---- #4 Setup: what Setup would create ----
 
@@ -74,21 +77,58 @@ export interface FileSettings {
   commonRules: string;
 }
 
-export interface ScreenSettings {
-  /** The viewport width from which this screen's layout is used. */
-  fromWidth: string;
-  contentWidth: string;
+export interface WebPageSettings {
+  /** The folder name in the zip. */
+  name: string;
   title: string;
 }
 
-export const initialFileSettings: FileSettings = { darkSupport: true, commonRules: "" };
+export interface ScreenSettings {
+  /** The Web page this screen is one width of (a WebPage id). */
+  webPageId: string;
+  /** The viewport width from which this screen's layout is used. */
+  fromWidth: string;
+  contentWidth: string;
+}
 
-export const emptyScreenSettings: ScreenSettings = { fromWidth: "", contentWidth: "", title: "" };
+export interface Settings {
+  file: FileSettings;
+  /** By WebPage id. Every screen starts as a Web page of its own, named after its frame. */
+  webPages: Record<string, WebPageSettings>;
+  screens: Record<string, ScreenSettings>;
+}
+
+export function initialSettings(screens: LayerData[]): Settings {
+  return {
+    file: { darkSupport: true, commonRules: "" },
+    webPages: Object.fromEntries(screens.map((s) => [s.id, { name: s.name, title: "" }])),
+    screens: Object.fromEntries(screens.map((s) => [s.id, { webPageId: s.id, fromWidth: "", contentWidth: "" }])),
+  };
+}
 
 // ---- #7 Export: what Export would write ----
 
-export function exportResult(screenCount: number, droppedCount: number): string {
-  return `telldes-export.zip に画面 ${screenCount} つを書き出し、渡らないもの ${droppedCount} 件を README.md に記録する予定です`;
+export function exportResult(webPageCount: number, screenCount: number, droppedCount: number): string {
+  return `telldes-export.zip に Web ページ ${webPageCount} つ（画面 ${screenCount} つ）をフォルダごとに書き出し、渡らないもの ${droppedCount} 件を README.md に記録する予定です`;
+}
+
+// ---- #8 Images and assets: what Export would hand over as files ----
+
+export interface AssetCount {
+  images: number;
+  icons: number;
+}
+
+/** Fake count: image fills become PNGs, vector layers SVGs. Not the real rule. */
+export function assetCount(index: Map<string, LayerEntry>, screenId: string): AssetCount {
+  const count = { images: 0, icons: 0 };
+  for (const entry of index.values()) {
+    if (entry.screenId !== screenId || entry.dropped) continue;
+    const fills = entry.layer.fills;
+    if (Array.isArray(fills) && fills.some((paint) => paint.type === "IMAGE")) count.images++;
+    if (entry.layer.type === "VECTOR" || entry.layer.type === "BOOLEAN_OPERATION") count.icons++;
+  }
+  return count;
 }
 
 // ---- #9 Light / Dark ----
@@ -100,59 +140,57 @@ export const initialTheme: Theme = "light";
 // ---- #5 Review: findings on real objects ----
 
 /**
- * Fake Review. It picks a few real layers so the findings land on real rows,
- * but the rules are not the real ones.
+ * Fake Review. It looks at real layers and tokens so the findings land on
+ * real rows and follow the one-owner rule, but the rules are not the real ones.
  */
-export function review(
-  file: FileData,
-  index: Map<string, LayerEntry>,
-  settings: FileSettings,
-  screenSettings: Record<string, ScreenSettings>,
-): Finding[] {
+export function review(file: FileData, index: Map<string, LayerEntry>, webPages: WebPage[], settings: Settings): Finding[] {
   const findings: Finding[] = [];
-  const colors = unboundColors(index);
+  const { darkSupport } = settings.file;
 
-  if (settings.darkSupport) {
-    const [shared, single] = [colors.filter((c) => c.layerIds.length > 1), colors.filter((c) => c.layerIds.length === 1)];
-    for (const color of shared.slice(0, 2)) {
-      findings.push({
-        severity: "error",
-        owner: { kind: "value", value: color.hex },
-        message: `色 ${color.hex} が変数につながっていません。Dark に付け替わりません`,
-        fix: "この色に当たる Light の色変数につなぐ",
-        layerIds: color.layerIds,
-      });
-    }
-    for (const color of single.slice(0, 1)) {
-      findings.push({
-        severity: "error",
-        owner: { kind: "layer", id: color.layerIds[0]! },
-        message: `色 ${color.hex} が変数につながっていません。Dark に付け替わりません`,
-        fix: "Light の色変数につなぐ",
-        layerIds: color.layerIds,
-      });
-    }
-  }
-
-  const sameValue = colorVariableWithUnboundUses(file, colors);
-  if (sameValue) {
+  if (darkSupport && !file.tokens.collections.some((c) => c.name === "Dark")) {
     findings.push({
-      severity: "notice",
-      owner: { kind: "token", id: sameValue.variableId },
-      message: `このトークンと同じ色なのに、つないでいない所が ${sameValue.layerIds.length} か所あります`,
-      fix: "意図してつないでいないなら、そのままでよい",
-      layerIds: sameValue.layerIds,
+      severity: "error",
+      owner: { kind: "file" },
+      message: "ダーク対応が ON なのに、Dark のコレクションがありません",
+      fix: "Setup で Dark のコレクションを作るか、ダーク対応を OFF にする",
+      layerIds: [],
     });
   }
 
-  const screens = [...index.values()].filter((e) => e.screenId === e.layer.id && !e.dropped);
-  if (screens.length > 1) {
-    for (const screen of screens) {
-      if (screenSettings[screen.layer.id]?.fromWidth) continue;
+  const tokenOf = colorTokens(file);
+  for (const color of unboundColors(index)) {
+    const token = tokenOf.get(color.hex);
+    if (token) {
+      // Equal to a token: the one decision is "connect these to the token", so the token owns it.
+      findings.push({
+        severity: darkSupport ? "error" : "notice",
+        owner: { kind: "token", id: token.id },
+        message: darkSupport
+          ? `${token.name} と同じ色 ${color.hex} が ${color.layerIds.length} か所で変数につながっていません。Dark に付け替わりません`
+          : `${token.name} と同じ色 ${color.hex} なのに、つないでいない所が ${color.layerIds.length} か所あります`,
+        fix: darkSupport ? `${token.name} につなぐ` : `${token.name} につなぐ。意図してつないでいないなら、そのままでよい`,
+        layerIds: color.layerIds,
+      });
+    } else if (darkSupport) {
+      // A light-only file reports nothing for raw values (docs/design.md).
+      findings.push({
+        severity: "error",
+        owner: color.layerIds.length > 1 ? { kind: "value", value: color.hex } : { kind: "layer", id: color.layerIds[0]! },
+        message: `色 ${color.hex} が変数につながっていません。Dark に付け替わりません`,
+        fix: "この色の変数を Light と Dark に作ってつなぐ",
+        layerIds: color.layerIds,
+      });
+    }
+  }
+
+  for (const webPage of webPages) {
+    if (webPage.screenIds.length < 2) continue;
+    for (const screenId of webPage.screenIds) {
+      if (settings.screens[screenId]?.fromWidth) continue;
       findings.push({
         severity: "notice",
-        owner: { kind: "screen", id: screen.layer.id },
-        message: "この画面に切り替える幅が決まっていません",
+        owner: { kind: "screen", id: screenId },
+        message: "この画面に切り替える幅が決まっていません。同じ Web ページに幅違いの画面があります",
         fix: "画面の Export 設定で「切り替える幅」を入れる",
         layerIds: [],
       });
@@ -190,13 +228,16 @@ function unboundSolidFills(layer: LayerData): string[] {
   );
 }
 
-function colorVariableWithUnboundUses(file: FileData, colors: ColorUse[]): { variableId: string; layerIds: string[] } | null {
+/** Hex → the color variable with that value in its first mode, skipping Dark so a light value meets its light token. */
+function colorTokens(file: FileData): Map<string, { id: string; name: string }> {
+  const dark = new Set(file.tokens.collections.filter((c) => c.name === "Dark").map((c) => c.id));
+  const byHex = new Map<string, { id: string; name: string }>();
   for (const variable of file.tokens.variables) {
-    if (variable.resolvedType !== "COLOR") continue;
+    if (variable.resolvedType !== "COLOR" || dark.has(variable.variableCollectionId)) continue;
     const value = Object.values(variable.valuesByMode)[0];
     if (!value || typeof value !== "object" || !("r" in value)) continue;
-    const use = colors.find((c) => c.hex === colorHex(value, "a" in value ? value.a : 1));
-    if (use) return { variableId: variable.id, layerIds: use.layerIds };
+    const hex = colorHex(value, "a" in value ? value.a : 1);
+    if (!byHex.has(hex)) byHex.set(hex, { id: variable.id, name: variable.name });
   }
-  return null;
+  return byHex;
 }

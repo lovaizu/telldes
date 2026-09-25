@@ -18,16 +18,25 @@ export function TokenList() {
     }));
   });
 
+  const droppedCount = () => ws.groups.reduce((n, g) => n + g.tokens.filter((t) => t.dropped).length, 0);
+
+  /** Values that match no token and still own a finding; a value equal to a token is on that token's row. */
   const values = createMemo(() =>
     ws.state.findings.flatMap((f) => (f.owner.kind === "value" ? [f.owner.value] : [])).filter((v, i, all) => all.indexOf(v) === i),
   );
 
   return (
     <div class="list">
+      <div class="list-head">
+        <h3>
+          渡すトークン {ws.handedTokenCount}
+          <Show when={droppedCount()}>・渡らない {droppedCount()}</Show>
+        </h3>
+      </div>
       <Show when={values().length}>
         <section>
           <h3>
-            トークンにしていない値 <Tentative task={5} />
+            トークンにしていない値 <Tentative task="review" />
           </h3>
           <ul>
             <For each={values()}>
@@ -35,7 +44,7 @@ export function TokenList() {
                 <li>
                   <button
                     class="row"
-                    aria-current={ws.state.selected.kind === "value" && ws.state.selected.value === value && "true"}
+                    aria-current={ws.isOpen({ kind: "value", value }) && "true"}
                     onClick={() => ws.open({ kind: "value", value })}
                   >
                     <Swatch color={value} />
@@ -56,7 +65,7 @@ export function TokenList() {
               {group.name}
               <Show when={group.planned.length}>
                 {" "}
-                <Tentative task={4} />
+                <Tentative task="setup" />
               </Show>
             </h3>
             <ul>
@@ -86,7 +95,7 @@ function TokenRow(props: { token: TokenRef }) {
   return (
     <button
       class={["row", { dropped: !!props.token.dropped }]}
-      aria-current={ws.state.selected.kind === "token" && ws.state.selected.id === props.token.id && "true"}
+      aria-current={ws.isOpen({ kind: "token", id: props.token.id }) && "true"}
       onClick={() => ws.open({ kind: "token", id: props.token.id })}
     >
       <Swatch color={swatch()} />

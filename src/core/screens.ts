@@ -67,7 +67,25 @@ export function droppedLayers(index: Map<string, LayerEntry>): DroppedLayer[] {
   return roots;
 }
 
-/** The layer and all its descendants. */
-export function countLayers(layer: LayerData): number {
-  return 1 + (layer.children ?? []).reduce((sum, child) => sum + countLayers(child), 0);
+/** Screens that make up one output Web page, one per width (docs/design.md). */
+export interface WebPage {
+  /** The id of the screen that first made this Web page; stable while screens move between Web pages. */
+  id: string;
+  screenIds: string[];
+}
+
+/**
+ * Screens grouped by the Web page the designer declared for each, in canvas
+ * order. Which frames belong together cannot be read from the file, so it is
+ * never guessed from names: an undeclared screen is a Web page of its own.
+ */
+export function groupWebPages(screens: LayerData[], declared: Record<string, string | undefined>): WebPage[] {
+  const pages = new Map<string, WebPage>();
+  for (const screen of screens) {
+    const id = declared[screen.id] ?? screen.id;
+    const page = pages.get(id) ?? { id, screenIds: [] };
+    page.screenIds.push(screen.id);
+    pages.set(id, page);
+  }
+  return [...pages.values()];
 }

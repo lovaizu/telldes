@@ -31,11 +31,12 @@ button {
   cursor: pointer;
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled, [aria-disabled="true"]) {
   background: var(--figma-color-bg-hover, #f5f5f5);
 }
 
-button:disabled {
+button:disabled,
+button[aria-disabled="true"] {
   color: var(--figma-color-text-disabled, #b3b3b3);
   cursor: default;
 }
@@ -136,6 +137,12 @@ p {
 
 .file-name {
   font-weight: 600;
+}
+
+.file-name .marks {
+  display: inline-flex;
+  margin-left: 6px;
+  font-weight: 400;
 }
 
 .page-name {
@@ -289,6 +296,10 @@ p {
   color: var(--figma-color-text-tertiary, #999);
 }
 
+.row.web-page .name {
+  font-weight: 600;
+}
+
 .row.planned {
   color: var(--figma-color-text-secondary, #666);
 }
@@ -420,6 +431,7 @@ p {
 
 input[type="text"],
 input[type="number"],
+select,
 textarea {
   width: 100%;
   padding: 4px 6px;
