@@ -67,7 +67,7 @@ function FileDetail() {
           <Tentative task="theme">{ws.state.theme === "dark" ? "Dark" : "Light"}</Tentative>
         </Fact>
         <Fact label="Web pages">{ws.webPages().length}</Fact>
-        <Fact label="Screens">{ws.screens.length}</Fact>
+        <Fact label="Frames">{ws.screens.length}</Fact>
         <Fact label="Not exported">{ws.dropped.length}</Fact>
         <Fact label="Variables">{ws.file.tokens.variables.length}</Fact>
         <Fact label="Styles">
@@ -239,7 +239,7 @@ function WebPageDetail(props: { id: string }) {
       <h2>{ws.webPageName(props.id)}</h2>
       <Facts>
         <Fact label="Folder in zip">{ws.webPageName(props.id)}/</Fact>
-        <Fact label="Screens" title="One per width. To add a screen, choose this Web page in that screen's Export settings.">
+        <Fact label="Frames" title="One per width. To add a frame, choose this Web page in that frame's Export settings.">
           <For each={webPage()?.screenIds ?? []}>
             {(id) => (
               <div>
@@ -258,7 +258,7 @@ function WebPageDetail(props: { id: string }) {
           <span>Name</span>
           <input type="text" value={settings()?.name ?? ""} onInput={(e) => ws.setWebPageSettings(props.id, { name: e.currentTarget.value })} />
         </label>
-        <label class="field" title="Shown in the browser tab. The same at every width, so it belongs to the Web page, not a screen.">
+        <label class="field" title="Shown in the browser tab. The same at every width, so it belongs to the Web page, not a frame.">
           <span>Title</span>
           <input
             type="text"
@@ -278,7 +278,7 @@ function LayerDetail(props: { entry: LayerEntry }) {
   const isScreen = () => props.entry.screenId === layer().id;
   return (
     <>
-      <p class="kind">{isScreen() ? "Screen" : "Layer"}</p>
+      <p class="kind">{isScreen() ? "Frame" : "Layer"}</p>
       <h2>{layer().name}</h2>
       <Show when={props.entry.path.length > 1}>
         <p class="path">{props.entry.path.join(" / ")}</p>
@@ -398,23 +398,23 @@ function ScreenSettings(props: { screenId: string }) {
   return (
     <section class="block">
       <SettingsHeading />
-      <label class="field" title="Give the screens for each width of one Web page the same Web page. Not guessed from names.">
+      <label class="field" title="Give the frames for each width of one Web page the same Web page. Not guessed from names.">
         <span>Web page</span>
         <select onChange={(e) => ws.setScreenSettings(props.screenId, { webPageId: e.currentTarget.value })}>
           <For each={ws.webPages()}>
             {(webPage) => (
               <option value={webPage.id} selected={webPage.id === current()}>
-                {ws.webPageName(webPage.id)} ({counted(webPage.screenIds.length, "screen")})
+                {ws.webPageName(webPage.id)} ({counted(webPage.screenIds.length, "frame")})
               </option>
             )}
           </For>
           <Show when={ownIsFree()}>
-            <option value={props.screenId}>A new Web page for this screen</option>
+            <option value={props.screenId}>A new Web page for this frame</option>
           </Show>
         </select>
       </label>
       <div class="field-row">
-        {field("fromWidth", "From width (px)", "This screen is used when the browser is at least this wide.", "")}
+        {field("fromWidth", "From width (px)", "This frame is used when the browser is at least this wide.", "")}
         {field("contentWidth", "Content width (px)", "The widest the content gets. Empty: the full width.", "Full width")}
       </div>
     </section>
