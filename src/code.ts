@@ -15,12 +15,15 @@ import type {
   NotesListMessage,
   SelectionNote,
   SelectionNoteMessage,
+  SetupDoneMessage,
+  SetupErrorMessage,
 } from "./messages";
 import { layerPathOf } from "./export/layerPath";
 import { buildSpec } from "./export/specBuilder";
 import { buildTokens } from "./export/tokensBuilder";
 import { exportScreenshots } from "./export/screenshotExporter";
 import { exportAssets } from "./export/assetExporter";
+import { createTokens } from "./setup/tokenFactory";
 
 figma.showUI(__html__, { width: 360, height: 480 });
 
@@ -150,6 +153,22 @@ figma.ui.onmessage = async (msg: { type: string; nodeId?: string; note?: string 
       const message: NoteSavedMessage = { type: "note-saved", nodeId: msg.nodeId };
       figma.ui.postMessage(message);
       sendNotesList();
+    }
+  }
+
+  if (msg.type === "run-setup") {
+    // Contained like run-export: a font that will not load must reach the UI
+    // as a reason, not leave Setup looking like it never finished.
+    try {
+      const result = await createTokens();
+      const message: SetupDoneMessage = { type: "setup-done", ...result };
+      figma.ui.postMessage(message);
+    } catch (err) {
+      const message: SetupErrorMessage = {
+        type: "setup-error",
+        message: `Setup failed: ${err instanceof Error ? err.message : err}`,
+      };
+      figma.ui.postMessage(message);
     }
   }
 

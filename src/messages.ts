@@ -79,6 +79,18 @@ export interface ExportErrorMessage {
   message: string;
 }
 
+/** Setup finished; counts are what this run added (0 on a repeat run). */
+export interface SetupDoneMessage {
+  type: "setup-done";
+  createdVariables: number;
+  createdStyles: number;
+}
+
+export interface SetupErrorMessage {
+  type: "setup-error";
+  message: string;
+}
+
 /** Every message the UI can receive, so its handler can branch on one type. */
 export type PluginMessage =
   | CheckResultsMessage
@@ -87,4 +99,6 @@ export type PluginMessage =
   | NoteSavedMessage
   | NotesListMessage
   | ExportErrorMessage
-  | ExportDataMessage;
+  | ExportDataMessage
+  | SetupDoneMessage
+  | SetupErrorMessage;

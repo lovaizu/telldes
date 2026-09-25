@@ -9,6 +9,8 @@ vi.mock("../export/specBuilder", () => ({ buildSpec: () => ({ children: [] }) })
 vi.mock("../export/tokensBuilder", () => ({ buildTokens: () => null }));
 vi.mock("../export/screenshotExporter", () => ({ exportScreenshots: async () => [] }));
 vi.mock("../export/assetExporter", () => ({ exportAssets: async () => [] }));
+const createTokens = vi.fn();
+vi.mock("../setup/tokenFactory", () => ({ createTokens: () => createTokens() }));
 
 interface PluginMessage {
   type: string;
@@ -605,5 +607,29 @@ describe("run-checks", () => {
     expect(posted.find((m) => m.type === "check-error")?.message).toContain(
       "Review failed",
     );
+  });
+});
+
+describe("run-setup", () => {
+  it("reports how many variables and styles the run added", async () => {
+    createTokens.mockResolvedValueOnce({ createdVariables: 44, createdStyles: 11 });
+    const { posted, send } = await loadPlugin(makePage([]));
+
+    await send({ type: "run-setup" });
+
+    expect(posted.filter((m) => m.type.startsWith("setup-"))).toEqual([
+      { type: "setup-done", createdVariables: 44, createdStyles: 11 },
+    ]);
+  });
+
+  it("reports a setup failure with its reason instead of leaving the UI waiting", async () => {
+    createTokens.mockRejectedValueOnce(new Error('Could not load font "Noto Sans JP" Regular'));
+    const { posted, send } = await loadPlugin(makePage([]));
+
+    await send({ type: "run-setup" });
+
+    expect(posted.filter((m) => m.type.startsWith("setup-"))).toEqual([
+      { type: "setup-error", message: 'Setup failed: Could not load font "Noto Sans JP" Regular' },
+    ]);
   });
 });
