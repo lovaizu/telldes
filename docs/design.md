@@ -74,7 +74,7 @@ Hug / Fill / Fixed の3つに限定するのは、CSS への対応が一意に�
 | Figma設定 | 主軸 | 交差軸 |
 |---|---|---|
 | Hug contents | サイズ指定なし＋`flex-shrink: 0` | サイズ指定なし |
-| Fill container | `flex: 1 1 0` ＋ `min-width: 0`（縦並びは `min-height: 0`） | `align-self: stretch` |
+| Fill container | `flex: 1 1 0` ＋ `min-width: 0`（縦並びは `min-height: 0`。最小サイズがあればその値） | `align-self: stretch` |
 | Fixed + 数値 | `width: Npx`（縦は `height`）＋`flex-shrink: 0` | `width: Npx` / `height: Npx` |
 
 minWidth/maxWidth/minHeight/maxHeight は同じく一意に対応するため許す（spec.json では `layout.sizing` に載る。4.5.2.1）。
@@ -818,7 +818,7 @@ Auto Layout が位置を決めない子 — Group の子と、`layoutPositioning
 
 - `position` は CSS に書く値そのもの（`{ "left": "24px", "top": "16px", "width": "120px", "height": "40px" }` など）で、親の箱の左上を基準にする。CC は親に `position: relative`、子に `position: absolute` を付けて書く
 - **`position` は位置と寸法を両方持ち、`position` を持つノードには `layout.sizing` を出さない。** 流れの外の子の寸法は、制約で位置と組になって決まる（左右に張り付けば幅は書かない、など）ので、位置と同じ場所に置く。`ABSOLUTE` の子は Figma 上もサイジングのモードを持つが、流れに参加しないので主軸・交差軸の表（「layout.sizing」）は当てはまらず、`sizing` も出せば寸法の出どころが2つになる（原則B「1箇所にだけある」）
-- 寸法は回転する前の `width` / `height`。横は下の表の制約に従い、`STRETCH` は書かず、`SCALE` は親の幅に対する %、それ以外は px（縦も同じ）。Group の子と回転した子は常に px
+- 寸法は回転する前の `width` / `height`。**中身で決まる軸には書かない** — サイジングが `HUG` の軸と、テキストの `textAutoResize` が `WIDTH_AND_HEIGHT`（両方の軸）・`HEIGHT`（高さ）のときの軸。CSS の絶対配置の箱は書かなければ中身に合わせて縮み、Figma と同じになる。px で固めると、ブラウザの文字がわずかに広いだけで折り返す。それ以外の軸は、横は下の表の制約に従い、`STRETCH` は書かず、`SCALE` は親の幅に対する %、ほかは px（縦も同じ）。Group の子と回転した子は、中身で決まる軸を除いて px。幅を書かなくても `MAX`（`right`）と `CENTER`（`left: calc(…)`）の基準はそのまま効く
 - Group の子は `left` / `top` の px。Figma は Group の子の座標を Group ではなくその外側のフレームを基準に持つので、②が Group の位置を引いて Group 基準に直す。Group は子を描くための入れ物で、寸法も子から決まり、伸び縮みしない
 - `ABSOLUTE` の子は、Figma の制約（`constraints`）が親の寸法が変わったときの振る舞いを宣言しているので、それを CSS の基準に写す。カンプの寸法ではどれも同じ位置になる
 
@@ -1312,7 +1312,7 @@ Export の実行（確認ビューの「実行」）は、ダークモード対�
 | `opacity` | ノードの `opacity` |
 | `cornerRadius`, `topLeftRadius` / `topRightRadius` / `bottomRightRadius` / `bottomLeftRadius` | `cornerRadius`（4.5.2.1）、丸い形の判定 |
 | `boundVariables`（塗り・線・影・グラデーション stop の中のものを含む） | `*Token`、色の未バインド、light に Dark 混入、対象外 Variable の告知、付け忘れ、付け替え |
-| `text`: `textAlignHorizontal` と、区間ごとの `characters`・`fontSize`・`fontName`・`fontWeight`・`lineHeight`・`letterSpacing`・`textCase`・`textDecoration`・`fills`・`fillStyleId`・`textStyleId`・`hyperlink`・`boundVariables` | spec.json の `text`（最も多くの文字を占める設定）と `text.runs`・`typographyToken`・`link`（4.5.2.1）、全区間の色の未バインド・付け替え、テキスト内の Color Style 混在（4.7.2） |
+| `text`: `textAlignHorizontal`・`textAutoResize` と、区間ごとの `characters`・`fontSize`・`fontName`・`fontWeight`・`lineHeight`・`letterSpacing`・`textCase`・`textDecoration`・`fills`・`fillStyleId`・`textStyleId`・`hyperlink`・`boundVariables` | `position` の中身で決まる軸（`textAutoResize`。4.5.2.1）、spec.json の `text`（最も多くの文字を占める設定）と `text.runs`・`typographyToken`・`link`（4.5.2.1）、全区間の色の未バインド・付け替え、テキスト内の Color Style 混在（4.7.2） |
 | `note` | spec.json の `note`、note 一覧（4.7.3）、書き出し対象外の note・非表示のレイヤーの note の告知 |
 
 Variable・コレクション・Style:

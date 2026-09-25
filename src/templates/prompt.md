@@ -83,7 +83,7 @@ Recursive node tree. Only visible layers, paints and effects are included. Each 
 - `effects`, `shadowProperty` — see Effects below.
 - `opacity` — node-level opacity (0–1, when < 1) → CSS `opacity`.
 - `blendMode` — node blend mode (CSS name) → `mix-blend-mode`.
-- `position` — for children that Auto Layout does not place (children of a Group, and absolutely positioned children): the CSS offsets and size relative to the parent box, e.g. `{ "left": "24px", "top": "16px", "width": "120px", "height": "40px" }` or `{ "left": "0px", "right": "0px", "bottom": "calc(50% + 4px)", "height": "10%" }`. Give the parent `position: relative` and the child `position: absolute`, and write exactly the keys given. `width`/`height` are the size before rotation; a missing `width` or `height` means the element is stretched between `left`/`right` (or `top`/`bottom`) — do not add one. A node with `position` has no `layout.sizing`, and the sizing table below does not apply to it.
+- `position` — for children that Auto Layout does not place (children of a Group, and absolutely positioned children): the CSS offsets and size relative to the parent box, e.g. `{ "left": "24px", "top": "16px", "width": "120px", "height": "40px" }` or `{ "left": "0px", "right": "0px", "bottom": "calc(50% + 4px)", "height": "10%" }`. Give the parent `position: relative` and the child `position: absolute`, and write exactly the keys given. `width`/`height` are the size before rotation; a missing `width` or `height` means the element is either stretched between `left`/`right` (or `top`/`bottom`) or sized by its content — do not add one. A node with `position` has no `layout.sizing`, and the sizing table below does not apply to it.
 - `rotate` — CSS angle in degrees (clockwise) → `transform-origin: 0 0; transform: rotate({rotate}deg)`.
 - `asset` (+ `assetOverflow`) — see Assets below.
 - `note` — designer annotations (behavior, links, interactions)
@@ -241,7 +241,7 @@ Default: `<div>` for blocks, `<p>` for text without a special name.
 Do not use `width: 100%` / `height: 100%` for FILL: next to FIXED or HUG siblings it overflows and shrinks them, and `height: 100%` does nothing inside a HUG parent.
 
 Notes:
-- A non-container element that is an Auto Layout child carries its `sizing` under `layout` with no `direction`.
+- A non-container element that is an Auto Layout child carries its `sizing` under `layout` with no `direction`. Nodes with `position` have no `sizing` (their size is in `position`).
 
 ## 7. Completion
 
