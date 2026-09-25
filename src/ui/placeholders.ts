@@ -1,20 +1,21 @@
 // Stand-ins for results that later tasks build for real. Everything here is
 // fake, kept only so the screen can be tried before the features exist; each
-// section names the task that replaces it. Nothing here writes to Figma, and
-// the UI marks every value that comes from here with 仮 and the task number.
+// section names the task that replaces it. Nothing here writes to Figma. The
+// UI says once that results are placeholders, and each value from here names
+// its task on hover.
 import type { Finding } from "../core/findings";
 import type { LayerEntry, WebPage } from "../core/screens";
 import type { FileData, LayerData } from "../shared/data";
-import { colorHex } from "./format";
+import { colorHex, counted } from "./format";
 
-/** The task that replaces each placeholder, and the feature it builds, shown next to the fake value. */
+/** The task that replaces each placeholder, and the feature it builds, shown on hover over the fake value. */
 export const TASK = {
   setup: { number: 4, feature: "Setup" },
   review: { number: 5, feature: "Review" },
   note: { number: 6, feature: "note" },
-  exportSettings: { number: 7, feature: "Export 設定" },
+  exportSettings: { number: 7, feature: "Export settings" },
   export: { number: 7, feature: "Export" },
-  assets: { number: 8, feature: "画像・アセットの書き出し" },
+  assets: { number: 8, feature: "image and asset export" },
   theme: { number: 9, feature: "Light / Dark" },
 } as const;
 
@@ -64,7 +65,7 @@ export function setupPlan(file: FileData): PlannedToken[] {
 export function initialNotes(index: Map<string, LayerEntry>): Record<string, string> {
   for (const entry of index.values()) {
     if (entry.screenId && !entry.dropped && entry.layer.type === "TEXT") {
-      return { [entry.layer.id]: "ホバーで下線を出す（仮の note）" };
+      return { [entry.layer.id]: "Underline on hover (sample note)" };
     }
   }
   return {};
@@ -109,7 +110,7 @@ export function initialSettings(screens: LayerData[]): Settings {
 // ---- #7 Export: what Export would write ----
 
 export function exportResult(webPageCount: number, screenCount: number, droppedCount: number): string {
-  return `telldes-export.zip に Web ページ ${webPageCount} つ（画面 ${screenCount} つ）をフォルダごとに書き出し、渡らないもの ${droppedCount} 件を README.md に記録する予定です`;
+  return `Export would write telldes-export.zip: ${counted(webPageCount, "Web page")} (${counted(screenCount, "screen")}), and a README.md listing ${counted(droppedCount, "item")} not exported.`;
 }
 
 // ---- #8 Images and assets: what Export would hand over as files ----
@@ -151,8 +152,8 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
     findings.push({
       severity: "error",
       owner: { kind: "file" },
-      message: "ダーク対応が ON なのに、Dark のコレクションがありません",
-      fix: "Setup で Dark のコレクションを作るか、ダーク対応を OFF にする",
+      message: "Dark support is on, but there is no Dark collection.",
+      fix: "Run Setup to add a Dark collection, or turn off dark support.",
       layerIds: [],
     });
   }
@@ -166,9 +167,9 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
         severity: darkSupport ? "error" : "notice",
         owner: { kind: "token", id: token.id },
         message: darkSupport
-          ? `${token.name} と同じ色 ${color.hex} が ${color.layerIds.length} か所で変数につながっていません。Dark に付け替わりません`
-          : `${token.name} と同じ色 ${color.hex} なのに、つないでいない所が ${color.layerIds.length} か所あります`,
-        fix: darkSupport ? `${token.name} につなぐ` : `${token.name} につなぐ。意図してつないでいないなら、そのままでよい`,
+          ? `${color.hex}, the value of ${token.name}, is not linked to it in ${counted(color.layerIds.length, "place")}. They won't switch in Dark.`
+          : `${color.hex}, the value of ${token.name}, is not linked to it in ${counted(color.layerIds.length, "place")}.`,
+        fix: darkSupport ? `Link them to ${token.name}.` : `Link them to ${token.name}, or leave them if that is on purpose.`,
         layerIds: color.layerIds,
       });
     } else if (darkSupport) {
@@ -177,8 +178,8 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
         severity: "error",
         // No token to connect to: the decision is about the value itself, however many places use it.
         owner: { kind: "value", value: color.hex },
-        message: `色 ${color.hex} が変数につながっていません。Dark に付け替わりません`,
-        fix: "この色の変数を Light と Dark に作ってつなぐ",
+        message: `${color.hex} is not linked to a variable, so it won't switch in Dark.`,
+        fix: "Add a variable for this color in Light and Dark, and link it.",
         layerIds: color.layerIds,
       });
     }
@@ -191,8 +192,8 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
       findings.push({
         severity: "notice",
         owner: { kind: "screen", id: screenId },
-        message: "この画面に切り替える幅が決まっていません。同じ Web ページに幅違いの画面があります",
-        fix: "画面の Export 設定で「切り替える幅」を入れる",
+        message: "This Web page has screens for other widths, but this screen has no “From width”.",
+        fix: "Enter “From width” in this screen's Export settings.",
         layerIds: [],
       });
     }

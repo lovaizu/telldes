@@ -26,7 +26,7 @@ export function variableValue(value: VariableData["valuesByMode"][string], varia
   if (typeof value === "object" && value !== null) {
     if ("type" in value && value.type === "VARIABLE_ALIAS") {
       const target = variables.find((v) => v.id === value.id);
-      return { text: `→ ${target?.name ?? "（見つからない変数）"}` };
+      return { text: `→ ${target?.name ?? "(missing variable)"}` };
     }
     if ("r" in value) {
       const alpha = "a" in value ? value.a : 1;
@@ -45,23 +45,28 @@ export function firstValue(variable: VariableData, variables: VariableData[]): S
 export function dropReasonText(reason: DropReason, layer: LayerData): string {
   switch (reason) {
     case "not-screen":
-      return `画面でない（${layer.type}）`;
+      return `Not a frame (${layer.type})`;
     case "hidden":
-      return "非表示";
+      return "Hidden";
   }
 }
 
 export function tokenDropText(reason: TokenDrop): string {
   switch (reason) {
     case "color-style":
-      return "Color Style は渡らない。色は変数から渡す";
+      return "Color Styles are not exported. Colors are exported from variables.";
     case "not-color-or-number":
-      return "色・数値以外の変数は渡らない";
+      return "Only color and number variables are exported.";
   }
 }
 
 export function size(layer: LayerData): string {
   return layer.width === undefined ? "" : `${round(layer.width)} × ${round(layer.height ?? 0)}`;
+}
+
+/** "1 error", "3 errors". */
+export function counted(n: number, noun: string): string {
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;
 }
 
 export function round(n: number): string {

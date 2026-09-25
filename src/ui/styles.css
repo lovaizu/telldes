@@ -1,4 +1,9 @@
-/* Figma injects --figma-color-* when showUI is called with themeColors. */
+/*
+ * Figma injects --figma-color-* when showUI is called with themeColors, so the
+ * plugin follows Figma's light or dark theme. Sizes follow Figma's own panels
+ * (11px Inter, 24px controls and rows), so it reads as part of Figma.
+ * The fallbacks are Figma's light values, for opening ui.html outside Figma.
+ */
 * {
   box-sizing: border-box;
 }
@@ -11,24 +16,28 @@ body,
 
 body {
   margin: 0;
-  font: 11px/1.5 Inter, system-ui, sans-serif;
-  color: var(--figma-color-text, #333);
+  font: 11px/16px Inter, system-ui, -apple-system, sans-serif;
+  color: var(--figma-color-text, rgb(0 0 0 / 0.9));
   background: var(--figma-color-bg, #fff);
+  -webkit-font-smoothing: antialiased;
 }
 
 button,
 input,
+select,
 textarea {
   font: inherit;
   color: inherit;
 }
 
 button {
-  padding: 3px 8px;
+  height: 24px;
+  padding: 0 8px;
   border: 1px solid var(--figma-color-border, #e6e6e6);
   border-radius: 5px;
   background: var(--figma-color-bg, #fff);
-  cursor: pointer;
+  white-space: nowrap;
+  cursor: default;
 }
 
 button:hover:not(:disabled, [aria-disabled="true"]) {
@@ -37,14 +46,18 @@ button:hover:not(:disabled, [aria-disabled="true"]) {
 
 button:disabled,
 button[aria-disabled="true"] {
-  color: var(--figma-color-text-disabled, #b3b3b3);
-  cursor: default;
+  color: var(--figma-color-text-disabled, rgb(0 0 0 / 0.3));
 }
 
 button.primary {
   border-color: transparent;
   background: var(--figma-color-bg-brand, #0d99ff);
   color: var(--figma-color-text-onbrand, #fff);
+  font-weight: 500;
+}
+
+button.primary:hover:not(:disabled) {
+  background: var(--figma-color-bg-brand-hover, #0c8ce9);
 }
 
 button.primary:disabled {
@@ -53,21 +66,30 @@ button.primary:disabled {
 }
 
 button.link {
+  height: auto;
   padding: 0;
   border: none;
   background: none;
   color: var(--figma-color-text-brand, #007be5);
   text-align: left;
+  white-space: normal;
+  cursor: pointer;
+}
+
+button.link:hover:not(:disabled) {
+  background: none;
+  text-decoration: underline;
 }
 
 :focus-visible {
-  outline: 2px solid var(--figma-color-border-selected, #0d99ff);
-  outline-offset: -2px;
+  outline: 1px solid var(--figma-color-border-selected, #0d99ff);
+  outline-offset: -1px;
 }
 
 h2 {
   margin: 0 0 8px;
   font-size: 13px;
+  line-height: 20px;
   font-weight: 600;
   word-break: break-all;
 }
@@ -76,7 +98,6 @@ h3 {
   margin: 12px 0 4px;
   font-size: 11px;
   font-weight: 600;
-  color: var(--figma-color-text-secondary, #666);
 }
 
 ul {
@@ -94,14 +115,14 @@ p {
 }
 
 .error {
-  color: var(--figma-color-text-danger, #d00);
+  color: var(--figma-color-text-danger, #dc3412);
 }
 
 /* ---- Layout: operations on top, list and detail side by side, results at the bottom ---- */
 
 .layout {
   display: grid;
-  grid-template: "top top" auto "list detail" 1fr "status status" auto / 280px 1fr;
+  grid-template: "top top" auto "list detail" 1fr "status status" auto / 260px 1fr;
   height: 100%;
 }
 
@@ -109,8 +130,9 @@ p {
   grid-area: top;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px;
+  gap: 4px;
+  height: 40px;
+  padding: 0 8px 0 4px;
   border-bottom: 1px solid var(--figma-color-border, #e6e6e6);
 }
 
@@ -121,67 +143,85 @@ p {
 .file-button {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: flex-start;
+  height: 32px;
   min-width: 0;
-  max-width: 220px;
+  max-width: 200px;
   border-color: transparent;
-  line-height: 1.3;
+  line-height: 14px;
+}
+
+.file-button[aria-current="true"] {
+  background: var(--figma-color-bg-selected, #e5f4ff);
 }
 
 .file-button > span {
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .file-name {
+  display: flex;
+  gap: 6px;
   font-weight: 600;
 }
 
 .file-name .marks {
-  display: inline-flex;
-  margin-left: 6px;
   font-weight: 400;
 }
 
 .page-name {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
-.pill {
-  margin-left: 6px;
-  padding: 0 5px;
-  border-radius: 8px;
+/* Review's counts: borderless, colored only when there is something to count. */
+button.count {
+  border-color: transparent;
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
+}
+
+button.count:disabled {
+  color: var(--figma-color-text-disabled, rgb(0 0 0 / 0.3));
+}
+
+button.count.error.some {
+  color: var(--figma-color-text-danger, #dc3412);
+}
+
+button.count.notice.some {
+  color: var(--figma-color-text-brand, #007be5);
+}
+
+button.count[aria-pressed="true"] {
+  border-color: currentColor;
   background: var(--figma-color-bg-secondary, #f5f5f5);
-  color: var(--figma-color-text-secondary, #666);
-}
-
-.pill.error {
-  background: var(--figma-color-bg-danger, #f24822);
-  color: var(--figma-color-text-ondanger, #fff);
 }
 
 .segmented {
   display: flex;
+  padding: 1px;
+  border-radius: 5px;
+  background: var(--figma-color-bg-secondary, #f5f5f5);
 }
 
 .segmented button {
-  border-radius: 0;
-}
-
-.segmented button:first-child {
-  border-radius: 5px 0 0 5px;
-}
-
-.segmented button:last-child {
-  margin-left: -1px;
-  border-radius: 0 5px 5px 0;
+  height: 22px;
+  border-color: transparent;
+  border-radius: 4px;
+  background: none;
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .segmented button[aria-pressed="true"] {
-  background: var(--figma-color-bg-inverse, #2c2c2c);
-  color: var(--figma-color-text-oninverse, #fff);
+  border-color: var(--figma-color-border, #e6e6e6);
+  background: var(--figma-color-bg, #fff);
+  color: var(--figma-color-text, rgb(0 0 0 / 0.9));
+}
+
+.segmented button[aria-disabled="true"] {
+  color: var(--figma-color-text-disabled, rgb(0 0 0 / 0.3));
 }
 
 .pane-list {
@@ -200,40 +240,64 @@ p {
 
 .status {
   grid-area: status;
-  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 32px;
+  padding: 4px 12px;
   border-top: 1px solid var(--figma-color-border, #e6e6e6);
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
-.status.error {
-  color: var(--figma-color-text-danger, #d00);
+.status-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.status-text.error {
+  color: var(--figma-color-text-danger, #dc3412);
+}
+
+/* The one sign that results are placeholders; which task replaces what is on hover. */
+.prototype {
+  flex: none;
+  color: var(--figma-color-text-tertiary, rgb(0 0 0 / 0.3));
 }
 
 /* ---- Lists ---- */
 
 .tabs {
   display: flex;
+  gap: 4px;
+  height: 40px;
+  align-items: center;
+  padding: 0 8px;
   border-bottom: 1px solid var(--figma-color-border, #e6e6e6);
 }
 
 .tabs button {
-  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   border: none;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  padding: 6px;
-  color: var(--figma-color-text-secondary, #666);
-}
-
-.tabs button .marks {
-  display: inline-flex;
-  margin-left: 6px;
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
+  font-weight: 500;
 }
 
 .tabs button[aria-selected="true"] {
-  border-bottom-color: var(--figma-color-text, #333);
-  color: var(--figma-color-text, #333);
-  font-weight: 600;
+  background: var(--figma-color-bg-secondary, #f5f5f5);
+  color: var(--figma-color-text, rgb(0 0 0 / 0.9));
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 32px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--figma-color-border, #e6e6e6);
+  background: var(--figma-color-bg-secondary, #f5f5f5);
+  font-weight: 500;
 }
 
 .list {
@@ -242,24 +306,17 @@ p {
   padding: 0 8px 12px;
 }
 
-.list-head {
+.list h3 {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-top: 8px;
-}
-
-.list-head h3 {
+  height: 32px;
   margin: 0;
-}
-
-.hint {
-  margin: 4px 0 0;
-  color: var(--figma-color-text-danger, #d00);
+  padding: 0 4px;
 }
 
 .empty {
-  color: var(--figma-color-text-secondary, #666);
+  padding: 4px;
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .row {
@@ -268,14 +325,16 @@ p {
   gap: 6px;
   width: 100%;
   min-width: 0;
-  padding: 3px 4px;
+  height: 24px;
+  padding: 0 4px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   background: none;
   text-align: left;
 }
 
-.row[aria-current="true"] {
+.row[aria-current="true"],
+.row[aria-current="true"]:hover {
   background: var(--figma-color-bg-selected, #e5f4ff);
 }
 
@@ -288,12 +347,12 @@ p {
 }
 
 .row .sub {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .row.dropped .name,
 .tree-row.dropped .name {
-  color: var(--figma-color-text-tertiary, #999);
+  color: var(--figma-color-text-tertiary, rgb(0 0 0 / 0.3));
 }
 
 .row.web-page .name {
@@ -301,7 +360,7 @@ p {
 }
 
 .row.planned {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .tree-row {
@@ -316,7 +375,20 @@ p {
   padding: 0;
   border: none;
   background: none;
-  color: var(--figma-color-icon-secondary, #999);
+  color: var(--figma-color-icon-tertiary, rgb(0 0 0 / 0.3));
+}
+
+.chevron svg {
+  display: block;
+}
+
+.chevron[aria-expanded="true"] svg {
+  transform: rotate(90deg);
+}
+
+.chevron:hover:not(:disabled) {
+  background: none;
+  color: var(--figma-color-icon, rgb(0 0 0 / 0.9));
 }
 
 .tag {
@@ -324,17 +396,17 @@ p {
   padding: 0 4px;
   border-radius: 3px;
   background: var(--figma-color-bg-secondary, #f5f5f5);
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .marks {
-  display: flex;
+  display: inline-flex;
   flex: none;
   gap: 4px;
 }
 
 .mark.error {
-  color: var(--figma-color-text-danger, #d00);
+  color: var(--figma-color-text-danger, #dc3412);
 }
 
 .mark.notice {
@@ -343,7 +415,7 @@ p {
 
 .mark.note,
 .mark.below {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .swatch {
@@ -356,49 +428,42 @@ p {
   vertical-align: -2px;
 }
 
-/* A placeholder result: dashed, so it never reads as the real thing. */
+/* A placeholder value: no mark of its own, only the hover naming its task. */
 .tentative {
-  flex: none;
-  padding: 0 4px;
-  border: 1px dashed var(--figma-color-border-warning, #ffc21a);
-  border-radius: 3px;
-  color: var(--figma-color-text-warning, #b86200);
-  font-size: 10px;
-  font-weight: 400;
-  white-space: nowrap;
+  cursor: help;
 }
 
 /* ---- Detail ---- */
 
 .detail {
-  padding: 12px;
+  padding: 12px 16px;
 }
 
 .kind {
   margin: 0;
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .path {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
   word-break: break-all;
 }
 
 .dropped-note {
-  padding: 4px 6px;
-  border-radius: 4px;
+  padding: 4px 8px;
+  border-radius: 5px;
   background: var(--figma-color-bg-secondary, #f5f5f5);
 }
 
 .facts {
   display: grid;
   grid-template-columns: max-content 1fr;
-  gap: 2px 12px;
+  gap: 4px 16px;
   margin: 8px 0;
 }
 
 .facts dt {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .facts dd {
@@ -408,25 +473,40 @@ p {
 
 .block {
   margin-top: 12px;
-  padding-top: 4px;
   border-top: 1px solid var(--figma-color-border, #e6e6e6);
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   margin-bottom: 8px;
 }
 
 .field > span {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
+}
+
+.field-row {
+  display: flex;
+  gap: 8px;
+}
+
+.field-row > .field {
+  flex: 1;
 }
 
 .check {
   display: flex;
   align-items: center;
   gap: 6px;
+  height: 24px;
+  margin-bottom: 4px;
+}
+
+.check input {
+  margin: 0;
+  accent-color: var(--figma-color-bg-brand, #0d99ff);
 }
 
 input[type="text"],
@@ -434,15 +514,33 @@ input[type="number"],
 select,
 textarea {
   width: 100%;
-  padding: 4px 6px;
-  border: 1px solid var(--figma-color-border, #e6e6e6);
-  border-radius: 4px;
-  background: var(--figma-color-bg, #fff);
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: var(--figma-color-bg-secondary, #f5f5f5);
   resize: vertical;
 }
 
+input:hover,
+select:hover,
+textarea:hover {
+  border-color: var(--figma-color-border, #e6e6e6);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--figma-color-border-selected, #0d99ff);
+  outline: none;
+}
+
+::placeholder {
+  color: var(--figma-color-text-tertiary, rgb(0 0 0 / 0.3));
+}
+
 .help {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .actions {
@@ -461,25 +559,31 @@ textarea {
 
 .finding {
   padding: 6px 8px;
-  border-left: 3px solid var(--figma-color-border-brand, #0d99ff);
+  border-left: 2px solid var(--figma-color-border-brand, #0d99ff);
+  border-radius: 0 5px 5px 0;
   background: var(--figma-color-bg-secondary, #f5f5f5);
 }
 
 .finding.error {
-  border-left-color: var(--figma-color-border-danger-strong, #f24822);
+  border-left-color: var(--figma-color-border-danger-strong, #dc3412);
 }
 
 .finding .severity {
   font-weight: 600;
+  color: var(--figma-color-text-brand, #007be5);
 }
 
 .finding.error .severity {
-  color: var(--figma-color-text-danger, #d00);
+  color: var(--figma-color-text-danger, #dc3412);
 }
 
 .finding .fix,
 .finding .where {
-  color: var(--figma-color-text-secondary, #666);
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
+}
+
+.finding p:last-child {
+  margin-bottom: 0;
 }
 
 .places {

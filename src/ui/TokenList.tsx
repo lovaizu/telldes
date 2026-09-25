@@ -11,32 +11,35 @@ export function TokenList() {
   /** Real groups first; groups that only Setup would create come after. */
   const groups = createMemo(() => {
     const names = [...ws.groups.map((g) => g.name), ...ws.state.planned.map((p) => p.group)];
-    return [...new Set(names)].map((name) => ({
-      name,
-      tokens: ws.groups.find((g) => g.name === name)?.tokens ?? [],
-      planned: ws.state.planned.filter((p) => p.group === name),
-    }));
+    // Planned tokens own no findings, so the filter hides them with every unmarked token.
+    return [...new Set(names)]
+      .map((name) => ({
+        name,
+        tokens: (ws.groups.find((g) => g.name === name)?.tokens ?? []).filter((t) => ws.passesFilter({ kind: "token", id: t.id })),
+        planned: ws.state.filter ? [] : ws.state.planned.filter((p) => p.group === name),
+      }))
+      .filter((group) => !ws.state.filter || group.tokens.length > 0);
   });
 
   const droppedCount = () => ws.groups.reduce((n, g) => n + g.tokens.filter((t) => t.dropped).length, 0);
 
   /** Values that match no token and still own a finding; a value equal to a token is on that token's row. */
   const values = createMemo(() =>
-    ws.state.findings.flatMap((f) => (f.owner.kind === "value" ? [f.owner.value] : [])).filter((v, i, all) => all.indexOf(v) === i),
+    ws.state.findings
+      .flatMap((f) => (f.owner.kind === "value" ? [f.owner.value] : []))
+      .filter((v, i, all) => all.indexOf(v) === i && ws.passesFilter({ kind: "value", value: v })),
   );
 
   return (
     <div class="list">
-      <div class="list-head">
-        <h3>
-          渡すトークン {ws.handedTokenCount}
-          <Show when={droppedCount()}>・渡らない {droppedCount()}</Show>
-        </h3>
-      </div>
+      <h3 title="What Export writes">
+        {ws.handedTokenCount} to export
+        <Show when={droppedCount()}> · {droppedCount()} not exported</Show>
+      </h3>
       <Show when={values().length}>
         <section>
           <h3>
-            トークンにしていない値 <Tentative task="review" />
+            <Tentative task="review">Values without a token</Tentative>
           </h3>
           <ul>
             <For each={values()}>
@@ -58,23 +61,26 @@ export function TokenList() {
         </section>
       </Show>
 
-      <For each={groups()} fallback={<p class="empty">変数もスタイルもありません。Setup で推奨の一式を作れます</p>}>
+      <For
+        each={groups()}
+        fallback={
+          <Show when={!values().length}>
+            <p class="empty">{ws.state.filter ? `No rows with ${ws.state.filter}s here` : "No variables or styles. Setup can add the recommended set."}</p>
+          </Show>
+        }
+      >
         {(group) => (
           <section>
-            <h3>
-              {group.name}
-              <Show when={group.planned.length}>
-                {" "}
-                <Tentative task="setup" />
-              </Show>
-            </h3>
+            <h3>{group.name}</h3>
             <ul>
               <For each={group.tokens}>{(token) => <li><TokenRow token={token} /></li>}</For>
               <For each={group.planned}>
                 {(planned) => (
                   <li class="row planned">
                     <span class="name">{planned.name}</span>
-                    <span class="tag">Setup</span>
+                    <Tentative task="setup">
+                      <span class="tag">Setup</span>
+                    </Tentative>
                   </li>
                 )}
               </For>
@@ -101,7 +107,7 @@ function TokenRow(props: { token: TokenRef }) {
       <Swatch color={swatch()} />
       <span class="name">{props.token.name}</span>
       <Show when={props.token.dropped}>
-        <span class="tag">渡らない</span>
+        <span class="tag">Not exported</span>
       </Show>
       <RowMarks findings={ws.findingsOf({ kind: "token", id: props.token.id })} />
     </button>

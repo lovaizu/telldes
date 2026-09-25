@@ -3,7 +3,8 @@ import type { FindingOwner } from "../core/findings";
 import type { FileData } from "../shared/data";
 import { request } from "./bridge";
 import { Detail } from "./Detail";
-import { ariaBool, RowMarks, Tentative } from "./parts";
+import { ariaBool, placeholderTitle, RowMarks } from "./parts";
+import { TASK } from "./placeholders";
 import { ScreenList } from "./ScreenList";
 import { TokenList } from "./TokenList";
 import { TopBar } from "./TopBar";
@@ -22,9 +23,9 @@ export function App() {
   return (
     <Switch>
       <Match when={state().status === "reading"}>
-        <p class="message">読み込み中…</p>
+        <p class="message">Reading the file…</p>
       </Match>
-      <Match when={narrow(state(), "failed")}>{(failed) => <p class="message error">読み込めませんでした: {failed().message}</p>}</Match>
+      <Match when={narrow(state(), "failed")}>{(failed) => <p class="message error">Couldn't read the file: {failed().message}</p>}</Match>
       <Match when={narrow(state(), "done")} keyed>
         {(done) => (
           <WorkspaceContext value={createWorkspace(done.data)}>
@@ -46,18 +47,28 @@ function Layout() {
   return (
     <div class="layout">
       <TopBar />
-      <nav class="pane-list" aria-label="一覧">
+      <nav class="pane-list" aria-label="Lists">
         <div class="tabs" role="tablist">
           {/* Both counts are of what is handed over; what is not is listed, and counted, inside each tab. */}
-          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")} title="渡す画面の数">
-            画面 {ws.screens.length}
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")} title="Screens to export">
+            Screens {ws.screens.length}
             <TabMarks kinds={["screen", "layer"]} />
           </button>
-          <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")} title="渡すトークンの数">
-            トークン {ws.handedTokenCount}
+          <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")} title="Tokens to export">
+            Tokens {ws.handedTokenCount}
             <TabMarks kinds={["token", "value"]} />
           </button>
         </div>
+        <Show when={ws.state.filter}>
+          {(severity) => (
+            <div class="filter-bar">
+              <span>Only rows with {severity()}s</span>
+              <button class="link" onClick={() => ws.setFilter(null)}>
+                Show all
+              </button>
+            </div>
+          )}
+        </Show>
         <Switch>
           <Match when={ws.state.tab === "screens"}>
             <ScreenList />
@@ -70,20 +81,27 @@ function Layout() {
       <main class="pane-detail">
         <Detail />
       </main>
-      <footer class={["status", { error: !!ws.state.status?.error }]} role="status">
-        {ws.state.status?.text ?? "行を選ぶと詳細が出て、Figma でもそのレイヤーが選ばれます"}
-        <Show when={ws.state.status?.task}>
-          {(task) => (
-            <>
-              {" "}
-              <Tentative task={task()} /> Figma には書き込んでいません
-            </>
-          )}
-        </Show>
+      <footer class="status">
+        <span
+          class={["status-text", { error: !!ws.state.status?.error }]}
+          role="status"
+          title={ws.state.status?.task ? placeholderTitle(ws.state.status.task) : undefined}
+        >
+          {ws.state.status?.text ?? "Select a row to see its details. The layer is selected in Figma too."}
+        </span>
+        <span class="prototype" title={PROTOTYPE_TITLE}>
+          Prototype — results are placeholders
+        </span>
       </footer>
     </div>
   );
 }
+
+/** The one place the screen says it is a prototype; which task replaces what is on hover. */
+const PROTOTYPE_TITLE = [
+  "Nothing is written to the Figma file. Tasks that replace the placeholders:",
+  ...Object.values(TASK).map((task) => `#${task.number} ${task.feature}`),
+].join("\n");
 
 /** The errors and notices owned by the objects in a tab, so none hide behind the other tab. */
 function TabMarks(props: { kinds: FindingOwner["kind"][] }) {
