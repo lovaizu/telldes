@@ -352,8 +352,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: YYYY-MM-DD
-- **Last completed**: #N description
-- **Next**: #N description
-- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
+- **Status**: paused
+- **Date**: 2026-09-25
+- **Last completed**: なし（計画のみ）
+- **Next**: #1 土台
+- **Notes**: 計画はユーザーが承認済み（2026-09-25、/rn:dn で「ok なので再開後に進めて」）。/rn:up で #1 から始める。ブランチ `telldes-plugin`、下書きの PR https://github.com/lovaizu/telldes/pull/2
