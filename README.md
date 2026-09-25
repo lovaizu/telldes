@@ -95,7 +95,20 @@ minWidth / maxWidth / minHeight / maxHeight も使える。
 | Color Style | 色 | 使わない。使うと書き出し時の README に「含まれなかったもの」として記録される |
 | Variables（STRING / BOOLEAN） | — | トークンにならない。同上 |
 
-トークン名の付け方は自由。共通の語彙として、推奨体系を `docs/design.md` 4.3.4 に置いている。
+トークン名の付け方は自由。共通の語彙として次の名前を勧める（Setup が作るのもこの一式）。共通にするのは名前だけで、値はデザインごとに変えてよい。ここに無い一回限りの値は、値のままでよい。
+
+```
+色（ライト・ダーク各14）  bg / surface / border / fg/default / fg/muted
+                          primary/default / primary/hover / primary/on / link
+                          code/bg / code/fg / notice/bg / notice/fg / shadow
+余白                      spacing/xs=4 / sm=8 / md=16 / lg=24 / xl=32 / 2xl=48 / 3xl=64 / 4xl=96
+角丸                      radius/sm=4 / md=8 / lg=16 / xl=24 / full=9999
+書体                      font/heading / body / mono
+文字（Text Style）        display / heading-lg / heading-md / heading-sm / lead / body / label / caption / code
+影（Effect Style）        shadow-sm / shadow-md
+```
+
+`radius/full` だけは意味を持つ名前で、つないだ角丸は常に丸（`border-radius: 9999px`）として出る。
 
 ### 背景
 
