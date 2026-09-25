@@ -92,6 +92,7 @@ minWidth/maxWidth/minHeight/maxHeight は同じく一意に対応するため許
 | **Variables（STRING）のうち書体用にスコープを絞ったもの** | font-family | `tokens.json` に named token として出力（`$type: "fontFamily"`） |
 | **Text Style** | タイポグラフィ（font-family/size/weight/line-height） | named typography token として出力し、spec から参照 |
 | **Color Style（グラデーション・複数fill）** | カラー（単色に展開できないもの） | named token として `tokens.json` に出力し、spec から参照 |
+| **Effect Style** | 影 | 影の部分を named shadow token として `tokens.json` に出力し、spec から参照 |
 | Color Style（単色） | カラー | 非推奨。トークン源泉として扱わず、使用時は書き出し時のREADMEに除外物として記録（Figma本体もVariables推奨） |
 | Variables（BOOLEAN）、それ以外の Variables（STRING） | — | トークン対象外。使用時は書き出し時のREADMEに除外物として記録 |
 
@@ -99,9 +100,9 @@ minWidth/maxWidth/minHeight/maxHeight は同じく一意に対応するため許
 
 **書体かどうかは Variable の `scopes` で決める — `FONT_FAMILY` を含み、かつ `ALL_SCOPES` を含まないもの**、すなわちデザイナーが Figma の変数パネルで書体用だと絞ったものだけを書体として扱う。`scopes` は変数ピッカーにどのフィールドで出すかの絞り込みで、新規作成した Variable は既定で `ALL_SCOPES`（＝絞っていない）である。`ALL_SCOPES` を書体の印にすると、テキストの中身の差し替え用に作った STRING Variable まで書体として `tokens.json` に出てしまう。既定値のままは宣言ではない（原則B「推測させない」）。変数名から当てにいかないのも同じ理由。絞っていない STRING Variable は対象外のまま除外物として README に載る（4.7.2）ので、拾われなかったことは黙って落ちず、スコープを絞れば拾われるという手がかりが届く（原則B「欠けていると分かる」）。**Setup が生成する `font/heading` / `font/body` / `font/mono` には `scopes: ["FONT_FAMILY"]` を設定する。** 書体がトークンとして出ることはこのスコープ設定に依存する。
 
-カラーは **単色は Variables に一本化**する。Color Style はグラデーション・複数fillのように単色に展開できないものに限り正式な源泉として扱う。Variable の COLOR 型は単色しか持てないため、グラデーションは Color Style 以外に表現手段がない（Figma本体も「値の組み合わせは Style、Style の中身は Variables を指す」という立場を取っており、実際 `GradientPaint.gradientStops[].boundVariables` で各stopの色を個別に Variable へバインドできる）。したがって、グラデーション・複数fillの Color Style を使用している場合は、各stopの色がVariableにバインドされていればそのトークン名を、されていなければ解決済みの値をそのまま `tokens.json` / `spec.json` に出力する。**ただしダークモード対応が ON のファイルでは、stop の色の未バインドは影の色と同じく error とする**（4.7.2）。telldes は stop の色も Light ⇄ Dark で差し替えるため（4.3.9）、バインドされていない stop だけがライトの色のまま取り残され、`screenshots-dark/` が実物と食い違う。単色なのに Color Style を使っている場合（Variables に一本化できるのにしていない場合）は、引き続き除外物としてREADMEで告知する（4.7.2）。
+カラーは **単色は Variables に一本化**する。Color Style はグラデーション・複数fillのように単色に展開できないものに限り正式な源泉として扱う。Variable の COLOR 型は単色しか持てないため、グラデーションは Color Style 以外に表現手段がない（Figma本体も「値の組み合わせは Style、Style の中身は Variables を指す」という立場を取っており、実際 `GradientPaint.gradientStops[].boundVariables` で各stopの色を個別に Variable へバインドできる）。したがって、グラデーション・複数fillの Color Style は名前の付いたトークンとして `tokens.json` に出し（形は 4.5.1）、それを使うノードの `spec.json` はそのトークン名を指す（4.5.2.1）。stop の色は、`spec.json` では解決済みの値に加えて Variable のトークン名を持ち、`tokens.json` では他のトークンと同じく解決済みの値に展開する（4.5.1）。**ただしダークモード対応が ON のファイルでは、stop の色の未バインドは影の色と同じく error とする**（4.7.2）。telldes は stop の色も Light ⇄ Dark で差し替えるため（4.3.9）、バインドされていない stop だけがライトの色のまま取り残され、`screenshots-dark/` が実物と食い違う。単色なのに Color Style を使っている場合（Variables に一本化できるのにしていない場合）は、引き続き除外物としてREADMEで告知する（4.7.2）。
 
-**Effect Style（影）も同じ扱いに揃える。** Figma は影の `color` / `radius` / `spread` / `offsetX` / `offsetY` を個別に Variable へバインドできる（`VariableBindableEffectField`）。したがって Effect Style は複合的な見た目としての源泉のままとし、各フィールドが Variable を指していればそのトークン名を、指していなければ解決済みの値を `spec.json` の `effects`（4.5.2.1）に出力する。影の色はテーマで変わりうるため、ダーク対応ファイルでは色のバインド漏れがそのまま出力の破綻になる（4.7.2 の原則1）。
+**Effect Style（影）も同じ扱いに揃える。** Figma は影の `color` / `radius` / `spread` / `offsetX` / `offsetY` を個別に Variable へバインドできる（`VariableBindableEffectField`）。したがって Effect Style は複合的な見た目としての源泉のままとし、各フィールドが Variable を指していればそのトークン名を、指していなければ解決済みの値を `spec.json` の `effects`（4.5.2.1）に出力する。影の色はテーマで変わりうるため、ダーク対応ファイルでは色のバインド漏れがそのまま出力の破綻になる（4.7.2 の原則1）。Effect Style そのものも、Text Style と同じく名前の付いたトークンとして `tokens.json` に出す（4.5.1）。Setup が `shadow-sm` / `shadow-md` を作る以上、影にも名前がある。Text Style は名前付きで出るのに影だけ値の羅列になるのは、原則B「形が揃っている」を崩す特別扱いになる。
 
 Variablesの使用そのものは必須ではない。使わない場合、CCはspec.jsonの解決済み値（`resolvedValue`）から直接CSSを生成する（同じ値が複数箇所でも個別値として出力）。出力の正しさは変わらないため、Variable化はデザイナーの判断に委ね、ツールは促さない。例外は、既にあるトークンと同じ値なのにそれを指していない箇所 — 判断済みの語彙を使い損ねているだけなので、付け忘れとして知らせる（4.7.2）。
 
@@ -155,7 +156,7 @@ Setup は各 Variable の `codeSyntax.WEB` に、名前の `/` を `-` にした
 
 **ダーク用の14色も Setup が最初から作る。** Dark コレクションの変数は `scopes: []` でカラーピッカーから隠れるため（4.3.9）、ダーク対応しないファイルに存在してもデザイナーの邪魔にならない。ダークを始めるときは Export 設定を ON にして色を入れるだけで済み、生成のタイミングが1つで済む。4.7.2 原則1 が「Dark コレクションの有無を判定軸にしない」根拠（Setup を実行した全ファイルに Dark がある）も、これで実在する。
 
-Elevation（ドロップシャドウ）の命名指針も本体系に含めるが、プラグインが命名を促すことはしない。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である（Effect Style を named token として tokens.json に出す対応は Text Style トークンと同じく別途）。
+Elevation（ドロップシャドウ）の命名指針も本体系に含めるが、プラグインが命名を促すことはしない。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である。Effect Style にまとめた場合は、その名前で `tokens.json` にも出る（4.5.1）。
 
 #### 4.3.5 背景の扱い
 
@@ -177,7 +178,7 @@ Figmaの標準プロパティでは伝えられない情報（動き・インタ
 
 #### 4.3.8 画像アセット
 
-画像を含むノードは書き出し時に自動でアセットになる（形式と出力先は README「画像」）。ファイル名はレイヤーパスを `--` で結合したもので、スクリーンショット（4.4.2）と同じ規則。同じ規則にしておくと spec.json の `path` からファイル名が機械的に導ける。
+画像を含むノードは書き出し時に自動でアセットになる（形式と出力先は README「画像」）。ファイル名はレイヤーパスを `--` で結合したもので、スクリーンショット（4.4.2）と同じ規則。同じ規則にしておくと spec.json の `path` からファイル名が機械的に導ける。非表示のノードはアセットにしない（4.5.2）。
 
 #### 4.3.9 ダークモード（1フレーム＋トグル）
 
@@ -199,7 +200,7 @@ Figma のプラン制限がかかるのは「1コレクションあたりのモ�
 - light の構造変更が dark に伝わらない。古さを検出する仕組みが別途要り、怠れば古い dark が CC に渡る
 - 再生成は delete-insert になり、レビュー中に付いた Figma のコメントが迷子になる（コメントは Plugin API から触れない）
 
-**暗くなるのはページ全体。** 付け替えの対象は2つ — (1) ページ上の全書き出し対象フレーム配下のノード（4.7.4）、(2) ファイル共有の `PaintStyle` / `EffectStyle` オブジェクト自体。選択フレームだけを暗くしない理由は目的側にある。ダークはサイト全体にかかる振る舞いであり、フレームごとに明暗が混在する状態は実物に無い。書き出しは全フレームを撮る（4.7.4）ので、ページ全体を揃えて初めて `screenshots-dark/` が全フレーム分そろう。スタイルはファイル全体で共有されるものなので、下の状態フラグ（ファイル単位）とも粒度が一致する。
+**暗くなるのはページ全体。** 付け替えの対象は2つ — (1) ページ上の全書き出し対象フレーム配下のノード（4.7.4）、(2) ファイル共有の `PaintStyle` / `EffectStyle` オブジェクト自体。選択フレームだけを暗くしない理由は目的側にある。ダークはサイト全体にかかる振る舞いであり、フレームごとに明暗が混在する状態は実物に無い。書き出しは全フレームを撮る（4.7.4）ので、ページ全体を揃えて初めて `screenshots-dark/` が全フレーム分そろう。スタイルはファイル全体で共有されるものなので、下の状態フラグ（ファイル単位）とも粒度が一致する。非表示のノード（4.5.2）も付け替える。出力には出ないが、Dark のままデザイナーが表示に戻したとき、そこだけライトの色で現れるのを避けるため。
 
 **影とグラデーションの色も変わる。** 明るい背景用の影は暗い背景では見えず、グラデーションは浮く。変わらなければ `screenshots-dark/` が実物と食い違い、出力の正確さが崩れる。4.7.2 が影やグラデーション stop の色を変数にすることを要求しておきながら付け替えないのは、言われたとおりにしても直らないという最悪の体験になる。Color Style / Effect Style を使っている場合、そのバインドはノードではなくスタイルオブジェクト側に載るため、(2) を対象に含めなければ届かない。実現手段は Paint / Effect の配列を作り直して再代入する形になる — `ColorStop.boundVariables` は `readonly`、`setBoundVariableForPaint` は `SolidPaint` しか受け取らず、1フィールドだけを差し替える API が無いため。
 
@@ -234,7 +235,7 @@ screenshots/
 
 ファイル名はレイヤーパスを `--` で結合。
 
-書き出し対象: セクション（必須）＋ 子を持つブロック（自動）。エレメント（末端）は書き出さない。
+書き出し対象: セクション（必須）＋ 子を持つブロック（自動）。エレメント（末端）は書き出さない。非表示のノードは撮らず、子を持つかどうかも表示されている子だけで数える（4.5.2）。
 
 ### 4.5 出力フォーマット
 
@@ -255,7 +256,7 @@ zip に入るもの（4.5〜4.6、4.8）と、CC に何を届けるかの判断�
 telldes-export/
 ├── prompt.md          ← CCプロンプト（自動生成）
 ├── steering.md        ← 確認・タスク・ルール（テンプレート）
-├── tokens.json        ← デザイントークン（対応Variables（COLOR/FLOAT/書体のSTRING）またはText Styleが定義されている場合のみ）
+├── tokens.json        ← デザイントークン（トークンの源泉（4.3.4）が1つでも定義されている場合のみ）
 ├── settings.json      ← Export 設定（4群。4.5.4）
 ├── README.md          ← zip内容の説明＋今回の書き出しの除外物（4.7.2）
 ├── site/              ← favicon・OG画像（Export設定で指定された場合のみ。4.5.3）
@@ -275,7 +276,7 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
 
 #### 4.5.1 tokens.json
 
-対応Variables（COLOR / FLOAT / 書体の STRING。判別と対象外の範囲は 4.3.4）またはText Styleのいずれかが定義されている場合のみ出力。どちらも未定義の場合は`tokens.json`自体を出力しない。W3C Design Tokens Community Groupの仕様に準拠。
+トークンの源泉 — 対応Variables（COLOR / FLOAT / 書体の STRING。判別と対象外の範囲は 4.3.4）、Text Style、グラデーション・複数 fill の Color Style、影を含む Effect Style — のいずれかが定義されている場合のみ出力。どれも未定義の場合は`tokens.json`自体を出力しない。W3C Design Tokens Community Groupの仕様に準拠。
 
 ```json
 {
@@ -332,6 +333,40 @@ LPの場合はフレーム1つ（例: `lp/`）、HPの場合はページごと�
         }
       }
     }
+  },
+  "fills": {
+    "brand-gradient": {
+      "$type": "gradient",
+      "$value": [
+        { "color": "#3B82F6", "position": 0 },
+        { "color": "#1E40AF", "position": 1 }
+      ],
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--brand-gradient" } }
+    },
+    "hero-overlay": {
+      "1": {
+        "$type": "color",
+        "$value": "#111827",
+        "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--hero-overlay-1" } }
+      },
+      "2": {
+        "$type": "gradient",
+        "$value": [
+          { "color": "#00000000", "position": 0 },
+          { "color": "#00000099", "position": 1 }
+        ],
+        "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--hero-overlay-2" } }
+      }
+    }
+  },
+  "effects": {
+    "shadow-md": {
+      "$type": "shadow",
+      "$value": [
+        { "color": "#0000001F", "offsetX": 0, "offsetY": 8, "blur": 24, "spread": -4 }
+      ],
+      "$extensions": { "com.github.lovaizu.telldes": { "cssVariable": "--shadow-md" } }
+    }
   }
 }
 ```
@@ -342,20 +377,33 @@ Variablesの構造をそのままJSON化する。デザイナーの命名がそ�
 
 `$value` は Text Style の canonical な定義値であり、個々のノードに対する解決済みメトリクスではない。そのため 4.5.2.1 の `text.*` フィールドで採用している「既定値は省略」という間引き規約はここには適用されず、各値が既定的かどうかに関わらず `fontFamily` / `fontSize` / `fontWeight` / `lineHeight` / `letterSpacing` の 5 キーを常にすべて含める（例の `"letterSpacing": "0em"` はこの規約により省略しない）。`lineHeight` が Text Style 上 AUTO 設定の場合も同様に省略や `"AUTO"` という文字列での出力はせず、CSS の `line-height: normal` に相当するキーワード文字列 `"normal"` を `$value.lineHeight` に出力する（Figma Plugin API は AUTO 設定の描画後 line-height をpx値として提供しないため、CSS 側の意味的な等価表現を用いる）。これは mixed 値を先頭文字の値で解決する他フィールドの方針と同じく、`$value` が常に具体的な解決値を持つようにするためである。
 
+`fills` グループはグラデーション・複数 fill の Color Style から、`effects` グループは影を含む Effect Style から出力する（4.3.4）。トークン名は Style 名をそのまま用いる。グループを分けるのは `typography` と同じく、Variable と Style は別々に名付けられ、同じ名前が並びうるため。
+
+- **グラデーション1つの Color Style** は W3C DTCG の `gradient` 型にし、`$value` は stop の並び（`color`・`position`（0〜1））とする。DTCG の `gradient` 型は stop だけを持ち、種類（線形・円形など）と向きを持たない。種類と向きはそれを使うノードの `spec.json` の `fills`（`type`・`gradientTransform`。4.5.2.1）が持つので、CC は CSS 変数に stop の並び（`#3B82F6 0%, #1E40AF 100%`）を入れ、`fills` から作ったグラデーションの中で使う（`linear-gradient(135deg, var(--brand-gradient))`）
+- **複数の塗りを持つ Color Style** はグループにし、塗り1枚を1トークンとする。名前は `<Style 名>/1`・`/2`…で、番号は `spec.json` の `fills` と同じ並び（下の塗りから、1始まり）。単色の塗りは `color` 型、グラデーションは `gradient` 型。画像の塗りは CSS 変数に入れる値が無いのでトークンにしないが、番号は飛ばして並びを保つ。番号にするのは、Figma の塗りには名前が無く、並びだけが塗りを見分ける手がかりだから
+- Color Style のトークンの色には、塗りの不透明度を含める（単色はアルファ、グラデーションは各 stop のアルファに掛ける）。CSS の背景の重ねには1枚ごとの不透明度が無く、色のアルファに入れるのが同じ描画になる唯一の形だから
+- **影を含む Effect Style** は DTCG の `shadow` 型にし、`$value` は影の並び（`color`・`offsetX`・`offsetY`・`blur`・`spread`（px）、内側の影は `inset: true`）とする。影が1つでも並びにする（原則B「形が揃っている」）。ぼかし（`LAYER_BLUR` / `BACKGROUND_BLUR`）は入れない。DTCG に型が無く、CSS でも `box-shadow` ではなく `filter` / `backdrop-filter` という別のプロパティになるからで、ぼかしは `spec.json` の `effects` の値から書く
+- stop・影の色が Variable を指していても、他のトークンと同じく解決済みの値に展開する（下記のエイリアスの扱い）。どの色がどの Variable かは `spec.json` の `colorToken` が持つ
+
 color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満の場合のみ #RRGGBBAA（8桁）で表現する。エイリアス（他トークンの参照）は解決済みの値に展開する。
 
 あるトークン名が、別のトークンのグループ接頭辞と一致する場合（例: `color` と `color/primary` が併存）、グループ自身の値は予約キー `$base` に格納する（例: `color.$base` と `color.primary` の両方を保持）。これにより同名の値が失われない。
 
 **CSS 変数名は telldes が決めて、各トークンの `$extensions["com.github.lovaizu.telldes"].cssVariable` に書く。** CC にトークン名から組み立てさせると、組み立て方を CC が推測することになり、デザイナーが Figma の Dev Mode で見ている名前とも食い違いうる（原則B「推測させない」）。CC は `:root` での定義にも `var()` での参照にもこの名前をそのまま使う。置き場所を `$extensions` にするのは、W3C DTCG が道具ごとの追加情報のために用意した欄だからで、キーは他の道具と重ならないよう DTCG が勧める逆ドメイン表記にする。
 
-- **Variable は、`codeSyntax.WEB` に名前があればそれを使う。** Variable をコードでどう書くかを持つ Figma 自身の欄であり、Dev Mode もこれを表示する（原則A）。Figma の作法では WEB の code syntax は `var(--名前)` の形で書くので、その中の `--名前` を取り出す。Setup が作る変数はすべてこれを持つ（4.3.4）
-- **無ければ、Figma 公式の手引きが code syntax の付け方として示すのと同じく、名前の `/` を `-` にして先頭に `--` を付ける**（`fg/default` → `--fg-default`）。Text Style は code syntax を持たないので常にこちらになる
+- **Variable は、`codeSyntax.WEB` に CSS 変数名があればそれを使う。** Variable をコードでどう書くかを持つ Figma 自身の欄であり、Dev Mode もこれを表示する（原則A）。Figma の作法では WEB の code syntax は `var(--名前)` の形で書くので、その中の `--名前` を取り出す（後ろに `, 既定値` が付いていてもよい）。Setup が作る変数はすべてこれを持つ（4.3.4）
+- **`codeSyntax.WEB` が空か、`var(--…)` の形でない場合は、名前から作る。** `$fg-default` のような別の書き方は CSS 変数名ではないので、書かれていないものとして扱う。Style（Text Style・Color Style・Effect Style）は code syntax を持たないので常にこちらになる。作り方は次の順:
+  1. `/` と空白を `-` にする
+  2. 英大文字を小文字にする
+  3. 文字（日本語など英字以外の文字を含む）・数字・`-`・`_` 以外（絵文字・記号など）を取り除く
+  4. 続いた `-` は1つにし、先頭と末尾の `-` を取る。空になったら `token` にする（4.5.2 でフォルダ名が空になったとき `frame` にするのと同じ）
+  5. 先頭に `--` を付ける（`fg/default` → `--fg-default`、`🔵 Blue 0000FF` → `--blue-0000ff`）
+- 名前から作る規則は、Dev Mode がデザイナーに見せる名前に合わせるためのもの（原則A）。Figma は「Dev Mode は正しい CSS にするため変数名を正規化する」と書き、`🔵 Blue 0000FF` → `--blue-0000FF` を例に挙げる。この例で確かめられるのは、絵文字を取り除くこと・空白を `-` にすること・`Blue` が `blue` になることまで。同じ例の `0000FF` と、同じ記事の別の例（`Thin-100` → `var(--Thin-100, 100)`）では大文字が残っており、どの大文字を小文字にするかは資料から決まらない。telldes はすべて小文字にする。CSS 変数名は小文字をハイフンでつなぐのが慣習で、CC は `tokens.json` に書かれた名前だけを使うので、大文字の扱いが Dev Mode と違っても出力は壊れない。Dev Mode との違いは実機で確かめる（4.7.7）。Setup が作る名前は英小文字・数字・`-`・`/` だけなので、どの手順でも結果は変わらない
 - ダーク対応ファイルで Light と Dark の対を1つのトークンにする場合（下記）は、Light 側の変数の名前を使う。Dark 側はデザイナーのピッカーに出ず、telldes が差し替えに使う相方だから（4.3.9）
 - 別々のトークンが同じ CSS 変数名になること（`fg/default` と `fg-default`）は確かめない。紛らわしい名前を両方作ったときにしか起きず、まれだから
-- **未決**: `codeSyntax.WEB` に `var(--…)` の形でないもの（`$fg-default` のような別の書き方）が入っている場合の扱い。推奨は「CSS 変数名が書かれていないものとして既定の作り方にする」
-- **未決**: `typography` トークンは値が複合で、CSS 変数1つには収まらない。上の例は推奨案（`$value` の5つのキーごとに名前を書き、名前は Text Style 名から既定の作り方で作った名前に `-font-family` 等を足す）
+- 複合値のトークンは、CSS のプロパティ1つにつき CSS 変数1つとする。CSS 変数はプロパティの値を丸ごと置き換えるもので、1つの変数に複数のプロパティは入らないから。`typography` は5つのプロパティ（`font-family` / `font-size` / `font-weight` / `line-height` / `letter-spacing`）にまたがるので、`$value` のキーごとに名前を書く（Style 名から作った名前に `-font-family` などを足す）。影は `box-shadow` 1つなので CSS 変数も1つで、値は `box-shadow` に書く値そのもの（`0 8px 24px -4px #0000001F`）
 
-**ダーク対応ファイル（Light / Dark / Base の3コレクション、4.3.9）の場合**、コレクション名でJSONをグループ化しない。Light・Darkの両コレクションに同名の変数が存在する場合は1つのトークンとして扱い、`$value`を`{ "light": ..., "dark": ... }`の形にする。Baseコレクションの変数（テーマで値が変わらないもの）は単一値のままとする。
+**ダーク対応ファイル（Light / Dark / Base の3コレクション、4.3.9）の場合**、コレクション名でJSONをグループ化しない。Light・Darkの両コレクションに同名の変数が存在する場合は1つのトークンとして扱い、`$value`を`{ "light": ..., "dark": ... }`の形にする。Baseコレクションの変数（テーマで値が変わらないもの）は単一値のままとする。Color Style・Effect Style のトークンも、中の色が Light の変数を指していれば同じ `{ "light": ..., "dark": ... }` の形にする。dark 側は、その色を Dark の対に差し替えた値（付け替えの結果と同じ。4.3.9）。スタイルの色もテーマで変わる以上、変数と同じ形で出さなければ CC はダークの値を知りようがない。
 
 ```json
 {
@@ -492,6 +540,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 - `screenshot` は子を持つノード（セクション、ブロック）に付与
 - 値は常に解決済み値を持つ。Variableが適用されている場合は `*Token` フィールドにトークン名も付与
 - `note` は付与されたノードにのみ存在
+- 非表示のノード（`visible: false`。祖先が非表示のものを含む）は出さない。描かれていないものを CC に作らせると、カンプと食い違うため。黙って落とさないよう、書き出し時の除外物として記録する（4.7.2）
 
 #### 4.5.2.1 フィールド詳細
 
@@ -509,6 +558,30 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 - `opacity` は塗りの不透明度が 1 未満の場合のみ付与する数値（0〜1）。半透明オーバーレイ（4.3.5）の再現に使う。
 - IMAGE / GRADIENT を含む全種類の塗りを `fills` に出力する（SOLID 以外を欠落させない）。
+- 塗りが複数あるとき、`fills` は Figma と同じく下の塗りから並ぶ。CSS の `background` は上の層から書くので、CC は並びを逆にする。一番下以外の単色の塗りは `linear-gradient(色, 色)` にする（`background` で単色を置けるのは一番下の層だけだから）。どちらも CC に任せると推測になるので、ここで決めておく（原則B）。
+- ノードの `fillStyleId` がグラデーション・複数 fill の Color Style を指すときは、ノードに `fillsToken`（例 `"fills/brand-gradient"`）を付ける。命名は `tokens.json` の `fills` トークン名（4.5.1）と対応する。複数の塗りの Style では、`fills` の i 番目（1始まり）が `fills/<Style 名>/i` のトークンに当たる。トークンの色は塗りの不透明度を含む（4.5.1）ので、トークンを使うときは各塗りの `opacity` を重ねて掛けない。単色の Color Style はトークンにならない（除外物。4.7.2）ので付けない。
+
+**strokes（線）**
+
+線も描画に効くので出す（4.3.4 の基本姿勢）。
+
+| フィールド | 説明 |
+|---|---|
+| `strokes` | `fills` と同じ形の配列（`type`・`color`・`colorToken?`・`gradientStops`・`opacity?` など）。線の Color Style は `strokesToken`（`fillsToken` と同じ規則） |
+| `strokeWeight` | 太さ（px）。辺ごとに違う場合は `{ "top": n, "right": n, "bottom": n, "left": n }`。Variable 適用時は `strokeWeightToken`（辺ごとなら同じ形のオブジェクト） |
+| `strokeAlign` | `INSIDE` / `CENTER` / `OUTSIDE` |
+| `dashPattern` | 破線のときのみ。線と間の長さ（px）の並び |
+| `strokesIncludedInLayout` | true のときのみ。Auto Layout で線が中身の配置に場所を取る設定 |
+
+| 場合 | CSS |
+|---|---|
+| 単色の線が1本、太さが全辺同じ、破線でない | `outline: {太さ}px solid {色}` と `outline-offset`（INSIDE は `-{太さ}px`、CENTER は `-{太さ/2}px`、OUTSIDE は `0`） |
+| それ以外（辺ごとの太さ・破線・グラデーションや画像の線・複数の線） | 要素に重ねた SVG で描く（`dashPattern` は `stroke-dasharray`） |
+| `strokesIncludedInLayout: true` | 上の描き方に加えて、線のうち枠の内側にかかる太さ（INSIDE は太さ、CENTER は半分、OUTSIDE は 0）を padding に足す |
+
+- `border` を使わないのは、Figma の線は既定では中身の配置に場所を取らないのに、CSS の `border` は中身を線の太さだけ内側へ押すため。`outline` は寸法にも中身の位置にも効かず、`outline-offset` で3つの位置をそのまま表せ、今のブラウザでは `border-radius` に沿う。
+- 辺ごとの太さ・破線の長さ・グラデーションは `outline` では表せない（CSS の `dashed` は線と間の長さを指定できない）。Figma と同じ描き方ができるのは SVG なので、そちらにする。
+- `strokesIncludedInLayout` が true のときは、線が padding と同じように中身を内側に寄せる。描き方は変えず、寄せる分だけを padding で表す。
 
 **text.fill**
 
@@ -533,7 +606,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 - `blur` は Figma の `effect.radius`。`spread` は 0 のとき省略。非可視 effect は出力しない。
 - 各フィールド（`color` / `radius` / `spread` / `offsetX` / `offsetY`）が Variable にバインドされている場合は、他のフィールドと同じく `*Token` を併せて付与する（4.3.4）。
-- Effect Style 自体を named token として `tokens.json` に出す対応は未実装（Text Style トークンと同様の別途対応）。フィールド単位のトークン名とは別の話で、こちらは複合値としての名前を指す。
+- ノードの `effectStyleId` が Effect Style を指し、その Effect Style が影を含むときは `effectsToken`（例 `"effects/shadow-md"`）を付ける。命名は `tokens.json` の `effects` トークン名（4.5.1）と対応する。フィールド単位の `*Token` とは別で、こちらは Effect Style という複合値の名前を指す。ぼかし（`LAYER_BLUR` / `BACKGROUND_BLUR`）はトークンに入らないので、`effects` の値から書く。
 
 **text（タイポグラフィのメトリクス）**
 
@@ -678,6 +751,7 @@ Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）を zip ル�
 | 付け忘れの知らせ2種（トークンの付け忘れ / `radius/full` 不使用） | **トークン** | 同上 |
 | 除外物告知のうち 単色 Color Style 使用・対象外 Variable 使用・トークン名衝突 | **トークン** | 4.7.2 が既に「除外される物」単位（Color Style ごと・Variable ごと）に集約している |
 | 除外物告知のうち 裸の Component 定義・書き出し対象外レイヤーの note | **画面**（「渡されないもの」の行） | どの画面にも属さないもの |
+| 除外物告知のうち 非表示のレイヤー | **画面**（「渡されないもの」の行） | 画面の中にあっても渡らないもの。画面の行に並べると渡るように見える |
 | note | **レイヤー** | 書いた対象がそのレイヤー |
 
 **旧構成の4タブ（Setup / Review / Notes / Export）がタスク指向だったのは、これらのプロパティをビューに昇格させていたから。** 同じレイヤーのプロパティが別々の箱に入り、4症状（note の一覧が Notes と Export の2箇所に要る／付け忘れの知らせは Export に出るが直す作業は Review 側／Export を押すとチェック結果を見せるために Review へ飛ばされる／テーマ切り替えの置き場所が無い）を生んでいた。**プロパティを持ち主に戻せば、4症状は原因ごと消える。**
@@ -687,7 +761,7 @@ Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）を zip ル�
 ビューは3つ。
 
 1. **トークンのコレクションビュー**（語彙）。各行＝1つのトークン、または「トークンになっていない値」1つ。行は原因単位で、`#333333` が30箇所で使われていれば**1行**（「30箇所」は行が持つ数）。テーマ整合の error と付け忘れの知らせはここに出る
-2. **画面のコレクションビュー**（渡すもの）。各行＝1つの画面で、構造・サイジングの違反件数と note 件数を持つ。この一覧は**そのまま「これから渡すものの明細」**であり、Export 専用の明細ビューを別に持たない。末尾に **「渡されないもの」** の行を置き、どの画面にも属さないもの（裸の Component 定義、書き出し対象外レイヤーの note）を入れる。これまで zip 内 `README.md` にしか出ていなかった事実が Figma 上でも見える（原則B「欠けていると分かる」）
+2. **画面のコレクションビュー**（渡すもの）。各行＝1つの画面で、構造・サイジングの違反件数と note 件数を持つ。この一覧は**そのまま「これから渡すものの明細」**であり、Export 専用の明細ビューを別に持たない。末尾に **「渡されないもの」** の行を置き、どの画面にも属さないもの（裸の Component 定義、書き出し対象外レイヤーの note）と、画面の中にあっても渡らない非表示のレイヤー（4.5.2）を入れる。これまで zip 内 `README.md` にしか出ていなかった事実が Figma 上でも見える（原則B「欠けていると分かる」）
 3. **レイヤーのシングルビュー**。選択に追従し、そのレイヤーの違反・note 入力欄を出す。Figma ではキャンバス上の選択がそのままオブジェクト選択になるため、直接操作が素で成立する
 
 加えて、Export 実行時だけ入る**確認ビュー**がある（4.7.4.3）。これはアクションのモードであってオブジェクトのビューではない。
@@ -749,7 +823,7 @@ Export 設定（4群。項目の定義と理由は 4.7.4.2 が正）を zip ル�
 
 本節は3つの異なる出力を定める。(1) **Review（チェック）**: 制作ルール違反を検出し、各違反に改善方法を提示する。Reviewが報告するのはエラーのみで、すべて書き出しのブロッカーである。(2) **書き出し時の除外物告知**: ツールが構造上対象外にするもの ― 違反ではなく、したがって改善方法も持たないもの ― を書き出し時に検出し、zip内 `README.md` に事実として記録する。(3) **付け忘れの知らせ**: 出力は壊れていないが、デザイナーが宣言し忘れたと機械的に分かる箇所を、そのレイヤーのプロパティとして出す（4.7.1）。(1) はデザイナーが直さなければ渡せないもの、(2) は直す義務がないもの、(3) は直すかどうかがデザイナーの判断であるもの。3つは相手も置き場所も違うので混ぜない。
 
-**Review の走査範囲は書き出し対象の範囲**（ページ直下の `FRAME`／`SECTION` とその配下。4.7.4）とする。原則1 の判定軸は「出力が壊れるか」であり、zip に入らないものが壊れていても出力は壊れない。渡さないものを直さないと渡せない、という状態はゲートの趣旨と逆になる。範囲の判定には書き出しと**同じ判定**（②の層に1つだけ置く。4.7.6）を使う。同じ定義を2箇所に持たなければ、Review と zip の対象が黙ってズレることはない。除外物告知のうち Color Style / Variable の使用も既にこの範囲なので（後述）、両者はここで揃う。
+**Review の走査範囲は書き出し対象の範囲**（ページ直下の `FRAME`／`SECTION` とその配下。4.7.4）とする。原則1 の判定軸は「出力が壊れるか」であり、zip に入らないものが壊れていても出力は壊れない。渡さないものを直さないと渡せない、という状態はゲートの趣旨と逆になる。範囲の判定には書き出しと**同じ判定**（②の層に1つだけ置く。4.7.6）を使う。同じ定義を2箇所に持たなければ、Review と zip の対象が黙ってズレることはない。除外物告知のうち Color Style / Variable の使用も既にこの範囲なので（後述）、両者はここで揃う。**非表示のノード（祖先が非表示のものを含む）はこの範囲から外す。** zip に出ない（4.5.2）以上、壊れていても出力は壊れない。
 
 **チェックの原則**
 
@@ -808,20 +882,22 @@ Reviewが報告するのはエラーのみとする。エラーは書き出し�
 
 **書き出し時の除外物告知（README出力）:** 上記(2)。ツールが対象外にするもの（＝デザイナーに直す義務はないが、黙って捨ててはいけないもの）は、Reviewではなく書き出し時に検出し、zip内 `README.md` の「Not included in this export」セクションに**実際に検出された項目のみ**を対象レイヤーパス（トークン名の衝突はトークン名、noteはレイヤーパスと本文）付きで記録する。検出ゼロの項目は行を出さない。「予測できない動き」を防ぐ基本姿勢（4.3.4）と原則B「欠けていると分かる」を、Reviewのノイズではなく書き出し結果の事実記録として担保する。
 
-**Figma 上での出し先は 4.7.1 の表による。** トークンに属するもの（単色 Color Style 使用・対象外 Variable 使用・トークン名衝突）はトークンのコレクションビューに、どの画面にも属さないもの（裸の Component 定義・書き出し対象外レイヤーの note）は画面コレクションビュー末尾の「渡されないもの」の行に出る。zip の `README.md` と Figma の画面は同じ事実を別の読み手に届けるもので、重複ではない（README は zip を開く CC とデザイナー、画面は今 Figma を開いているデザイナー）。
+**Figma 上での出し先は 4.7.1 の表による。** トークンに属するもの（単色 Color Style 使用・対象外 Variable 使用・トークン名衝突）はトークンのコレクションビューに、渡らないもの（裸の Component 定義・書き出し対象外レイヤーの note・非表示のレイヤー）は画面コレクションビュー末尾の「渡されないもの」の行に出る。zip の `README.md` と Figma の画面は同じ事実を別の読み手に届けるもので、重複ではない（README は zip を開く CC とデザイナー、画面は今 Figma を開いているデザイナー）。
 - **単色の** Color Styleを使用 → カラーはVariablesに一本化するためトークン化されない（4.3.4。グラデーション・複数fillのColor Styleは正式な源泉なので告知しない）。**Color Styleごとに1件**、使用レイヤー数と代表レイヤーパス（最大3件）を列挙する。1つのテキストノード内で複数のColor Styleが混在する場合（`fillStyleId === figma.mixed`）は単一のidに解決できないため、その旨を示す名前の1件にまとめる
 - BOOLEAN Variable、または書体として扱われない STRING Variable を使用 → トークン出力対象外（判別は 4.3.4。書体は源泉なので告知しない）。**Variableごとに1件**、Variable名・使用レイヤー数・代表レイヤーパス（最大3件）を列挙する
 - ページ直下に裸で置かれたComponent/Component Set定義 → 書き出し対象外（4.7.4の範囲方針）。該当レイヤーと、画面フレーム内にインスタンスとして配置するか、ライブラリページへ移す旨を記録する
-- Variableのフルパスが `typography/<name>` に一致し、同名のText Styleが存在（tokens.jsonの`typography`グループで衝突し、後に書き出されるText Style側が上書きする。4.5.1） → 衝突したトークン名の組を記録する
+- Variableのフルパスが `typography/<name>` に一致し、同名のText Styleが存在（tokens.jsonの`typography`グループで衝突し、後に書き出されるText Style側が上書きする。4.5.1） → 衝突したトークン名の組を記録する。`fills/<name>` と Color Style、`effects/<name>` と Effect Style も同じ
 - 書き出し対象外のレイヤーに付いたnote → noteは `spec.json` の `note` としてしかCCに届かず（4.5.2）、`spec.json` は書き出し対象フレーム配下しか持たないため、対象外のレイヤーに付いたnoteは `spec.json` には現れない（CCがスペックとして読む場所には届かない）。一方、note の一覧はページ全体を走査するため（4.7.3）そのnoteは一覧には出る（「渡されないもの」の行に入る。4.7.1）。zip 側にも同じ事実を残すため、レイヤーパスと本文を記録する
+- 非表示のレイヤー → 描かれていないので `spec.json`・スクリーンショット・アセットに出ない（4.5.2）。**最上位の非表示レイヤー（祖先はすべて表示されているもの）ごとに1件**とし、その配下は数に含めて並べない。配下まで並べると、非表示にしたグループ1つで数十行になる。ただし同じ部品のインスタンスの中の同じ位置のレイヤー（部品側で非表示にしてあるもの）は1件にまとめ、件数と代表レイヤーパス（最大3件）を持たせる（Color Style 使用をインスタンスの数だけ並べないのと同じ理由）。配下に note があれば、レイヤーパスと本文も記録する（note は `spec.json` にしか届かないため、ここに書かなければ消える）
 
 **除外物告知の走査範囲:** README に載る項目は、読み手がzipの中身と突き合わせられるものでなければならない。したがって走査範囲をカテゴリごとに次のとおり定める。
 - Color Style使用／対象外Variable使用 → **書き出し対象のページ直下 `FRAME`／`SECTION` 配下のみ**を走査する（当該フレーム自身を含む。Review と同じ範囲・同じ判定）。ページ直下に裸で置かれた他のノードや、裸のComponent定義の内部は走査しない（前者はzipに現れず突き合わせ不能、後者は「裸のComponent」として既に1件記録済みで二重計上になるため）
 - **インスタンス内部のノードも走査する**。インスタンス内部のノードは主コンポーネント由来の `fillStyleId` / `boundVariables` を保持しており、主コンポーネントを別ページ（ライブラリ）に置き画面ページにインスタンスを並べるという定石の構成（4.7.4）では、インスタンス内部を除外すると「Color Style使用ゼロ」というREADMEが出てしまう ― 実際には書き出したスクリーンショット上の全カードがColor Styleで着色されているのに、である。これは4.3.4の姿勢に反する黙殺であり、走査対象に含める
 - 上記により同じ部品をN個配置すると同一内容のN行が出る問題は、**レイヤー単位ではなく「除外される物」単位でまとめる**ことで解決する。すなわちColor Style使用はColor Styleごと、対象外Variable使用はVariableごとに1件へ集約し、各件は対象レイヤー数と代表レイヤーパス（最大3件）を持つ。ノイズを抑えつつ、検出事実そのものは失われない
 - ページ直下に裸で置かれたComponent/Component Set → ページ直下のノードを走査する（書き出し範囲の外にあるものを告知するための項目であるため）
-- トークン名衝突 → ノードではなくVariables／Text Stylesを対象とするため走査範囲の影響を受けない
+- トークン名衝突 → ノードではなくVariables／Styleを対象とするため走査範囲の影響を受けない
 - 書き出し対象外のレイヤーに付いたnote → **書き出し対象のページ直下 `FRAME`／`SECTION` 配下に無いノード**（ページ直下に裸で置かれたComponent／Component Set定義の内部、ページ直下の裸の他のノードとその内部）を走査する。書き出し範囲の外にあるものを告知するための項目であるため、Color Style使用等とは逆に対象フレーム配下は走査しない（そこに付いたnoteは `spec.json` に載る）。裸のComponent定義の内部まで走査するのは、Color Style使用と違い、note本文はデザイナーが書いた情報そのもので「Component X は対象外」の1件から復元できないためである。二重計上ではなく別の事実として記録する
+- 非表示のレイヤー → 書き出し対象のページ直下 `FRAME`／`SECTION` 配下（インスタンスの内部を含む）を走査する。Color Style 使用・対象外 Variable 使用は非表示のノードを走査しない。非表示のレイヤーとして既に1件になっており、二重に数えないため
 - 同一カテゴリ内で内容が完全に一致する項目は1行にまとめる。レイヤーパスの**先頭セグメントは、4.5.2「フォルダ名（ページ直下のセグメント）の規約」をページ直下の全ノードに一度に適用した結果の文字列**とする。書き出し対象フレーム配下のレイヤーであれば、それはそのフレームのzipフォルダ名そのものになる。裸のComponent等の非フレームも同じ規約・同じ「使用済み名の集合」で命名されるため、フォルダ名と別ノードの表記が衝突することはない（フォルダ名とREADMEのパス先頭セグメントは同一の走査で一度だけ決定し、zipとREADMEの双方へ同じ値を渡す。等価な走査を別の場所でもう一度行わないことで、両者が食い違うことをあり得なくする）。先頭セグメント以外は4.5.2の `path` と同じく同名の兄弟を `-N` で区別する。画面フレーム名を含む点がspec.jsonの`path`と異なるのは、READMEがデザイナーにzip内のフォルダとFigmaのレイヤーツリーの両方を辿らせるための表記であるため
 
 **付け忘れの知らせ:** 上記(3)。出力は壊れていないが、デザイナーが宣言し忘れたと機械的に判定できる箇所だけを並べる。2種類ある。
@@ -843,7 +919,7 @@ note は `setPluginData('note', value)` に持つ（Free 版にアノテーシ�
 
 - **各項目にレイヤーパスと本文の両方を出す**: レイヤーパスだけではnoteの中身が分からず、note本文だけではどのレイヤーの話か分からない
 - **パスは Figma 上の生のレイヤー名をそのまま並べる**（4.5.2のフォルダ名正規化も `-N` 付与も行わない）: 一覧はzipと突き合わせるための表記ではなく、Figmaのレイヤーツリーを辿るための表記であるため
-- **走査範囲はページ全体。ただし画面ごとにグループ化し、どの画面にも属さないものは「渡されないもの」の行に入れる**（4.7.1）: noteはどのレイヤーにも付けられるため、書き出し対象外のノード（ページ直下に裸で置かれたComponent定義の内部など）に付いたnoteも一覧に出す。出さなければ、書いたはずのnoteが見当たらないという状態になる。一方で一覧に出ることは書き出されることを意味しない ― 書き出し対象外のレイヤーに付いたnoteは `spec.json` に載らない。**グループ分けがこの両方を同時に満たす**: 全部見えるが、どれが渡ってどれが渡らないかも同じ一覧の上で分かる（原則B「欠けていると分かる」）。旧構成で一覧を2つ持っていた理由（書いた全部 / 渡る分）はこれで消える。並び順は画面内ではレイヤーツリーの走査順（トークンに属する行は原因単位で集約されレイヤーツリー上の位置を持たないため、別のコレクションビューに出る。4.7.1）
+- **走査範囲はページ全体。ただし画面ごとにグループ化し、どの画面にも属さないものと非表示のレイヤーに付いたものは「渡されないもの」の行に入れる**（4.7.1）: noteはどのレイヤーにも付けられるため、書き出し対象外のノード（ページ直下に裸で置かれたComponent定義の内部など）に付いたnoteも一覧に出す。出さなければ、書いたはずのnoteが見当たらないという状態になる。一方で一覧に出ることは書き出されることを意味しない ― 書き出し対象外のレイヤーに付いたnoteは `spec.json` に載らない。**グループ分けがこの両方を同時に満たす**: 全部見えるが、どれが渡ってどれが渡らないかも同じ一覧の上で分かる（原則B「欠けていると分かる」）。旧構成で一覧を2つ持っていた理由（書いた全部 / 渡る分）はこれで消える。並び順は画面内ではレイヤーツリーの走査順（トークンに属する行は原因単位で集約されレイヤーツリー上の位置を持たないため、別のコレクションビューに出る。4.7.1）
 - **一覧はプラグイン起動時・note 保存時（空文字保存＝削除を含む）・ページ切り替え時の3時点で作り直すスナップショットで、それ以外の変更は追わない**: 一覧が「現在のページ」のものだと言えるのは、ページが変わるたびに作り直すからである。Figmaはプラグインを開いたままページを切り替えられるため、起動時と保存時だけでは切り替え後も前のページの一覧が残る。一方、レイヤーの削除・undo・別セッションからの変更は追わない（`documentchange` は購読しない）。文書全体の変更通知は重く（dynamic-page 設定下では全ページのロードが前提になるほど）、しかも変更は周期的にまとめて届くため、購読しても一覧が常に最新だとは言えない。古くなった行は嘘のまま固定されない ― 対象が消えた行はクリック時の検出（次の箇条）で回収でき、undoでnoteだけが消えたレイヤーの行はクリックすれば入力欄が空の保存済みnoteを映す。この程度の古さは許容する。選択の変更でも更新しない（一覧は選択に依存しない）ので、行クリックで選択が成立しても一覧は作り直さない
 - **行が指すレイヤーが現在のページに無いときは、その旨をUIに通知し、一覧を作り直す**: 行の対象は削除されうるし、一覧は前の箇条の範囲で古くなりうる。黙って無反応にすると、利用者にはクリックが効いていないのか対象が消えたのか分からない（4.3.4の基本姿勢）。通知と同時に作り直すのは、同じ行をもう一度クリックしても同じ結果になる状態を残さないため
 - **一覧の走査が失敗したときは、その旨をUIに通知し、前回の一覧を消す**: 一覧が示すのは常に直近1回の走査結果である。特にページ切り替え直後の失敗で前ページの一覧が残ると、それが今ページの一覧に見える（Reviewの実行失敗で前回結果を消すのと同じ理由。4.7.2）
@@ -990,18 +1066,19 @@ telldes は LLM を持たないので質問を動的に作れない。したが�
 |---|---|
 | `id` | 行クリックでの選択（4.7.1）、撮る画像と付け替えの対象の指定 |
 | `name`, `type`, `children` | `path`・フォルダ名（4.5.2）、section / block / element、書き出し範囲（ページ直下の `FRAME` / `SECTION`）、構造チェック4種、裸の Component（4.7.2）、アセットの判別（4.3.8） |
-| `visible` | **未決**: 非表示のノードを出力・チェックでどう扱うかが設計書に無い |
+| `visible` | 非表示のノードを出力・撮影・アセット・チェックから外す（4.5.2）、非表示のレイヤーの告知（4.7.2） |
+| `mainComponentId`（インスタンスのみ） | 非表示のレイヤーの告知で、同じ部品の同じ位置のものを1件にまとめる（4.7.2） |
 | `width`, `height`, `x`, `y`, `layoutPositioning` | `viewport.width`、`FIXED` の `widthPx` / `heightPx`（4.5.2.1）、丸い形の判定（4.7.2）、背景を子に置いたものの検出（検出の仕様は実装で決める。4.7.2） |
 | `layoutMode`, `layoutWrap`, `primaryAxisAlignItems`, `counterAxisAlignItems`, `counterAxisAlignContent`, `paddingTop` / `Right` / `Bottom` / `Left`, `itemSpacing` | spec.json の `layout`（4.5.2、4.6）、Auto Layout 未適用 |
 | `layoutSizingHorizontal` / `Vertical`, `minWidth` / `maxWidth` / `minHeight` / `maxHeight`, `layoutAlign`, `layoutGrow` | `layout.sizing`（4.5.2.1）、サイジングチェック |
-| `fills`, `fillStyleId` | `fills` / `background` / `text.fill`、画像を含むか（4.3.8）、単色 Color Style の告知、色・グラデーション stop の未バインド、付け忘れ、付け替え |
-| `strokes`, `strokeStyleId` | 色（線）の未バインド（4.7.2）、付け替え。**未決**: spec.json に線を出す項目が 4.5.2.1 に無い |
-| `effects`, `effectStyleId` | `effects`（4.5.2.1）、影の色の未バインド、付け替え |
+| `fills`, `fillStyleId` | `fills` / `background` / `text.fill`・`fillsToken`（4.5.2.1）、画像を含むか（4.3.8）、単色 Color Style の告知、色・グラデーション stop の未バインド、付け忘れ、付け替え |
+| `strokes`, `strokeStyleId`, `strokeWeight`, `strokeTopWeight` / `Right` / `Bottom` / `Left`, `strokeAlign`, `dashPattern`, `strokesIncludedInLayout` | spec.json の `strokes` 一式と `strokesToken`（4.5.2.1）、色（線）の未バインド（4.7.2）、単色 Color Style の告知、付け替え |
+| `effects`, `effectStyleId` | `effects` と `effectsToken`（4.5.2.1）、影の色の未バインド、付け替え |
 | `opacity` | ノードの `opacity` |
 | `cornerRadius`, `topLeftRadius` / `topRightRadius` / `bottomRightRadius` / `bottomLeftRadius` | `cornerRadius`（4.5.2.1）、丸い形の判定 |
 | `boundVariables`（塗り・線・影・グラデーション stop の中のものを含む） | `*Token`、色の未バインド、light に Dark 混入、対象外 Variable の告知、付け忘れ、付け替え |
 | `text`: `textAlignHorizontal` と、区間ごとの `characters`・`fontSize`・`fontName`・`fontWeight`・`lineHeight`・`letterSpacing`・`textCase`・`textDecoration`・`fills`・`fillStyleId`・`textStyleId`・`boundVariables` | spec.json の `text`（先頭の区間で解決）と `typographyToken`（全区間が同じ Text Style のときだけ。4.5.2.1）、全区間の色の未バインド・付け替え、テキスト内の Color Style 混在（4.7.2） |
-| `note` | spec.json の `note`、note 一覧（4.7.3）、書き出し対象外の note の告知 |
+| `note` | spec.json の `note`、note 一覧（4.7.3）、書き出し対象外の note・非表示のレイヤーの note の告知 |
 
 Variable・コレクション・Style:
 
@@ -1009,9 +1086,9 @@ Variable・コレクション・Style:
 |---|---|
 | Variable: `id`, `name`, `collectionId`, `resolvedType`, `scopes`, モードごとの値（エイリアスは参照先の id のまま）, `codeSyntax.WEB` | トークン名と `$type`・値（エイリアスは②で解決。4.5.1）、書体かどうか（4.3.4）、CSS 変数名（4.5.1）、対の照合、付け忘れの値の照合、`themeColorToken`（4.5.4） |
 | コレクション: `id`, `name`, モード（id・名前）, 既定のモード | Light / Dark / Base の判別、どのモードの値を出すか |
-| Text Style: `id`, `name`, `fontName`, `fontSize`, `lineHeight`, `letterSpacing`, `boundVariables` | `typography` トークン（4.5.1）、`typographyToken`、`typography/<name>` との衝突の告知（4.7.2） |
-| Paint Style: `id`, `name`, 塗り（`boundVariables` を含む） | グラデーション・複数 fill の Color Style のトークン化（4.3.4）、単色 Color Style の告知、stop の未バインド、付け替えの対象 (2)（4.3.9）。**未決**: グラデーション・複数 fill の Color Style を tokens.json にどう出すか、spec.json からどう指すかが 4.5.1・4.5.2.1 に無い |
-| Effect Style: `id`, `name`, 影（`boundVariables` を含む） | 影の色の未バインド（4.7.2）、付け替えの対象 (2)（4.3.9） |
+| Text Style: `id`, `name`, `fontName`, `fontSize`, `lineHeight`, `letterSpacing`, `boundVariables` | `typography` トークンと CSS 変数名（4.5.1）、`typographyToken`、`typography/<name>` との衝突の告知（4.7.2） |
+| Paint Style: `id`, `name`, 塗り（不透明度・`boundVariables` を含む） | `fills` トークンと CSS 変数名（4.5.1）、`fillsToken` / `strokesToken`（4.5.2.1）、単色 Color Style の告知、stop の未バインド、`fills/<name>` との衝突の告知、付け替えの対象 (2)（4.3.9） |
+| Effect Style: `id`, `name`, 影（`boundVariables` を含む） | `effects` トークンと CSS 変数名（4.5.1）、`effectsToken`（4.5.2.1）、影の色の未バインド（4.7.2）、`effects/<name>` との衝突の告知、付け替えの対象 (2)（4.3.9） |
 
 #### 4.7.7 テスト
 
@@ -1042,7 +1119,8 @@ Variable・コレクション・Style:
 - 付け替えの書き込み（Dark で見た目が暗くなる、往復でバインドが元に戻る、途中で失敗しても light に戻る、dark のまま開き直したときの復旧の促し。4.3.9、4.7.4.4）
 - 画面（3ビュー、選択への追従、ページ切り替え時の作り直し、件数の「未着／失敗／受信済み」、Figma のテーマへの追従、zip のダウンロード。4.7.1）
 - プラグインの実行環境との違い。テストは Node で走るので、Node にあってプラグインの実行環境に無いもの（`TextEncoder` など。4.7.5）はテストでは原理的に見つからない
-- zip を CC に渡したとき、ダークモードとレスポンシブが反映されたコードができること
+- zip を CC に渡したとき、ダークモードとレスポンシブが反映されたコードができること。線（`outline` / SVG、`strokesIncludedInLayout` のときの padding）と重ねた塗りが、スクリーンショットと同じに描かれること（4.5.2.1）
+- 名前から作った CSS 変数名（4.5.1）が、Dev Mode に出る名前と一致するか。資料で確かめられない大文字の扱いを含め、違いがあれば記録する
 
 #### 4.7.8 配布
 

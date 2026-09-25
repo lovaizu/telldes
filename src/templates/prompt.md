@@ -25,9 +25,15 @@ An LP has a single frame folder (e.g. `lp/`); a multi-page or responsive design 
 ## 2. Reading the Input Data
 
 ### tokens.json
-W3C Design Tokens format. Each token has `$type` (color, number) and `$value`. Use these to define CSS custom properties.
+W3C Design Tokens format. Each token has `$type` (color, number, fontFamily, typography, gradient, shadow) and `$value`. Use these to define CSS custom properties.
 
-Every token carries its CSS custom property name in `$extensions["com.github.lovaizu.telldes"].cssVariable` (a typography token has one name per `$value` key). Use exactly that name both to define the property and in `var()`. Do not build names from the token path yourself.
+Every token carries its CSS custom property name in `$extensions["com.github.lovaizu.telldes"].cssVariable`. Use exactly that name both to define the property and in `var()`. Do not build names from the token path yourself.
+
+- `typography` — `cssVariable` is an object with one name per `$value` key (one CSS property each).
+- `gradient` (group `fills`, from a Color Style) — the variable holds the stop list only (e.g. `#3B82F6 0%, #1E40AF 100%`). Take the gradient type and direction from the node's `fills` entry and use the variable inside it: `linear-gradient(135deg, var(--brand-gradient))`.
+- A multi-fill Color Style is a group with one token per paint, named `1`, `2`, … in the same order as the node's `fills` (bottom paint first). Image paints get no token but keep their number.
+- Colors in `fills` tokens already include each paint's opacity; do not apply the fill's `opacity` again when you use the token.
+- `shadow` (group `effects`, from an Effect Style) — the variable holds the complete `box-shadow` value (e.g. `0 8px 24px -4px #0000001F`). Blurs are not in the token; write them from the node's `effects`.
 
 ### spec.json
 Top level: `page`, `viewport.width`, an optional `background` (the frame's own fill, same shape as `fills` — apply to the page/body), and `children`.
@@ -43,12 +49,20 @@ Recursive node tree. Each node has:
   - `IMAGE` → `scaleMode` (FILL/FIT/CROP/TILE); the image is in `assets/images/` under the node's path
   - `GRADIENT_LINEAR`/`GRADIENT_RADIAL`/`GRADIENT_ANGULAR`/`GRADIENT_DIAMOND` → `gradientStops` (`[{ position, color }]`) as a CSS gradient
   - `opacity` (0–1, when present) is that fill's opacity. Multiple fills stack back-to-front (later entries paint on top) — e.g. an image fill plus a semi-transparent SOLID overlay.
+  - Several fills → one `background` with the layers in reverse order (CSS lists the top layer first). A SOLID layer that is not the bottom one becomes `linear-gradient(color, color)`, because a plain color is allowed only as the bottom layer.
+  - `fillsToken` (when present) names the Color Style used for the whole `fills`; for a multi-fill style, the i-th fill (1-based) is token `<fillsToken>/i`.
+- `strokes` — borders drawn by Figma. Same entry shape as `fills`, plus on the node: `strokeWeight` (number, or `{ top, right, bottom, left }`), `strokeAlign` (`INSIDE`/`CENTER`/`OUTSIDE`), `dashPattern` (dash and gap lengths in px, when dashed), `strokesIncludedInLayout` (when true), `strokesToken` (like `fillsToken`).
+  - One SOLID stroke, same weight on all sides, not dashed → `outline: Wpx solid color` with `outline-offset: -Wpx` (INSIDE), `-W/2px` (CENTER) or `0` (OUTSIDE). Do not use `border`: a Figma stroke does not push content inward, a CSS border does.
+  - Anything else (per-side weights, dashed, gradient/image strokes, several strokes) → draw it with an SVG laid over the element (`dashPattern` → `stroke-dasharray`). CSS `dashed` cannot set dash lengths.
+  - `strokesIncludedInLayout: true` → also add the part of the stroke inside the box (INSIDE: W, CENTER: W/2, OUTSIDE: 0) to the padding.
 - `cornerRadius` — border radius. Either a number (uniform) or `{ topLeft, topRight, bottomRight, bottomLeft }` (per-corner) → `border-radius: TL TR BR BL`.
-- `effects` — array of shadows/blurs. `DROP_SHADOW`/`INNER_SHADOW` → `box-shadow: [inset] offsetX offsetY blur spread color` (`inset: true` present on inner shadows). `LAYER_BLUR` → `filter: blur(Npx)`; `BACKGROUND_BLUR` → `backdrop-filter: blur(Npx)` (`blur` is the radius).
+- `effects` — array of shadows/blurs. `DROP_SHADOW`/`INNER_SHADOW` → `box-shadow: [inset] offsetX offsetY blur spread color` (`inset: true` present on inner shadows). `LAYER_BLUR` → `filter: blur(Npx)`; `BACKGROUND_BLUR` → `backdrop-filter: blur(Npx)` (`blur` is the radius). `effectsToken` (when present) names the Effect Style; use its variable for `box-shadow`.
 - `opacity` — node-level opacity (0–1, when < 1) → CSS `opacity`.
 - `note` — designer annotations (behavior, links, interactions)
 - `screenshot` — reference image path
-- `*Token` fields — token name when a Variable is applied. Find that token in tokens.json (the `/`-separated name is its path) and use its `cssVariable` name
+- `*Token` fields — token name when a Variable or Style is applied. Find that token in tokens.json (the `/`-separated name is its path) and use its `cssVariable` name
+
+Hidden Figma layers are not in spec.json, screenshots or assets; README.md lists them under exclusions. Do not build them.
 
 ### screenshots/
 Visual reference for each section and block. Use to verify your output matches the design.
@@ -71,7 +85,7 @@ Follow this order:
 1. **CSS custom properties** — If tokens.json exists, define CSS variables from tokens, using the names in `cssVariable`
 2. **HTML structure** — Build DOM from spec.json hierarchy (section → block → element)
 3. **Layout (CSS flexbox)** — Apply flexbox from layout properties (see mapping table below)
-4. **Visual styles** — Apply fills, text styles, cornerRadius, effects (box-shadow/blur), and opacity from spec
+4. **Visual styles** — Apply fills, strokes, text styles, cornerRadius, effects (box-shadow/blur), and opacity from spec
 5. **Assets** — Place images and icons using asset paths
 6. **Visual verification** — Compare against screenshots/ for each section and block
 7. **Notes** — Implement behaviors, interactions, and links from note fields
