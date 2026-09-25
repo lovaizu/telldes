@@ -19,7 +19,8 @@ export async function readFile(): Promise<FileData> {
   ]);
   return {
     fileName: figma.root.name,
-    page: { id: page.id, name: page.name, children },
+    pluginData: readPluginData(figma.root),
+    page: { id: page.id, name: page.name, pluginData: readPluginData(page), children },
     tokens,
   };
 }
@@ -83,6 +84,22 @@ async function readTokens(): Promise<TokenData> {
 }
 
 async function readLayer(node: SceneNode, parent: SceneNode | null): Promise<LayerData> {
+  let layer: LayerData;
+  try {
+    layer = await readOwnFields(node, parent);
+  } catch (error) {
+    const cause = error instanceof Error ? error.message : String(error);
+    throw new Error(`レイヤー「${node.name}」(${node.type}, id ${node.id}): ${cause}`);
+  }
+  // Outside the try, so a failing child is named once, by itself.
+  if ("children" in node) {
+    layer.children = await Promise.all(node.children.map((child) => readLayer(child, node)));
+  }
+  return layer;
+}
+
+/** Every field of the node except its children. */
+async function readOwnFields(node: SceneNode, parent: SceneNode | null): Promise<LayerData> {
   const layer: LayerData = {
     id: node.id,
     name: node.name,
@@ -97,13 +114,16 @@ async function readLayer(node: SceneNode, parent: SceneNode | null): Promise<Lay
     layer.y = node.y;
     layer.width = node.width;
     layer.height = node.height;
+    layer.relativeTransform = node.relativeTransform;
+    layer.absoluteBoundingBox = node.absoluteBoundingBox;
     layer.minWidth = node.minWidth;
     layer.maxWidth = node.maxWidth;
     layer.minHeight = node.minHeight;
     layer.maxHeight = node.maxHeight;
   }
+  if ("rotation" in node) layer.rotation = node.rotation;
+  if ("constraints" in node) layer.constraints = node.constraints;
   if ("layoutSizingHorizontal" in node) {
-    layer.rotation = node.rotation;
     layer.layoutSizingHorizontal = node.layoutSizingHorizontal;
     layer.layoutSizingVertical = node.layoutSizingVertical;
   }
@@ -142,8 +162,10 @@ async function readLayer(node: SceneNode, parent: SceneNode | null): Promise<Lay
     layer.strokeStyleId = node.strokeStyleId;
     layer.strokeWeight = unmix(node.strokeWeight);
     layer.strokeAlign = node.strokeAlign;
+    layer.strokeJoin = unmix(node.strokeJoin);
     layer.dashPattern = node.dashPattern;
   }
+  if ("strokeCap" in node) layer.strokeCap = unmix(node.strokeCap);
   if ("strokeTopWeight" in node) {
     layer.strokeTopWeight = node.strokeTopWeight;
     layer.strokeRightWeight = node.strokeRightWeight;
@@ -162,11 +184,19 @@ async function readLayer(node: SceneNode, parent: SceneNode | null): Promise<Lay
 
   if ("clipsContent" in node) layer.clipsContent = node.clipsContent;
   if ("layoutMode" in node) layer.autoLayout = readAutoLayout(node);
-  if (node.type === "TEXT") layer.text = readText(node);
-  if (node.type === "INSTANCE") layer.component = await readComponentRef(node);
+  if ("layoutGrids" in node) layer.layoutGrids = node.layoutGrids;
+  if ("overflowDirection" in node) layer.overflowDirection = node.overflowDirection;
+  if ("reactions" in node) layer.reactions = node.reactions;
 
-  if ("children" in node) {
-    layer.children = await Promise.all(node.children.map((child) => readLayer(child, node)));
+  if (node.type === "TEXT") layer.text = readText(node);
+  if (node.type === "INSTANCE") {
+    layer.component = await readComponentRef(node);
+    layer.componentProperties = node.componentProperties;
+  }
+  if (node.type === "COMPONENT") layer.variantProperties = node.variantProperties;
+  // Figma throws when a variant (a component inside a set) is asked for definitions; the set holds them.
+  if (node.type === "COMPONENT_SET" || (node.type === "COMPONENT" && node.parent?.type !== "COMPONENT_SET")) {
+    layer.componentPropertyDefinitions = node.componentPropertyDefinitions;
   }
   return layer;
 }
@@ -207,18 +237,27 @@ function readText(node: TextNode): TextData {
     "fontName",
     "fontSize",
     "fontWeight",
+    "fontStyle",
     "lineHeight",
     "letterSpacing",
     "textCase",
     "textDecoration",
+    "textDecorationStyle",
+    "textDecorationOffset",
+    "textDecorationThickness",
+    "textDecorationColor",
+    "textDecorationSkipInk",
+    "openTypeFeatures",
     "paragraphSpacing",
     "paragraphIndent",
     "listOptions",
+    "listSpacing",
     "indentation",
     "hyperlink",
     "fills",
     "fillStyleId",
     "textStyleId",
+    "textStyleOverrides",
     "boundVariables",
   ]);
   return {
@@ -228,6 +267,14 @@ function readText(node: TextNode): TextData {
     textAutoResize: node.textAutoResize,
     textTruncation: node.textTruncation,
     maxLines: node.maxLines,
+    textStyleId: unmix(node.textStyleId),
+    leadingTrim: unmix(node.leadingTrim),
+    paragraphSpacing: unmix(node.paragraphSpacing),
+    paragraphIndent: unmix(node.paragraphIndent),
+    listSpacing: unmix(node.listSpacing),
+    hangingPunctuation: node.hangingPunctuation,
+    hangingList: node.hangingList,
+    textWrapStyle: unmix(node.textWrapStyle),
     segments: segments.map((s) => ({ ...s, boundVariables: s.boundVariables ?? {} })),
   };
 }
@@ -241,7 +288,7 @@ async function readComponentRef(node: InstanceNode): Promise<ComponentRef> {
   };
 }
 
-function readPluginData(node: SceneNode): Record<string, string> {
+function readPluginData(node: BaseNode): Record<string, string> {
   const data: Record<string, string> = {};
   for (const key of node.getPluginDataKeys()) data[key] = node.getPluginData(key);
   return data;

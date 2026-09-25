@@ -1,7 +1,7 @@
-import { createSignal, For, onCleanup, Show } from "solid-js";
+import { createSignal, For, Match, Switch } from "solid-js";
 import { countLayers, screensOf } from "../core/screens";
 import type { FileData } from "../shared/data";
-import { onMainMessage, postToMain } from "./bridge";
+import { request } from "./bridge";
 
 type ReadState =
   | { status: "reading" }
@@ -11,40 +11,29 @@ type ReadState =
 export function App() {
   const [state, setState] = createSignal<ReadState>({ status: "reading" });
 
-  onCleanup(
-    onMainMessage((message) => {
-      switch (message.type) {
-        case "read-done":
-          setState({ status: "done", data: message.data });
-          return;
-        case "read-failed":
-          setState({ status: "failed", message: message.message });
-          return;
-      }
-    }),
+  request("read", {}).then(
+    (data) => setState({ status: "done", data }),
+    (error: Error) => setState({ status: "failed", message: error.message }),
   );
-  postToMain({ type: "read" });
-
-  const data = () => {
-    const s = state();
-    return s.status === "done" ? s.data : undefined;
-  };
-  const failure = () => {
-    const s = state();
-    return s.status === "failed" ? s.message : undefined;
-  };
 
   return (
     <main>
-      <Show when={state().status === "reading"}>
-        <p>読み込み中…</p>
-      </Show>
-      <Show when={failure()}>
-        {(message) => <p class="error">読み込めませんでした: {message()}</p>}
-      </Show>
-      <Show when={data()}>{(file) => <FileSummary file={file()} />}</Show>
+      <Switch>
+        <Match when={state().status === "reading"}>
+          <p>読み込み中…</p>
+        </Match>
+        <Match when={narrow(state(), "failed")}>
+          {(failed) => <p class="error">読み込めませんでした: {failed().message}</p>}
+        </Match>
+        <Match when={narrow(state(), "done")}>{(done) => <FileSummary file={done().data} />}</Match>
+      </Switch>
     </main>
   );
+}
+
+/** The state if it has the given status, so `Match` can hand the narrowed state to its children. */
+function narrow<S extends ReadState["status"]>(state: ReadState, status: S): Extract<ReadState, { status: S }> | undefined {
+  return state.status === status ? (state as Extract<ReadState, { status: S }>) : undefined;
 }
 
 function FileSummary(props: { file: FileData }) {
