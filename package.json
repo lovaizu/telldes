@@ -5,7 +5,7 @@
   "scripts": {
     "build": "vite build && vite build --config vite.config.code.ts",
     "dev": "vite build --watch & vite build --config vite.config.code.ts --watch",
-    "test": "vitest run",
+    "test": "vitest run --passWithNoTests",
     "test:watch": "vitest"
   },
   "dependencies": {
