@@ -6,6 +6,8 @@ import type { FileData } from "./data";
 /** Request type → what the request carries besides `id` and `type`, and what it answers. */
 export interface Calls {
   read: { params: Record<never, never>; result: FileData };
+  /** Select the layer on the canvas and scroll to it. `found` is false when it no longer exists on this page. */
+  select: { params: { layerId: string }; result: { found: boolean } };
 }
 
 export type CallType = keyof Calls;
