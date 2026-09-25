@@ -1,7 +1,7 @@
 // Tokens as the designer made them, plus raw values that Review asks to decide on.
 import { createMemo, For, Show } from "solid-js";
 import type { TokenRef } from "../core/tokens";
-import { firstValue } from "./format";
+import { counted, firstValue } from "./format";
 import { RowMarks, Swatch, Tentative } from "./parts";
 import { useWorkspace } from "./workspace";
 
@@ -32,10 +32,25 @@ export function TokenList() {
 
   return (
     <div class="list">
-      <h3 title="What Export writes">
-        {ws.handedTokenCount} to export
-        <Show when={droppedCount()}> · {droppedCount()} not exported</Show>
-      </h3>
+      <div class="list-head">
+        <h3 title="What Export writes">
+          {ws.handedTokenCount} to export
+          <Show when={droppedCount()}> · {droppedCount()} not exported</Show>
+        </h3>
+        {/* Loud only while it would add something: it is pressed once when the file is new, then rarely again. */}
+        <span class="setup">
+          <Show when={ws.missingTokenCount}>
+            <span class="hint">{counted(ws.missingTokenCount, "token")} missing</span>
+          </Show>
+          <button
+            class={{ primary: ws.missingTokenCount > 0 }}
+            title="Add the recommended tokens this file is missing"
+            onClick={() => ws.runSetup()}
+          >
+            Setup
+          </button>
+        </span>
+      </div>
       <Show when={values().length}>
         <section>
           <h3>

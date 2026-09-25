@@ -1,5 +1,5 @@
-// Operations on the whole file: they have no object to pick, so they sit on top.
-// Export is here too, since it always writes every Web page of the file.
+// The whole file's state and the operations on all of it: Light / Dark, Review's counts, and Export,
+// which always writes every Web page. Setup makes tokens, so it sits on the token list instead.
 import type { Finding } from "../core/findings";
 import { counted } from "./format";
 import { ariaBool, placeholderTitle, RowMarks } from "./parts";
@@ -25,8 +25,7 @@ export function TopBar() {
       </button>
       {/* The design's theme, not the plugin's: the plugin follows Figma's theme, so this sits with the file's own state. */}
       <div class="canvas-theme" title={`${CANVAS_THEME_TITLE}\n${placeholderTitle("theme")}`}>
-        <span class="canvas-theme-label">Canvas</span>
-        <div class="segmented" role="group" aria-label="Canvas theme">
+        <div class="segmented" role="group" aria-label="Theme">
           <button aria-pressed={ariaBool(ws.state.theme === "light")} onClick={() => ws.setTheme("light")}>
             Light
           </button>
@@ -46,14 +45,15 @@ export function TopBar() {
         </div>
       </div>
       <span class="spacer" />
-      <button title="Add the recommended tokens this file is missing" onClick={() => ws.runSetup()}>
-        Setup
-      </button>
-      <button title="Check the whole file" onClick={() => ws.runReview()}>
-        Review
-      </button>
       <FilterButton severity="error" count={ws.errorCount()} />
       <FilterButton severity="notice" count={ws.noticeCount()} />
+      {/* Review runs by itself on open, on settings changes and before Export; this is for after fixing something in Figma. */}
+      <button class="icon" title="Review again" aria-label="Review again" onClick={() => ws.runReview()}>
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.2" aria-hidden="true">
+          <path d="M12.5 8a4.5 4.5 0 1 1-1.32-3.18" stroke-linecap="round" />
+          <path d="M11.5 2.5v2.5H9" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </button>
       <button
         class="primary"
         disabled={ws.screens.length === 0}

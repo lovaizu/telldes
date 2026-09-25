@@ -181,6 +181,8 @@ export function createWorkspace(file: FileData) {
     screens,
     dropped,
     groups,
+    /** How many tokens Setup would add; the file is read once, so this does not change. */
+    missingTokenCount: placeholder.setupPlan(file).length,
     handedTokenCount: groups.reduce((n, g) => n + g.tokens.filter((t) => !t.dropped).length, 0),
     state,
     webPages,

@@ -207,10 +207,6 @@ button.count[aria-pressed="true"] {
   margin-left: 4px;
 }
 
-.canvas-theme-label {
-  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
-}
-
 .segmented {
   display: flex;
   padding: 1px;
@@ -316,6 +312,40 @@ button.count[aria-pressed="true"] {
   flex: 1;
   overflow: auto;
   padding: 0 8px 12px;
+}
+
+/* A square, borderless button that holds one icon. */
+button.icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  padding: 0;
+  border-color: transparent;
+  color: var(--figma-color-icon, rgb(0 0 0 / 0.9));
+}
+
+/* Setup wraps under the count when the hint does not fit beside it. */
+.list-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: 6px;
+}
+
+.list-head h3 {
+  white-space: nowrap;
+}
+
+.list-head .setup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  padding-bottom: 4px;
+}
+
+.hint {
+  color: var(--figma-color-text-secondary, rgb(0 0 0 / 0.5));
 }
 
 .list h3 {
