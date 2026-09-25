@@ -17,7 +17,7 @@ Design: docs/design.md
 - note: レイヤーごとに書いて保存でき、プロパティパネルから開ける。書いた note は Export の出力に載り、画面の外のレイヤーの note は「含まれなかったもの」に記録される
 - Export: Export 設定（切り替える幅・コンテンツ幅・ダーク対応の有無・ページの題名・共通ルール）を受け、zip に `prompt.md`・`tokens.json`・画面ごとの `spec.json`・画像・アセット・`README.md` が入る。落としたものは `README.md` に必ず書かれる
 - Light / Dark: `Light | Dark` の1つの切り替えで、ページ全体の変数のつながりが付け替わり、今どちらかが常に見える。Export が途中で失敗しても Light に戻る。Dark のまま残ったファイルを開くと、戻すよう促される
-- 画面は OOUI で組まれている: トークン・画面・レイヤーが並び、違反・知らせ・note はその持ち主の行に出る。画面の一覧には渡らないものも並ぶ。Setup・Review・Export・Light / Dark はファイル全体に効くので上部にある。プラグインの画面の文言は英語にそろっている
+- 画面は OOUI で組まれている: トークン・画面・レイヤーが並び、違反・知らせ・note はその持ち主の行に出る。画面の一覧には渡らないものも並ぶ。上部には Light / Dark、Review の error・知らせの件数と Review し直す操作、Export があり、Setup はトークンの一覧にある。プラグインの画面の文言は英語にそろっている
 
 品質
 
@@ -88,7 +88,7 @@ Design: docs/design.md
 - [x] トークン・画面・レイヤーの一覧と詳細を、#1 で読んだ実物のデータで出す
 - [x] まだ作っていない機能の結果（Setup で作るもの、違反と知らせ、note、Export 設定、渡らないもの、テーマ）は仮の値で載せ、操作は押せるが Figma に書き込まない。仮の値はこのあとの各機能で本物に差し替える
 - [ ] ユーザーに Figma で触ってもらい、分かりにくいところを直す
-  - 1回目の感想（2026-09-25）への直し: 画面の文言を英語にそろえる（README・設計書は日本語のまま）、見た目を Figma 本体に合わせ説明と仮の印を減らす、Export を上部へ移す、上部の error の件数を押すと error のある行だけに絞る
+  - 1回目の感想（2026-09-25）への直し: 画面の文言を英語にそろえる（README・設計書は日本語のまま）、見た目を Figma 本体に合わせ説明と仮の印を減らす、Export を上部へ移す、上部の error の件数を押すと error のある行だけに絞る。2回目: Light / Dark をファイル名の隣へ（ラベル無し）、上部の右は件数・⟳・Export だけにし Setup はトークンの一覧へ
 - [x] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [x] QA expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium)
@@ -126,7 +126,7 @@ Design: docs/design.md
 
 - [ ] あるべき一式と今あるものの差を出す判断を作る
 - [ ] 差を Figma に書き込む窓口を作る（Light・Dark・Base の3コレクション、使える欄の絞り込み、CSS 変数名）
-- [ ] 上部に Setup を置き、作ったものがトークンの一覧に出るようにする
+- [ ] トークンの一覧に Setup を置き、作ったものがその一覧に出るようにする
 - [ ] 空のファイルと、一部を手で作ったファイルで、実機で2回ずつ押して確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
 - [ ] QA expert review (subagent)
