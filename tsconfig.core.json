@@ -1,0 +1,10 @@
+{
+  // Judgment side: neither DOM nor Plugin API globals, so it runs without Figma
+  // and without a browser. Shared may import Figma value types, as types only.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src/core", "src/shared"]
+}

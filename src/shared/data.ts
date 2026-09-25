@@ -6,21 +6,39 @@ import type {
   AutoLayoutMixin,
   BlendMode,
   CodeSyntaxPlatform,
+  ComponentProperties,
+  ComponentPropertyDefinitions,
+  Constraints,
   Effect,
   FontName,
+  FontStyle,
   GridChildrenMixin,
   GridTrackSize,
   HyperlinkTarget,
   LeadingTrim,
   LayoutMixin,
+  LayoutGrid,
   LetterSpacing,
   LineHeight,
   MinimalStrokesMixin,
+  OpenTypeFeature,
+  OverflowDirection,
   Paint,
+  Reaction,
+  Rect,
+  StrokeCap,
+  StrokeJoin,
   TextCase,
   TextDecoration,
+  TextDecorationColor,
+  TextDecorationOffset,
+  TextDecorationStyle,
+  TextDecorationThickness,
   TextListOptions,
   TextNode,
+  TextStyleOverrideType,
+  TextWrapStyle,
+  Transform,
   VariableAlias,
   VariableResolvedDataType,
   VariableScope,
@@ -33,6 +51,8 @@ export type Mixed = typeof MIXED;
 
 export interface FileData {
   fileName: string;
+  /** Plugin data on `figma.root`, for settings that belong to the whole file. */
+  pluginData: Record<string, string>;
   page: PageData;
   tokens: TokenData;
 }
@@ -40,6 +60,7 @@ export interface FileData {
 export interface PageData {
   id: string;
   name: string;
+  pluginData: Record<string, string>;
   /** Every node directly under the page, screens or not. */
   children: LayerData[];
 }
@@ -135,12 +156,16 @@ export interface LayerData {
   pluginData: Record<string, string>;
   boundVariables: BoundVariables;
 
-  // DimensionAndPositionMixin / LayoutMixin
+  // DimensionAndPositionMixin / LayoutMixin / ConstraintMixin
+  // x, y and relativeTransform are relative to the nearest frame-like ancestor (frame, component, instance, section or page); groups and boolean operations in between are skipped.
   x?: number;
   y?: number;
   width?: number;
   height?: number;
   rotation?: number;
+  relativeTransform?: Transform;
+  absoluteBoundingBox?: Rect | null;
+  constraints?: Constraints;
   minWidth?: number | null;
   maxWidth?: number | null;
   minHeight?: number | null;
@@ -172,6 +197,8 @@ export interface LayerData {
   strokeBottomWeight?: number;
   strokeLeftWeight?: number;
   strokeAlign?: MinimalStrokesMixin["strokeAlign"];
+  strokeJoin?: StrokeJoin | Mixed;
+  strokeCap?: StrokeCap | Mixed;
   dashPattern?: readonly number[];
 
   // CornerMixin / RectangleCornerMixin
@@ -185,9 +212,19 @@ export interface LayerData {
   // Frame-like containers
   clipsContent?: boolean;
   autoLayout?: AutoLayoutData;
+  layoutGrids?: readonly LayoutGrid[];
+  // FramePrototypingMixin / ReactionMixin
+  overflowDirection?: OverflowDirection;
+  reactions?: readonly Reaction[];
 
   text?: TextData;
   component?: ComponentRef;
+  /** INSTANCE: the value set for each property, variants included. */
+  componentProperties?: ComponentProperties;
+  /** COMPONENT inside a component set: its variant values. */
+  variantProperties?: Record<string, string> | null;
+  /** COMPONENT_SET, or a COMPONENT outside a set: the properties it defines. */
+  componentPropertyDefinitions?: ComponentPropertyDefinitions;
 
   children?: LayerData[];
 }
@@ -236,6 +273,14 @@ export interface TextData {
   textAutoResize: TextNode["textAutoResize"];
   textTruncation: TextNode["textTruncation"];
   maxLines: number | null;
+  textStyleId: string | Mixed;
+  leadingTrim: LeadingTrim | Mixed;
+  paragraphSpacing: number | Mixed;
+  paragraphIndent: number | Mixed;
+  listSpacing: number | Mixed;
+  hangingPunctuation: boolean;
+  hangingList: boolean;
+  textWrapStyle: TextWrapStyle | Mixed;
   /** Runs of characters that share every styling field below; never mixed. */
   segments: TextSegmentData[];
 }
@@ -247,18 +292,28 @@ export interface TextSegmentData {
   fontName: FontName;
   fontSize: number;
   fontWeight: number;
+  fontStyle: FontStyle;
   lineHeight: LineHeight;
   letterSpacing: LetterSpacing;
   textCase: TextCase;
   textDecoration: TextDecoration;
+  textDecorationStyle: TextDecorationStyle | null;
+  textDecorationOffset: TextDecorationOffset | null;
+  textDecorationThickness: TextDecorationThickness | null;
+  textDecorationColor: TextDecorationColor | null;
+  textDecorationSkipInk: boolean | null;
+  openTypeFeatures: { readonly [feature in OpenTypeFeature]: boolean };
   paragraphSpacing: number;
   paragraphIndent: number;
   listOptions: TextListOptions;
+  listSpacing: number;
   indentation: number;
   hyperlink: HyperlinkTarget | null;
   fills: readonly Paint[];
   fillStyleId: string;
   textStyleId: string;
+  /** How this run differs from its text style. */
+  textStyleOverrides: TextStyleOverrideType[];
   boundVariables: BoundVariables;
 }
 

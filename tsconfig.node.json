@@ -1,0 +1,9 @@
+{
+  // Build config files, run by Vite on Node.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["vite.config.*.ts"]
+}

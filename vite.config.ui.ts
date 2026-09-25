@@ -10,6 +10,6 @@ export default defineConfig({
     target: "es2022",
     outDir: "../../dist",
     emptyOutDir: true,
-    rollupOptions: { input: "src/ui/ui.html" },
+    rolldownOptions: { input: "src/ui/ui.html" },
   },
 });
