@@ -355,8 +355,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: paused
-- **Date**: 2026-09-25
-- **Last completed**: #1 土台
-- **Next**: #2 画面の試作（残りは「ユーザーに Figma で触ってもらい、分かりにくいところを直す」だけ）
-- **Notes**: ブランチ `telldes-plugin`、PR https://github.com/lovaizu/telldes/pull/2 。#2 は直し2回（f4044a8, e950508）まで済み、dist もビルド済み。再開したら、ユーザーに Figma で触った感想を聞き、直してから checks/2.md の QA・専門家の欄を埋めて #2 を完了し、#3 の承認へ。再レビュー（f4044a8）は A 以外 OK、A は e950508 で直し、差分はこちらで確認済み
+- **Status**: not suspended
+- **Date**: YYYY-MM-DD
+- **Last completed**: #N description
+- **Next**: #N description
+- **Notes**: bounded forward pointer — branch/PR, next concrete action, open blockers, user-deferred paths, open questions / pending decisions not yet captured in `design.md`; not a re-narration of the session (that lives in `git log`)
