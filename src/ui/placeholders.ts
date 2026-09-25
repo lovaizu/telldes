@@ -175,7 +175,8 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
       // A light-only file reports nothing for raw values (docs/design.md).
       findings.push({
         severity: "error",
-        owner: color.layerIds.length > 1 ? { kind: "value", value: color.hex } : { kind: "layer", id: color.layerIds[0]! },
+        // No token to connect to: the decision is about the value itself, however many places use it.
+        owner: { kind: "value", value: color.hex },
         message: `色 ${color.hex} が変数につながっていません。Dark に付け替わりません`,
         fix: "この色の変数を Light と Dark に作ってつなぐ",
         layerIds: color.layerIds,

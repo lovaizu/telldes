@@ -111,11 +111,18 @@ export function createWorkspace(file: FileData) {
     return findings.filter((f) => f.severity === "error");
   };
 
-  /** Settings change what Review reports, so every change runs it again and the counts stay current. */
+  /**
+   * Settings change what Review reports, so every change runs it again and the counts stay current.
+   * A shown Review or Export result was about the old settings, so it gives way to the new Review result.
+   */
   const changeSettings = (change: (settings: placeholder.Settings) => void) => {
     setState((s) => void change(s.settings));
     flush(); // Writes are seen only after a flush; Review must read the new settings.
-    review();
+    const found = review();
+    const shown = state.status;
+    if (shown && (shown.task === "review" || shown.task === "export")) {
+      say({ text: `設定が変わったので Review し直しました: error ${found.length} 件`, task: "review", error: found.length > 0 });
+    }
   };
 
   /** Point Figma at the layer. It changes the selection and viewport, not the file. */
