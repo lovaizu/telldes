@@ -1,0 +1,9 @@
+{
+  // Figma side: sees the Plugin API globals and no DOM, so it cannot render.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022"],
+    "types": ["@figma/plugin-typings"]
+  },
+  "include": ["src/figma", "src/shared"]
+}

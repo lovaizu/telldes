@@ -1,0 +1,11 @@
+{
+  // UI and judgment side: DOM but no Plugin API globals, so it cannot call figma.*.
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
+  },
+  "include": ["src/ui", "src/core", "src/shared"]
+}
