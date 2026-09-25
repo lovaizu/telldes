@@ -97,7 +97,7 @@ minWidth/maxWidth/minHeight/maxHeight は同じく一意に対応するため許
 
 **書体も `tokens.json` に出す。** 色・余白・角丸・文字サイズ・影はどれも「解決済み値＋`*Token`」で出て CC は `var(--…)` で書けるのに、書体だけ生の文字列になるのは原則B「形が揃っている」を崩す特別扱いであり、telldes 自身が Setup で作ったもの（`font/heading` 等）を自分で「拾えませんでした」と告知する形にもなる。Figma 公式も String Variable の適用先に font-family を挙げており、W3C DTCG にも `fontFamily` 型があるので、公式の作法の範囲に収まる（原則A）。デザイナーが独自に作った STRING Variable のうち書体でないもの（テキストの中身・バリアント切り替え等）と BOOLEAN Variable は、対応する CSS の受け皿が無いため引き続き対象外・告知対象とする。
 
-**書体かどうかは Variable の `scopes` で決める — `FONT_FAMILY` を含み、かつ `ALL_SCOPES` を含まないもの**、すなわちデザイナーが Figma の変数パネルで書体用だと絞ったものだけを書体として扱う。`scopes` は変数ピッカーにどのフィールドで出すかの絞り込みで、新規作成した Variable は既定で `ALL_SCOPES`（＝絞っていない）である。`ALL_SCOPES` を書体の印にすると、テキストの中身の差し替え用に作った STRING Variable まで書体として `tokens.json` に出てしまう。既定値のままは宣言ではない（原則B「推測させない」）。変数名から当てにいかないのも同じ理由。絞っていない STRING Variable は対象外のまま除外物として README に載る（4.7.2）ので、拾われなかったことは黙って落ちず、スコープを絞れば拾われるという手がかりが届く（原則B「欠けていると分かる」）。**Setup が生成する `font/heading` / `font/body` / `font/accent` には `scopes: ["FONT_FAMILY"]` を設定する。** 書体がトークンとして出ることはこのスコープ設定に依存する。
+**書体かどうかは Variable の `scopes` で決める — `FONT_FAMILY` を含み、かつ `ALL_SCOPES` を含まないもの**、すなわちデザイナーが Figma の変数パネルで書体用だと絞ったものだけを書体として扱う。`scopes` は変数ピッカーにどのフィールドで出すかの絞り込みで、新規作成した Variable は既定で `ALL_SCOPES`（＝絞っていない）である。`ALL_SCOPES` を書体の印にすると、テキストの中身の差し替え用に作った STRING Variable まで書体として `tokens.json` に出てしまう。既定値のままは宣言ではない（原則B「推測させない」）。変数名から当てにいかないのも同じ理由。絞っていない STRING Variable は対象外のまま除外物として README に載る（4.7.2）ので、拾われなかったことは黙って落ちず、スコープを絞れば拾われるという手がかりが届く（原則B「欠けていると分かる」）。**Setup が生成する `font/heading` / `font/body` / `font/mono` には `scopes: ["FONT_FAMILY"]` を設定する。** 書体がトークンとして出ることはこのスコープ設定に依存する。
 
 カラーは **単色は Variables に一本化**する。Color Style はグラデーション・複数fillのように単色に展開できないものに限り正式な源泉として扱う。Variable の COLOR 型は単色しか持てないため、グラデーションは Color Style 以外に表現手段がない（Figma本体も「値の組み合わせは Style、Style の中身は Variables を指す」という立場を取っており、実際 `GradientPaint.gradientStops[].boundVariables` で各stopの色を個別に Variable へバインドできる）。したがって、グラデーション・複数fillの Color Style を使用している場合は、各stopの色がVariableにバインドされていればそのトークン名を、されていなければ解決済みの値をそのまま `tokens.json` / `spec.json` に出力する。**ただしダークモード対応が ON のファイルでは、stop の色の未バインドは影の色と同じく error とする**（4.7.2）。telldes は stop の色も Light ⇄ Dark で差し替えるため（4.3.9）、バインドされていない stop だけがライトの色のまま取り残され、`screenshots-dark/` が実物と食い違う。単色なのに Color Style を使っている場合（Variables に一本化できるのにしていない場合）は、引き続き除外物としてREADMEで告知する（4.7.2）。
 
@@ -110,27 +110,48 @@ Variablesの使用そのものは必須ではない。使わない場合、CCは
 命名は Figma の変数パネルが自動でグループ化する `/` 区切りの階層名とする。値は各変数が直接持つ1層構成とし、原始値を別変数に分けるPrimitives/Semanticの2層構成は採らない（この規模のトークン数ではFigma公式ガイドも1層構成を推奨している）。この体系は「よく使われる値だけに名前を付ける」という位置づけであり、ここに無い一回限りの値（突出して大きい/小さいフォントサイズ、ページ端の大きな余白等）は生値のままでよい。全ての値をトークンに収めることは目標にしない。
 
 ```
-Color（Variables COLOR、Light 8 ＋ Dark 8）
+Color（Variables COLOR、Light 14 ＋ Dark 14）
   bg / surface / border
   fg/default / fg/muted
   primary/default / primary/hover / primary/on
+  link
+  code/bg / code/fg
+  notice/bg / notice/fg
+  shadow
 Spacing（Variables FLOAT、8）
   spacing/xs=4 / sm=8 / md=16 / lg=24 / xl=32 / 2xl=48 / 3xl=64 / 4xl=96
 Radius（Variables FLOAT、5）
   radius/sm=4 / md=8 / lg=16 / xl=24 / full=9999
 Font family（Variables STRING、3）
-  font/heading / body / accent
-Typography（Text Style名、8）
-  display / heading-lg / heading-md / heading-sm / lead / body / label / caption
+  font/heading / body / mono
+Typography（Text Style名、9）
+  display / heading-lg / heading-md / heading-sm / lead / body / label / caption / code
 Elevation（Effect Style / drop shadow、2）
   shadow-sm / shadow-md
 ```
 
-Typographyが8段階なのは、実際のLPの実測値（18 / 20px）が6段階から外れたため。`lead`（本文より少し大きい導入文）がそこを受け、`label`（フォーム・ボタンの文字）はWebでほぼ必ず出る。Font familyの3役割で足りない書体（装飾用の一回限りの書体等）は、Variableを増やさず生値のまま使ってよい。同様に8段階に無い一回限りの大きさも生値のままでよい。
+**共通にするのは名前（種類と役割）で、値はデザインごとに違ってよい。** 名前はデザイナーと CC が同じ言葉で話すための語彙であり、デザインを共通の値に合わせさせるものではない。実在のページ1件（ポートフォリオLP）ですら、余白・角丸の実測値は固定の段階にほとんど収まらなかった。したがって Setup が入れる値は仮置きであり、満たすのは「隣り合う段階・役割どうしの違いが目で分かる」ことだけとする。
 
-この一式 ― **変数32個（Color Light 8 / Color Dark 8 / Spacing 8 / Radius 5 / Font family 3）＋ Style 10個（Text Style 8 / Effect Style 2）＝ 42個** ― を Setup（4.7.1）がファイルに生成する。Figma Free ではチームライブラリの publish が使えずファイルをまたいで Variables / Style を揃える手段が他に無いため（4.10）、揃えるにはプラグイン自身が作るしかない。生成後の改名・値変更は Figma 純正の Assets パネルで行う（telldes 側に編集UIを持たない）。
+種類と役割は、コード・箇条書き・表・注意書きを含む技術記事ページ（Zenn）の実測で確かめて決めた。リンク・コード（背景と文字）・注意書き（背景と文字）・等幅書体は Web の読み物でほぼ必ず出るのに受け皿が無かったので足した。コードの色分けの色は足さない ― CC 側では色分けの仕組み（ハイライタ）が持つもので、デザイナーが語彙として持つものではない。`shadow`（影の色）は、Setup が作る Effect Style の色を変数につなぐために要る。つながっていないと、ダークモード対応を ON にした時点で Setup 自身が作った影がテーマ整合 error になる（4.7.2）。
 
-**ダーク用の8色も Setup が最初から作る。** Dark コレクションの変数は `scopes: []` でカラーピッカーから隠れるため（4.3.9）、ダーク対応しないファイルに存在してもデザイナーの邪魔にならない。ダークを始めるときは Export 設定を ON にして色を入れるだけで済み、生成のタイミングが1つで済む。4.7.2 原則1 が「Dark コレクションの有無を判定軸にしない」根拠（Setup を実行した全ファイルに Dark がある）も、これで実在する。
+文字の大きさは変数にしない。実測では大きさ・太さ・行の高さが組で変わっており、その組をまとめる入れ物は Text Style である。大きさだけを変数にしても、デザイナーの判断は減らない。Typography が9段階なのは、ポートフォリオLPの 18 / 20px を受ける `lead`、Web でほぼ必ず出る `label`（フォーム・ボタンの文字）、技術記事のコードを受ける `code` を足したため。Font family の3役割で足りない書体（装飾用の一回限りの書体等）は、Variable を増やさず生値のまま使ってよい。同様に9段階に無い一回限りの大きさも生値のままでよい。
+
+Setup は各 Variable の `scopes` を次のとおり設定する（Figma 公式の対応に従う。原則A）。値の種類に合わない欄のピッカーに出さないためで、書体だけは判別の印も兼ねる（上記）。
+
+| 対象 | `scopes` |
+|---|---|
+| bg / surface / primary/default / primary/hover / code/bg / notice/bg | `FRAME_FILL`, `SHAPE_FILL` |
+| fg/default / fg/muted / primary/on / link / code/fg / notice/fg | `TEXT_FILL` |
+| border | `STROKE_COLOR` |
+| shadow | `EFFECT_COLOR` |
+| spacing/* | `GAP` |
+| radius/* | `CORNER_RADIUS` |
+| font/* | `FONT_FAMILY` |
+| Dark コレクションの全変数 | `[]`（4.3.9） |
+
+この一式 ― **変数44個（Color Light 14 / Color Dark 14 / Spacing 8 / Radius 5 / Font family 3）＋ Style 11個（Text Style 9 / Effect Style 2）＝ 55個** ― を Setup（4.7.1）がファイルに生成する。Figma Free ではチームライブラリの publish が使えずファイルをまたいで Variables / Style を揃える手段が他に無いため（4.10）、揃えるにはプラグイン自身が作るしかない。生成後の改名・値変更は Figma 純正の Assets パネルで行う（telldes 側に編集UIを持たない）。
+
+**ダーク用の14色も Setup が最初から作る。** Dark コレクションの変数は `scopes: []` でカラーピッカーから隠れるため（4.3.9）、ダーク対応しないファイルに存在してもデザイナーの邪魔にならない。ダークを始めるときは Export 設定を ON にして色を入れるだけで済み、生成のタイミングが1つで済む。4.7.2 原則1 が「Dark コレクションの有無を判定軸にしない」根拠（Setup を実行した全ファイルに Dark がある）も、これで実在する。
 
 Elevation（ドロップシャドウ）の命名指針も本体系に含めるが、プラグインが命名を促すことはしない。影の実値は `spec.json` の `effects`（4.5.2.1）に出力されるため、Effect Style にまとめなくても CC には届く。この体系は命名の共通語彙として、デザイナーとCCが同じ言葉を使うための指針である（Effect Style を named token として tokens.json に出す対応は Text Style トークンと同じく別途）。
 
@@ -162,7 +183,7 @@ Figma のプラン制限がかかるのは「1コレクションあたりのモ�
 
 | コレクション | 内容 | 対を持つか |
 |---|---|---|
-| Light | 色（4.3.4 の Color 8個） | Dark と対 |
+| Light | 色（4.3.4 の Color 14個） | Dark と対 |
 | Dark | 同名の色 | Light と対 |
 | Base | 余白・角丸・書体 | 持たない |
 
@@ -886,7 +907,7 @@ telldes は LLM を持たないので質問を動的に作れない。したが�
 | シングルビューの選択追従 | `figma.on('selectionchange')`（4.7.1） |
 | コレクションビューの再構築 | `figma.on('currentpagechange')`（ページ切り替え時。4.7.1・4.7.3） |
 | Variable取得 | `node.boundVariables`, `figma.variables.getLocalVariables()` |
-| トークン一式の生成（Setup） | `figma.variables.createVariableCollection()`, `variable.setValueForMode()`, `variable.scopes`（書体は `["FONT_FAMILY"]`。4.3.4。Dark は `[]`。4.3.9） |
+| トークン一式の生成（Setup） | `figma.variables.createVariableCollection()`, `variable.setValueForMode()`, `variable.scopes`（4.3.4 の表。Dark は `[]`。4.3.9） |
 | テーマの付け替え | `node.setBoundVariable()`, `figma.variables.setBoundVariableForPaint()`, `figma.variables.setBoundVariableForEffect()`（戻り値で Paint / Effect の配列を作り直して再代入する。4.3.9） |
 | 付け替え対象のスタイル列挙 | `figma.getLocalPaintStylesAsync()`, `figma.getLocalEffectStylesAsync()`（4.3.9 の対象(2)） |
 | Export設定・テーマ状態の保存 | `figma.root.setPluginData()` / `getPluginData()`（4.7.4.3） |

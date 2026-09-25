@@ -1140,6 +1140,7 @@ Ph-9 の**設計書を最新化する段は D-5 まで完了**（2026-09-22）�
   - **完了時メッセージ（実装はD-4以降。Review/Notes/Exportの実装に合わせて2026-09-20に先取り確定した「押した結果の benefit + 次にやること」を伝える方針を Setup にも適用）**: `Created 25 variables and 8 styles in this file's Assets panel. Rename or adjust values there anytime.`（できたこと＋次にやること＝Figma純正パネルで編集）。実装時に README.md の用語（変数名・Style名は未決3で確定する最小セット）と整合させ、README にも Setup 節を追記すること
 - [x] 未決3 **最小セット・命名規則で設計書 4.3.4 を書き換える** — 命名は値を名前に入れない（色・書体は役割名、余白・角丸・文字サイズは段階名）
   - **実データ検証（2026-09-20）**: ユーザーが実際にFigmaで作成・書き出した1件のLP（ポートフォリオサイト、`top`/`components`の2フレーム）のspec.json/tokens.jsonで33個の申し送り案を照合。Color/Spacing/Radius/Font-familyで実測値の半分前後が段階から外れることを確認した。漏れを3種に分類して個別に対処: (a) 原理的にVariable化不可能なもの（装飾用グラデーション4色。Variableは単色しか持てない。未決4送り）、(b) 別の仕組みの話だったもの（340pxのpaddingは「間隔」ではなく1440px幅の中身を760pxに中央寄せするコーディングパターンであり、spacingトークンの対象ではない）、(c) 本当に段階が足りなかったもの（radius 10/12/20、spacing 12/20/40/56、font-size 18/20/72/128）。(c)のみ段階を調整し、(a)(b)はトークン数を増やしても解決しないため対象外のまま
+  - **2026-09-25 訂正**: 上の「(c)のみ段階を調整」は誤り。確定した段階（spacing 4/8/16/24/32/48/64/96、radius 4/8/16/24/full）には (c) の値が1つも入っていない。これを受けて I-1 着手時にユーザーと見直し、**名前（種類と役割）は共通・値はデザインごと**と整理し直した。値は仮置き（違いが目で分かれば足りる）。種類は Zenn の技術記事ページ（`/gopher/articles/adk-vs-genkit-design-philosophy`、幅1440/375の実測）で確かめ、link / code/bg / code/fg / notice/bg / notice/fg / shadow と font/mono・Text Style code を追加、font/accent を廃止。変数44＋Style 11＝55個。設計書 4.3.4 に反映済み
   - **Primitives/Semantic 2層構成は不採用**: Figma公式ガイド（`figma-generate-library`スキル、ゴールドスタンダードとされるSimple Design System参照。https://github.com/figma/mcp-server-guide/blob/main/skills/figma-generate-library/references/token-creation.md）の目安で「50個未満は1コレクション、Primitives分離不要」とあり、この規模（32個）はその範囲内。各変数が直接値を持つ1層構成に確定
   - **命名は `/` 区切りの階層名**（Figma変数パネルが自動でグループ化する。実データの`fg/default`と同じ形式に統一。デザイナー側の認知負荷はFigma純正のフォルダ機能で下げる）
   - **結論（最終セット、32個）**: 詳細は `docs/design.md` 4.3.4 に反映済み。内訳は Color(8) / Spacing(8) / Radius(5) / Font-family(3) / Text Style(6) / Effect Style(2)
@@ -1388,23 +1389,23 @@ D-4 で「実装タスクに必ず含める」とした (a)〜(g) の行き先: 
 
 ### I-1: Setup（トークン一式の生成）
 
-**目的**: 3コレクション（Light / Dark / Base）と変数32個＋Style 10個を、現在のファイルに冪等に生成する。
+**目的**: 3コレクション（Light / Dark / Base）と変数44個＋Style 11個を、現在のファイルに冪等に生成する。
 
 **前提**: W-1 完了（`radius/full` の値と `scopes` の既定値が実機で確定していること）
 
 **作業内容**:
-- [ ] `src/setup/tokenFactory.ts` に、設計書 4.3.4 の一覧（Color Light 8 / Color Dark 8 / Spacing 8 / Radius 5 / Font family 3 ＝ 変数32、Text Style 8 / Effect Style 2 ＝ Style 10）を定数として持つ
+- [ ] `src/setup/tokenFactory.ts` に、設計書 4.3.4 の一覧（Color Light 14 / Color Dark 14 / Spacing 8 / Radius 5 / Font family 3 ＝ 変数44、Text Style 9 / Effect Style 2 ＝ Style 11）を定数として持つ。値は仮置きで、隣り合う段階・役割どうしの違いが目で分かることだけを満たす（4.3.4）
 - [ ] `createTokens()` を実装する。`figma.variables.createVariableCollection()` で3コレクションを作り、`variable.setValueForMode()` で値を入れる
 - [ ] 各変数に `scopes` を設定する（**D-4 (a)**）。Figma 公式の対応表どおり — 余白は `GAP`、角丸は `CORNER_RADIUS`、色は用途別、書体は `["FONT_FAMILY"]`（4.3.4）。**Dark コレクションの全変数は `scopes: []`**（4.3.9。デザイナーのピッカーから消すためで、目的が別）
 - [ ] 全変数に `setVariableCodeSyntax('WEB', 'var(--<token-name>)')` を設定する
-- [ ] **冪等にする**: 同名のコレクション・変数・Style が既にあれば作り直さず、欠けているものだけ足す。2回押しても42個のままであること
-- [ ] Text Style 8個（`display` / `heading-lg` / `heading-md` / `heading-sm` / `lead` / `body` / `label` / `caption`）と Effect Style 2個を生成する
+- [ ] **冪等にする**: 同名のコレクション・変数・Style が既にあれば作り直さず、欠けているものだけ足す。2回押しても55個のままであること
+- [ ] Text Style 9個（`display` / `heading-lg` / `heading-md` / `heading-sm` / `lead` / `body` / `label` / `caption` / `code`）と Effect Style 2個を生成する。Text Style の書体は `font/*` に、Effect Style の影の色は `shadow` につなぐ
 - [ ] セルフチェック（完了条件ごとに OK/NG。チェック結果: `.rn/20260524-build-plugin/checks/I-1.md`）
 - [ ] Figma 実機で試す（実機でしか出ない不具合はここでしか見つからない）
 
 **完了条件**:
-- Setup を1回実行したファイルに、変数32個と Style 10個がちょうど存在すること
-- 2回目の実行後も変数32個・Style 10個のままで、値も変わっていないこと
+- Setup を1回実行したファイルに、変数44個と Style 11個がちょうど存在すること
+- 2回目の実行後も変数44個・Style 11個のままで、値も変わっていないこと
 - Light / Base の各変数の `scopes` が 4.3.4 の対応表どおりで、Dark の全変数が `[]` であること
 - 全変数の `codeSyntax.WEB` が `var(--<変数名>)` 形式で入っていること
 - Figma 実機で Setup を実行し、変数パネルに3コレクションが出ることが確認できていること
