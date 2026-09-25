@@ -286,7 +286,23 @@ export function createWorkspace(file: FileData) {
     },
     setScreenSettings(screenId: string, patch: Partial<placeholder.ScreenSettings>) {
       changeSettings((settings) => void Object.assign(settings.screens[screenId]!, patch));
-      if (patch.webPageId) setState((s) => void (s.expanded[webPageKey(patch.webPageId!)] = true));
+    },
+    /**
+     * Put the frame into the Web page `webPageId`, or with null into one of its own.
+     * A Web page is known by the id of its first frame, so when that frame leaves,
+     * the frames it leaves behind stay together under the next one's id.
+     */
+    setSamePageAs(screenId: string, webPageId: string | null) {
+      const current = webPageOf(screenId);
+      changeSettings((settings) => {
+        if (current?.id === screenId) {
+          const rest = current.screenIds.filter((id) => id !== screenId);
+          for (const id of rest) settings.screens[id]!.webPageId = rest[0]!;
+        }
+        settings.screens[screenId]!.webPageId = webPageId ?? screenId;
+      });
+      const joined = webPageOf(screenId);
+      if (joined && joined.screenIds.length > 1) setState((s) => void (s.expanded[webPageKey(joined.id)] = true));
     },
   };
 }

@@ -29,8 +29,11 @@ export function Detail() {
         <Match when={as("value")?.value} keyed>
           {(value) => <ValueDetail value={value} />}
         </Match>
-        <Match when={ws.webPages().find((w) => w.id === as("webPage")?.id)?.id} keyed>
-          {(id) => <WebPageDetail id={id} />}
+        <Match when={ws.webPages().find((w) => w.id === as("webPage")?.id)} keyed>
+          {/* A Web page left with one frame is shown as that frame, as in the list. */}
+          {(webPage) =>
+            webPage.screenIds.length > 1 ? <WebPageDetail id={webPage.id} /> : <LayerDetail entry={ws.index.get(webPage.screenIds[0]!)!} />
+          }
         </Match>
         <Match when={ws.index.get(as("layer")?.id ?? "")} keyed>
           {(entry) => <LayerDetail entry={entry} />}
@@ -66,8 +69,10 @@ function FileDetail() {
         <Fact label="Theme">
           <Tentative task="theme">{ws.state.theme === "dark" ? "Dark" : "Light"}</Tentative>
         </Fact>
-        <Fact label="Web pages">{ws.webPages().length}</Fact>
         <Fact label="Frames">{ws.screens.length}</Fact>
+        <Show when={ws.webPages().some((w) => w.screenIds.length > 1)}>
+          <Fact label="Web pages">{ws.webPages().length}</Fact>
+        </Show>
         <Fact label="Not exported">{ws.dropped.length}</Fact>
         <Fact label="Variables">{ws.file.tokens.variables.length}</Fact>
         <Fact label="Styles">
@@ -89,7 +94,7 @@ function FileDetail() {
           Dark support
         </label>
         <label class="field">
-          <span>Rules for every Web page</span>
+          <span>Rules for every page</span>
           <textarea
             rows={4}
             placeholder="In plain words, e.g. load Noto Sans JP for headings"
@@ -239,7 +244,7 @@ function WebPageDetail(props: { id: string }) {
       <h2>{ws.webPageName(props.id)}</h2>
       <Facts>
         <Fact label="Folder in zip">{ws.webPageName(props.id)}/</Fact>
-        <Fact label="Frames" title="One per width. To add a frame, choose this Web page in that frame's Export settings.">
+        <Fact label="Frames" title="One per width. To add a frame, set “Same page as” in that frame's Export settings.">
           <For each={webPage()?.screenIds ?? []}>
             {(id) => (
               <div>
@@ -258,15 +263,7 @@ function WebPageDetail(props: { id: string }) {
           <span>Name</span>
           <input type="text" value={settings()?.name ?? ""} onInput={(e) => ws.setWebPageSettings(props.id, { name: e.currentTarget.value })} />
         </label>
-        <label class="field" title="Shown in the browser tab. The same at every width, so it belongs to the Web page, not a frame.">
-          <span>Title</span>
-          <input
-            type="text"
-            placeholder="Shown in the browser tab"
-            value={settings()?.title ?? ""}
-            onInput={(e) => ws.setWebPageSettings(props.id, { title: e.currentTarget.value })}
-          />
-        </label>
+        <TitleField webPageId={props.id} />
       </section>
     </>
   );
@@ -292,7 +289,8 @@ function LayerDetail(props: { entry: LayerEntry }) {
         <Show when={size(layer())}>
           <Fact label="Size">{size(layer())}</Fact>
         </Show>
-        <Show when={isScreen() && ws.webPageOf(layer().id)}>
+        {/* A Web page of this frame alone is not shown apart from the frame, so there is nothing to link to. */}
+        <Show when={isScreen() && ws.webPageOf(layer().id)?.screenIds.length !== 1 && ws.webPageOf(layer().id)}>
           {(webPage) => (
             <Fact label="Web page">
               <button class="link" onClick={() => ws.open({ kind: "webPage", id: webPage().id })}>
@@ -380,9 +378,12 @@ function AssetFacts(props: { screenId: string }) {
 function ScreenSettings(props: { screenId: string }) {
   const ws = useWorkspace();
   const settings = () => ws.state.settings.screens[props.screenId];
-  const current = () => ws.webPageOf(props.screenId)?.id;
-  /** A screen that joined another Web page can go back to one of its own. */
-  const ownIsFree = () => !ws.webPages().some((w) => w.id === props.screenId);
+  const webPage = () => ws.webPageOf(props.screenId);
+  /** A Web page of this frame alone has its settings here, since it is shown as this frame. */
+  const alone = () => (webPage()?.screenIds.length ?? 0) < 2;
+  const others = () => ws.webPages().filter((w) => w.screenIds.length > 1 || w.id !== webPage()?.id);
+  const optionName = (w: { id: string; screenIds: string[] }) =>
+    w.screenIds.length > 1 ? `${ws.webPageName(w.id)} (${counted(w.screenIds.length, "frame")})` : ws.index.get(w.screenIds[0]!)?.layer.name;
   const field = (key: "fromWidth" | "contentWidth", label: string, help: string, empty: string) => (
     <label class="field" title={help}>
       <span>{label}</span>
@@ -398,26 +399,44 @@ function ScreenSettings(props: { screenId: string }) {
   return (
     <section class="block">
       <SettingsHeading />
-      <label class="field" title="Give the frames for each width of one Web page the same Web page. Not guessed from names.">
-        <span>Web page</span>
-        <select onChange={(e) => ws.setScreenSettings(props.screenId, { webPageId: e.currentTarget.value })}>
-          <For each={ws.webPages()}>
-            {(webPage) => (
-              <option value={webPage.id} selected={webPage.id === current()}>
-                {ws.webPageName(webPage.id)} ({counted(webPage.screenIds.length, "frame")})
+      <label class="field" title="Frames of one page at different widths, e.g. desktop and mobile. Export writes them as one responsive page.">
+        <span>Same page as</span>
+        <select onChange={(e) => ws.setSamePageAs(props.screenId, e.currentTarget.value || null)}>
+          <option value="" selected={alone()}>
+            None (its own page)
+          </option>
+          <For each={others()}>
+            {(w) => (
+              <option value={w.id} selected={w.id === webPage()?.id}>
+                {optionName(w)}
               </option>
             )}
           </For>
-          <Show when={ownIsFree()}>
-            <option value={props.screenId}>A new Web page for this frame</option>
-          </Show>
         </select>
       </label>
+      <Show when={alone() && webPage()}>
+        {(w) => <TitleField webPageId={w().id} />}
+      </Show>
       <div class="field-row">
         {field("fromWidth", "From width (px)", "This frame is used when the browser is at least this wide.", "")}
         {field("contentWidth", "Content width (px)", "The widest the content gets. Empty: the full width.", "Full width")}
       </div>
     </section>
+  );
+}
+
+function TitleField(props: { webPageId: string }) {
+  const ws = useWorkspace();
+  return (
+    <label class="field" title="Shown in the browser tab. The same at every width, so it belongs to the page, not to one frame.">
+      <span>Page title</span>
+      <input
+        type="text"
+        placeholder="Shown in the browser tab"
+        value={ws.state.settings.webPages[props.webPageId]?.title ?? ""}
+        onInput={(e) => ws.setWebPageSettings(props.webPageId, { title: e.currentTarget.value })}
+      />
+    </label>
   );
 }
 

@@ -110,7 +110,8 @@ export function initialSettings(screens: LayerData[]): Settings {
 // ---- #7 Export: what Export would write ----
 
 export function exportResult(webPageCount: number, screenCount: number, droppedCount: number): string {
-  return `Export would write telldes-export.zip: ${counted(webPageCount, "Web page")} (${counted(screenCount, "frame")}), and a README.md listing ${counted(droppedCount, "item")} not exported.`;
+  const frames = screenCount > webPageCount ? ` (${counted(screenCount, "frame")})` : "";
+  return `Export would write telldes-export.zip: ${counted(webPageCount, "page")}${frames}, and a README.md listing ${counted(droppedCount, "item")} not exported.`;
 }
 
 // ---- #8 Images and assets: what Export would hand over as files ----
@@ -192,7 +193,7 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
       findings.push({
         severity: "notice",
         owner: { kind: "screen", id: screenId },
-        message: "This Web page has frames for other widths, but this frame has no “From width”.",
+        message: "This frame shares its page with frames of other widths, but has no “From width”.",
         fix: "Enter “From width” in this frame's Export settings.",
         layerIds: [],
       });
