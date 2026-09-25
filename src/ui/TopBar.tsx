@@ -62,7 +62,7 @@ export function TopBar() {
       <button
         class="primary"
         disabled={ws.screens.length === 0}
-        title="Export every Web page of this file. Review runs first, and errors stop it."
+        title="Export every page of this file. Review runs first, and errors stop it."
         onClick={() => ws.runExport()}
       >
         Export

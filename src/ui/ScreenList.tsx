@@ -1,6 +1,7 @@
 // The Web pages that Export hands over, each with its screens (one per width)
 // and their layers, and what does not get handed over. The list is the manifest
-// of the zip.
+// of the zip. A Web page of one frame is shown as that frame's row alone: a Web
+// page row above a frame of the same name would say nothing.
 import { For, Show } from "solid-js";
 import type { LayerEntry, WebPage } from "../core/screens";
 import { counted, dropReasonText, size } from "./format";
@@ -13,12 +14,17 @@ export function ScreenList() {
   const dropped = () => ws.dropped.filter((item) => ws.passesFilter({ kind: "layer", id: item.entry.layer.id }, item.entry.layer.id));
   return (
     <div class="list">
-      <h3 title="What Export writes">
-        {counted(ws.webPages().length, "Web page")} · {counted(ws.screens.length, "frame")}
+      <h3 title="What Export writes. Frames of different widths can be put into one Web page in a frame's Export settings.">
+        {counted(ws.screens.length, "frame")}
+        <Show when={ws.webPages().some((w) => w.screenIds.length > 1)}> in {counted(ws.webPages().length, "Web page")}</Show>
       </h3>
       <ul class="tree">
         <For each={webPages()} fallback={<li class="empty">{ws.state.filter ? `No rows with ${ws.state.filter}s here` : "No visible frames on this Figma page"}</li>}>
-          {(webPage) => <WebPageNode webPage={webPage} />}
+          {(webPage) => (
+            <Show when={webPage.screenIds.length > 1} fallback={<LayerNode entry={ws.index.get(webPage.screenIds[0]!)!} depth={0} />}>
+              <WebPageNode webPage={webPage} />
+            </Show>
+          )}
         </For>
       </ul>
 
