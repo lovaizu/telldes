@@ -83,7 +83,7 @@ Recursive node tree. Only visible layers, paints and effects are included. Each 
 - `effects`, `shadowProperty` — see Effects below.
 - `opacity` — node-level opacity (0–1, when < 1) → CSS `opacity`.
 - `blendMode` — node blend mode (CSS name) → `mix-blend-mode`.
-- `position` — for children that Auto Layout does not place (children of a Group, and absolutely positioned children): CSS offsets relative to the parent box, e.g. `{ "left": "24px", "top": "16px" }` or `{ "right": "8px", "bottom": "calc(50% + 4px)" }`. Give the parent `position: relative` and the child `position: absolute` with these values exactly.
+- `position` — for children that Auto Layout does not place (children of a Group, and absolutely positioned children): the CSS offsets and size relative to the parent box, e.g. `{ "left": "24px", "top": "16px", "width": "120px", "height": "40px" }` or `{ "left": "0px", "right": "0px", "bottom": "calc(50% + 4px)", "height": "10%" }`. Give the parent `position: relative` and the child `position: absolute`, and write exactly the keys given. `width`/`height` are the size before rotation; a missing `width` or `height` means the element is stretched between `left`/`right` (or `top`/`bottom`) — do not add one. A node with `position` has no `layout.sizing`, and the sizing table below does not apply to it.
 - `rotate` — CSS angle in degrees (clockwise) → `transform-origin: 0 0; transform: rotate({rotate}deg)`.
 - `asset` (+ `assetOverflow`) — see Assets below.
 - `note` — designer annotations (behavior, links, interactions)
@@ -99,15 +99,15 @@ Hidden Figma layers are not in spec.json, screenshots or assets. Drawing that CS
 | type | Fields | CSS |
 |---|---|---|
 | `SOLID` | `color`, `colorToken?`, `opacity?` | a color |
-| `IMAGE` | `asset`, `backgroundSize`, `backgroundPosition`, `backgroundRepeat`, `opacity?` | `url(asset) {backgroundPosition} / {backgroundSize} {backgroundRepeat}` |
+| `IMAGE` | `asset`, `backgroundSize`, `backgroundPosition`, `backgroundRepeat` | `url(asset) {backgroundPosition} / {backgroundSize} {backgroundRepeat}` |
 | `GRADIENT_LINEAR` | `angle`, `gradientStops`, `opacity?` | `linear-gradient({angle}deg, {color} {position×100}%, …)` |
 | `GRADIENT_RADIAL` | `size {x,y}`, `center {x,y}`, `gradientStops`, `opacity?` | `radial-gradient({size.x}% {size.y}% at {center.x}% {center.y}%, …)` |
 | `GRADIENT_ANGULAR` | `angle`, `center {x,y}`, `gradientStops`, `opacity?` | `conic-gradient(from {angle}deg at {center.x}% {center.y}%, …)` |
-| any gradient or image with only `asset` (no stops / background fields) | `asset` | `url(asset) 0 0 / 100% 100% no-repeat` — CSS cannot draw this paint (diamond or skewed gradient, rotated or adjusted image), so Figma rendered it as an image |
+| any gradient or image with only `asset` (no stops / background fields) | `asset` | `url(asset) 0 0 / 100% 100% no-repeat` — CSS cannot draw this paint (diamond or skewed gradient; semi-transparent, rotated or adjusted image), so Figma rendered it as an image |
 
 - `gradientStops` is `[{ position, color, colorToken? }]`. All gradient values are already converted to CSS: `position` is the CSS stop position (may be below 0 or above 1 — write it as is), `angle` is a CSS angle (0 = up, clockwise), `size`/`center` are percentages of the box. Do not recompute them.
 - Several fills → one `background` with the layers in reverse order (CSS lists the top layer first). A SOLID layer that is not the bottom one becomes `linear-gradient(color, color)`, because a plain color is allowed only as the bottom layer.
-- `opacity` (0–1) is that paint's opacity. CSS backgrounds have no per-layer opacity: multiply it into the color's alpha; for a token color write `color-mix(in srgb, var(--x) {opacity×100}%, transparent)`.
+- `opacity` (0–1, SOLID and gradients only) is that paint's opacity. CSS backgrounds have no per-layer opacity: multiply it into the color's alpha; for a token color write `color-mix(in srgb, var(--x) {opacity×100}%, transparent)`.
 - `blendMode` (CSS name, when not normal) → `background-blend-mode` for that layer.
 - `fillsToken` (when present) names the Color Style on the node. Then every `colorToken` in its fills points at that style's tokens, and colors already include opacity (no `opacity` field).
 - Use a `colorToken` whenever present; otherwise use the literal `color`.
@@ -153,7 +153,7 @@ Hidden Figma layers are not in spec.json, screenshots or assets. Drawing that CS
 
 #### Assets
 
-- A node with `asset` is exported whole: an SVG (vectors) or a PNG at 2x (image leaf nodes). Its fills, strokes and effects are baked into the file and are not in spec.json. Place it at the node's size; if `assetOverflow { top, right, bottom, left }` is present, the image extends that many px beyond the node box (outside strokes, shadows) — let it overflow by those amounts (negative margins or absolute positioning) rather than shrinking it.
+- A node with `asset` is exported whole: an SVG (vectors) or a PNG at 2x (image leaf nodes). Its fills, strokes and effects are baked into the file and are not in spec.json. Place it at the node's size (from `layout.sizing`, or from `position` for nodes outside Auto Layout); if `assetOverflow { top, right, bottom, left }` is present, the image extends that many px beyond the node box (outside strokes, shadows) — let it overflow by those amounts (negative margins or absolute positioning) rather than shrinking it.
 - `IMAGE` fills point at the original image file (`asset`); place it with the entry's `backgroundSize` / `backgroundPosition` / `backgroundRepeat` exactly as given.
 - Use the paths exactly as given. Do not build file names yourself.
 
@@ -234,7 +234,7 @@ Default: `<div>` for blocks, `<p>` for text without a special name.
 
 | Mode | Main axis | Cross axis |
 |---|---|---|
-| `FILL` | `flex: 1 1 0` + `min-width: 0` (`min-height: 0` in a VERTICAL parent) | `align-self: stretch` |
+| `FILL` | `flex: 1 1 0` + `min-width: 0` (`min-height: 0` in a VERTICAL parent); if `sizing.minWidth`/`minHeight` exists, use that value instead of 0 | `align-self: stretch` |
 | `HUG` | no size + `flex-shrink: 0` | no size |
 | `FIXED` | `width: {widthPx}px` (`height: {heightPx}px` in a VERTICAL parent) + `flex-shrink: 0` | `width: {widthPx}px` / `height: {heightPx}px` |
 

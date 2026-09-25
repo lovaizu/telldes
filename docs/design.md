@@ -626,7 +626,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 | type | フィールド | CSS |
 |---|---|---|
 | `SOLID` | `color`（#RRGGBB / #RRGGBBAA）, `colorToken?`, `opacity?` | 単色 |
-| `IMAGE` | `asset`, `backgroundSize`, `backgroundPosition`, `backgroundRepeat`, `opacity?` | `url(asset) {backgroundPosition} / {backgroundSize} {backgroundRepeat}`。`asset` は塗りの元の画像ファイル（下記「アセット」） |
+| `IMAGE` | `asset`, `backgroundSize`, `backgroundPosition`, `backgroundRepeat` | `url(asset) {backgroundPosition} / {backgroundSize} {backgroundRepeat}`。`asset` は塗りの元の画像ファイル（下記「アセット」） |
 | `GRADIENT_LINEAR` | `angle`, `gradientStops`, `opacity?` | `linear-gradient({angle}deg, {色} {位置}, …)` |
 | `GRADIENT_RADIAL` | `size`（`{ x, y }`）, `center`（`{ x, y }`）, `gradientStops`, `opacity?` | `radial-gradient({size.x}% {size.y}% at {center.x}% {center.y}%, …)` |
 | `GRADIENT_ANGULAR` | `angle`, `center`, `gradientStops`, `opacity?` | `conic-gradient(from {angle}deg at {center.x}% {center.y}%, …)` |
@@ -634,7 +634,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 - `gradientStops` は `[{ position, color, colorToken? }]`。`color` は #RRGGBB（アルファ < 1 の場合は #RRGGBBAA）。stop の色が Variable にバインドされていれば `colorToken` も付く（4.3.4）。`position` は CSS の stop の位置（1 を 100% とする数）で、Figma の stop の位置ではない（下記）。0 未満や 1 を超える値もありうる（CSS はそのまま受け付ける）
 - `size` と `center` はノードの幅・高さに対する %、`angle` は CSS の角度（度。0 が上、時計回り）
-- `opacity` は塗りの不透明度が 1 未満の場合のみ付与する数値（0〜1）。半透明オーバーレイ（4.3.5）の再現に使う。CSS の背景には1枚ごとの不透明度が無いので、CC は色のアルファに掛ける。トークンの色には `color-mix(in srgb, var(--…) {opacity×100}%, transparent)` を使う（アルファを掛けたのと同じ色になり、トークンを使ったまま書ける）
+- `opacity` は単色とグラデーションの塗りの不透明度が 1 未満の場合のみ付与する数値（0〜1。画像の塗りは下記）。半透明オーバーレイ（4.3.5）の再現に使う。CSS の背景には1枚ごとの不透明度が無いので、CC は色のアルファに掛ける。トークンの色には `color-mix(in srgb, var(--…) {opacity×100}%, transparent)` を使う（アルファを掛けたのと同じ色になり、トークンを使ったまま書ける）
 - IMAGE / GRADIENT を含む全種類の塗りを `fills` に出力する（SOLID 以外を欠落させない）。
 - **画像の塗りの置き方は、②が `scaleMode` から CSS の値にして載せる**（下表）。`scaleMode` のまま渡すと、CC が対応を当てることになる
 
@@ -647,7 +647,7 @@ color トークンの `$value` は #RRGGBB（6桁）。アルファが 1 未満�
 
 - `CROP` の `imageTransform` は、箱の 0〜1 の座標を画像の 0〜1 の座標へ写す行列で、横の倍率・縦の倍率は箱に見えている範囲が画像の幅・高さに占める割合、tx・ty はその範囲の左上の位置。% で書くのは、箱の寸法が変わっても同じ範囲が見えるようにするため（倍率が 1 の軸は位置 `0%`）
 - `TILE` の画像の幅と高さは、元の画像の画素数（読み取りデータの `images`）
-- **CSS で同じにならない画像の塗り — `rotation` が 0 でないもの、`filters`（露出・コントラストなど）が1つでも 0 でないもの、`imageTransform` が回転を含むもの — は、塗り1枚を画像にして渡す**（CSS で描けないグラデーションと同じ。下記）。CSS の背景は画像を回せず、Figma の画像の調整と同じ計算の CSS の `filter` も無い。このときは `backgroundSize` などを出さず、`asset` を箱いっぱいに敷く
+- **CSS で同じにならない画像の塗り — 不透明度が 1 未満のもの、`rotation` が 0 でないもの、`filters`（露出・コントラストなど）が1つでも 0 でないもの、`imageTransform` が回転を含むもの — は、塗り1枚を画像にして渡す**（CSS で描けないグラデーションと同じ。下記）。CSS の背景には1枚ごとの不透明度が無く、画像には掛けるべき色のアルファも無い。CSS の背景は画像を回せず、Figma の画像の調整と同じ計算の CSS の `filter` も無い。このときは `backgroundSize` などを出さず、`asset` を箱いっぱいに敷く
 - 塗りが複数あるとき、`fills` は Figma と同じく下の塗りから並ぶ。CSS の `background` は上の層から書くので、CC は並びを逆にする。一番下以外の単色の塗りは `linear-gradient(色, 色)` にする（`background` で単色を置けるのは一番下の層だけだから）。どちらも CC に任せると推測になるので、ここで決めておく（原則B）。
 - `blendMode` は塗りの描き方が `NORMAL` 以外のときだけ付ける。値は CSS の名前（`MULTIPLY` → `multiply`、`COLOR_BURN` → `color-burn` のように小文字にして `_` を `-` にしたもの）で、CC は `background-blend-mode` の同じ層に書く。CSS に同じものが無い `LINEAR_BURN` / `LINEAR_DODGE` と、一番下の塗りの描き方（ノードの後ろにあるものと混ぜる。`background-blend-mode` は要素の中の層どうししか混ぜない）は出さず、再現できない描画として告知する（4.7.2）。黙って `normal` で描かせると色が変わったことに誰も気づかない
 - ノードの `fillStyleId` がグラデーション・複数 fill の Color Style を指すときは、ノードに `fillsToken`（例 `"fills/brand-gradient"`）を付ける。命名は `tokens.json` の `fills` トークン名（4.5.1）と対応する。**そのノードの塗りの `colorToken`（単色の塗りと stop）は、Variable ではなく Style のトークン（`fills/<Style 名>/<塗りの番号>` と `…/<stop の番号>`）を指す。** Style を当てたことがデザイナーの宣言であり、Style の中身が Variable を指していても、使う名前は Style の方だから。このときの `color` は Style のトークンと同じく塗りの不透明度を含み（4.5.1）、`opacity` は付けない — 2度掛けを起こさないため。単色の Color Style はトークンにならない（除外物。4.7.2）ので付けない。
@@ -753,7 +753,7 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 
 - `{ファイル名}` はレイヤーパスを `--` で結合したもの（4.3.8）。塗りの番号は Figma の塗りの並び（下から、1始まり、非表示の塗りも数える）で、1つのノードに画像の塗りが2枚あっても別のファイルになる
 - `{元の形式}` は②が画像の先頭のバイト列から決める（PNG / JPEG / GIF / WebP）。元の画像を変換せずに渡すのは、描いた解像度と画質をそのまま渡すため
-- `assetOverflow` は、ノードを丸ごと書き出した画像が外側の線や影の分だけノードの枠より大きいときの、はみ出す幅（辺ごとの px）。CC は画像をノードの寸法の箱に置き、はみ出す分だけ外に出す（負の margin か absolute）。枠に合わせて縮めると、中の絵がずれる
+- `assetOverflow` は、ノードを丸ごと書き出した画像が外側の線や影の分だけノードの枠より大きいときの、はみ出す幅（辺ごとの px）。CC は画像をノードの寸法（`layout.sizing`、流れの外の子なら `position` の `width` / `height`）の箱に置き、はみ出す分だけ外に出す（負の margin か absolute）。枠に合わせて縮めると、中の絵がずれる
 
 **text（タイポグラフィのメトリクス）**
 
@@ -798,12 +798,12 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 
 - `width` / `height` はサイジングモード（`FILL` / `HUG` / `FIXED`）。`FIXED` の場合は実ピクセル値 `widthPx` / `heightPx` を併せて付与する。
 - 4.3.3 で許可される最小/最大サイズが設定されている場合、`minWidth` / `maxWidth` / `minHeight` / `maxHeight`（数値）を付与する。
-- Auto Layout コンテナ以外のノード（末端要素など）でも、Auto Layout の子であればサイジング情報を持つ。その場合 `layout` は `direction` 等を持たず `sizing` のみを含む。
+- Auto Layout コンテナ以外のノード（末端要素など）でも、Auto Layout の子であればサイジング情報を持つ。その場合 `layout` は `direction` 等を持たず `sizing` のみを含む。流れの外の子（`position` を持つノード）は `sizing` を持たず、寸法は `position` が持つ（「position」）。
 - **CSS は軸ごとに、その軸が親の `direction` と同じ向き（主軸）かどうかで決まる。** `width` は親が横並びなら主軸、縦並びなら交差軸（`height` はその逆）。
 
 | モード | 主軸 | 交差軸 |
 |---|---|---|
-| `FILL` | `flex: 1 1 0` と `min-width: 0`（縦並びは `min-height: 0`） | `align-self: stretch` |
+| `FILL` | `flex: 1 1 0` と `min-width: 0`（縦並びは `min-height: 0`）。`minWidth` / `minHeight` があれば 0 ではなくその値 | `align-self: stretch` |
 | `HUG` | サイズを書かない。`flex-shrink: 0` | サイズを書かない |
 | `FIXED` | `width: {widthPx}px`（縦並びは `height`）と `flex-shrink: 0` | `width` / `height` に px |
 
@@ -816,7 +816,9 @@ Figma の「コンテンツを切り抜く」が ON で、**実際に枠の外�
 
 Auto Layout が位置を決めない子 — Group の子と、`layoutPositioning: ABSOLUTE` の子 — は `position` を持つ。子を持つフレームに Auto Layout が無い場合は error なので（4.3.2）、ほかには生じない。持たせないと、CC はスクリーンショットから位置を当てることになる（原則B「推測させない」）。
 
-- `position` は CSS に書く値そのもの（`{ "left": "24px", "top": "16px" }` など）で、親の箱の左上を基準にする。CC は親に `position: relative`、子に `position: absolute` を付けて書く
+- `position` は CSS に書く値そのもの（`{ "left": "24px", "top": "16px", "width": "120px", "height": "40px" }` など）で、親の箱の左上を基準にする。CC は親に `position: relative`、子に `position: absolute` を付けて書く
+- **`position` は位置と寸法を両方持ち、`position` を持つノードには `layout.sizing` を出さない。** 流れの外の子の寸法は、制約で位置と組になって決まる（左右に張り付けば幅は書かない、など）ので、位置と同じ場所に置く。`ABSOLUTE` の子は Figma 上もサイジングのモードを持つが、流れに参加しないので主軸・交差軸の表（「layout.sizing」）は当てはまらず、`sizing` も出せば寸法の出どころが2つになる（原則B「1箇所にだけある」）
+- 寸法は回転する前の `width` / `height`。横は下の表の制約に従い、`STRETCH` は書かず、`SCALE` は親の幅に対する %、それ以外は px（縦も同じ）。Group の子と回転した子は常に px
 - Group の子は `left` / `top` の px。Figma は Group の子の座標を Group ではなくその外側のフレームを基準に持つので、②が Group の位置を引いて Group 基準に直す。Group は子を描くための入れ物で、寸法も子から決まり、伸び縮みしない
 - `ABSOLUTE` の子は、Figma の制約（`constraints`）が親の寸法が変わったときの振る舞いを宣言しているので、それを CSS の基準に写す。カンプの寸法ではどれも同じ位置になる
 
@@ -824,7 +826,7 @@ Auto Layout が位置を決めない子 — Group の子と、`layoutPositioning
 |---|---|
 | `MIN`（左） | `left: {x}px` |
 | `MAX`（右） | `right: {親の幅 − x − 幅}px` |
-| `STRETCH`（左右） | `left` と `right` の両方（幅は書かない） |
+| `STRETCH`（左右） | `left` と `right` の両方（`width` は書かない） |
 | `CENTER` | `left: calc(50% + {x − 親の幅/2}px)` |
 | `SCALE` | `left` と `width` を親の幅に対する % で |
 
