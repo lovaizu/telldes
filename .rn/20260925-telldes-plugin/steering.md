@@ -53,14 +53,16 @@ Design: docs/design.md
 
 ### #1: 土台
 
-**Purpose**: 最新のビルド設定と Solid v2 で、Figma に読み込めて、画面と Figma 側がやり取りできる空のプラグインを作る。
+**Purpose**: 最新のビルド設定と Solid v2 で、ファイルを読み、トークン・画面・レイヤーをオブジェクトとして一覧と詳細で見られる土台を作る（このあとの機能は、ここに属性と操作を足していく）。
 
 **Prerequisites**: none
 
 **Steps**:
 
 - [ ] `package.json`・`tsconfig.json`・`manifest.json`・Vite 設定を作る（画面は1つの HTML、Figma 側は1つの JS に）
-- [ ] 画面の骨組み（上部に Setup・Review・`Light | Dark`、下にトークン・画面・レイヤーの並び）と、画面と Figma 側のやり取りの型を作る
+- [ ] OOUI の手順で画面を設計する: オブジェクト（ファイル・トークン・画面・レイヤー）とその属性・関係を取り出し、Setup から Light / Dark までのすべての機能を、どのオブジェクトの属性・操作になるかに割り当てる → 一覧と詳細のビューを決める → レイアウトを決める
+- [ ] Figma からファイルを読み、JSON にできるデータにまとめる窓口を作る（Review・Export もこれを使う）
+- [ ] 読んだデータで、トークン・画面・レイヤーの一覧と詳細を出す（この時点で操作はレイヤーの選択だけ）
 - [ ] `bun run build` し、ユーザーに読み込んで開いてもらう
 - [ ] self-check (OK/NG per completion criterion, record in checks/1.md)
 - [ ] QA expert review (subagent)
@@ -71,7 +73,8 @@ Design: docs/design.md
 **Completion criteria**:
 
 - `bun install && bun run build` だけで `dist/` ができ、Figma デスクトップの Drafts で manifest から読み込むと画面が開く
-- 画面から Figma 側へ送った要求に Figma 側が答え、その結果が画面に出る（実機で確認）
+- 実機で、そのファイルのトークン・画面・レイヤーが一覧に並び、選ぶと詳細が出る。レイヤーを選ぶと Figma でもそのレイヤーが選ばれる
+- 画面は機能ごとの区画（Review の欄、note の欄など）を持たず、オブジェクトの一覧と詳細でできている。Setup から Light / Dark までのすべての機能に、どのオブジェクトのどの属性・操作になるかが決まっている
 - 依存は `solid-js` の v2 系と、Vite・TypeScript などその時点の最新版で、型検査が通る
 - Figma 側のコードが、画面の描画や判断を持っていない（読み取りと書き込みの窓口だけ）
 
@@ -85,7 +88,7 @@ Design: docs/design.md
 
 - [ ] あるべき一式と今あるものの差を出す判断を作る
 - [ ] 差を Figma に書き込む窓口を作る（Light・Dark・Base の3コレクション、使える欄の絞り込み、CSS 変数名）
-- [ ] 上部の Setup ボタンからつなぐ
+- [ ] 上部に Setup を置き、作ったものがトークンの一覧に出るようにする
 - [ ] 空のファイルと、一部を手で作ったファイルで、実機で2回ずつ押して確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [ ] QA expert review (subagent)
@@ -97,7 +100,7 @@ Design: docs/design.md
 
 - 空のファイルで押すと、README の推奨一式（色 Light・Dark 各14、余白、角丸、書体、Text Style 9、Effect Style 2）がそろい、各変数に使える欄と CSS 変数名が付いている
 - 2回目に押しても、変数・スタイル・コレクションが増えない。手で作った同名のものは、値を上書きされず残る
-- 何を作ったか（または何も作らなかったか）が画面に出る
+- 作ったものはトークンの一覧に出る。何も作らなかったときは、そうと分かる
 
 ### #3: Review
 
@@ -108,10 +111,9 @@ Design: docs/design.md
 **Steps**:
 
 - [ ] 作った見本（ライトのみ、ダーク対応 ON）を一時ボタンで作る。違反・知らせ・書き出せないものをわざと入れ、その一覧を残す
-- [ ] Figma からページを読み、JSON にできるデータにまとめる窓口を作る（Export もこれを使う）
 - [ ] 書き出す範囲の判定と、Review の判断（error・知らせ・同じ原因を1行に）を作る
 - [ ] トークン・画面・レイヤーの行に違反と知らせを付けて出し、押すとレイヤーを選ぶ
-- [ ] 開いたときに自動で走らせ、上部に error の件数を出す
+- [ ] 開いたときに自動で走らせ、上部の Review に error の件数を出す
 - [ ] 違反を入れたファイルで実機で確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 - [ ] QA expert review (subagent)
@@ -126,6 +128,7 @@ Design: docs/design.md
 - 同じ原因の違反（同じ色の30か所など）が1行にまとまる
 - 書き出さない範囲（画面の外・別ページ）にある違反は出ない
 - 開いた直後から error の件数が上部に出て、項目を押すとそのレイヤーが選ばれる
+- 違反と知らせは持ち主の行と詳細にだけ出て、Review だけの一覧は無い
 - 読み取りは1回で、判断の部分は Figma の API を呼んでいない
 
 ### #4: note
@@ -137,7 +140,7 @@ Design: docs/design.md
 **Steps**:
 
 - [ ] note の保存・読み出しの窓口と、プロパティパネルから開く入口を作る
-- [ ] レイヤーの行で note を読み書きできるようにする
+- [ ] レイヤーの詳細で note を読み書きし、レイヤーの一覧の行で note の有無が分かるようにする
 - [ ] 実機で書く・閉じて開き直す・プロパティパネルから開くを確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/4.md)
 - [ ] QA expert review (subagent)
@@ -159,7 +162,7 @@ Design: docs/design.md
 
 **Steps**:
 
-- [ ] Export 設定の入力欄（切り替える幅・コンテンツ幅・ダーク対応・題名・共通ルール）と保存を作る
+- [ ] Export 設定（切り替える幅・コンテンツ幅・ダーク対応・題名・共通ルール）を、#1 で割り当てたオブジェクトの属性として作り、保存する
 - [ ] 読み取りデータから `spec.json`・`tokens.json`・`README.md` を作る判断を作る（設計書の出力の4つの約束を守る）
 - [ ] 画面の一覧に Export を付け、Review を走らせて error ゼロのときだけ zip を書き出す
 - [ ] 実機で書き出し、中身を読んで確かめる
