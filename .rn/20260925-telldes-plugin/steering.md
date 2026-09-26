@@ -117,6 +117,8 @@ Design: docs/design.md
 - [x] 別のセッションが型なしで1回で書いた設計書（ccpm の rn-rebuild ブランチ `rn/docs/design.md`）から観点を抜き出し、writ の手順で `.rn/doc-review.md` を磨く（書き手への聞き取りは相手側のエラーで返らず、文書から抜き出した）
 - [x] README・設計書・ガイドを、役目と観点だけから見出しを組み立て、ゼロから書く
 - [x] `.rn/doc-review.md` の回し方どおりにレビューを1回回して直し、結果をユーザーに見せる
+- [x] 使う場面から考え直す: Review は作りながら今の Web ページ、Export は選んだ Web ページをまとめて。読む Figma のページは設定で選ぶ。幅違い・テーマ違いは Telldes で決めたサフィックスでフレームと変数をまとめる（Section・Light / Dark / Base の決め打ち・Drafts の条件をやめる）。README・ガイド・設計書に反映
+- [ ] ユーザーに3つの文書を見てもらい、決まった形に合わせて Acceptance criteria と #2・#5〜#10 の中身を直す
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 
 **Completion criteria**:
