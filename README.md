@@ -48,8 +48,8 @@ Figma で作った LP / HP を、Claude Code（以下 CC）がカンプと同じ
 ### Review して Export し、CC に渡す
 
 1. プラグインを開くと Review が走り、上部に「● n errors ○ n notices」が出る。error は直さないと Export できないもの、notice は知らせるだけのもの。設定を変えたとき・Export の前にも自動で走る。Figma で直したあとは Review ボタンで走らせ直す
-2. error と notice は、持ち主（ファイル・トークン・トークンにつないでいない値（Tokens タブに並ぶ）・フレーム・レイヤー）の行に ● ○ で付き、詳細に内容と直し方、使っている所が並ぶ。使っている所を押すと Figma でそのレイヤーが選ばれる。同じ原因（同じ色30か所など）は1行にまとまる。上部の件数を押すと、一覧がその行だけに絞られる
-3. error を直す。error になるのは、Dark support ON で Light か Base の変数につないでいない色、Light の変数と同じ名前の変数が Dark に無い色、Dark support ON で Dark コレクションが無い、Web ページ名の重複。notice になるのは、トークンと同じ値（色や数値）なのにつないでいないもの（Dark support ON では色は上の error になり、notice は出ない）、Section の中の一番狭い以外のフレームに From width が無いこと
+2. error と notice は、持ち主（ファイル・トークン・どのトークンとも違う値（Tokens タブに並ぶ）・フレーム・レイヤー）の行に ● ○ で付き、詳細に内容と直し方、使っている所が並ぶ。使っている所を押すと Figma でそのレイヤーが選ばれる。同じ原因（同じ色30か所など）は1行にまとまる。上部の件数を押すと、一覧がその行だけに絞られる
+3. error を直す。error になるのは、Dark support ON で、Light か Base の変数につないでいない色、または Light の変数と同じ名前の変数が Dark に無い色、Dark support ON で Dark コレクションが無い、Web ページ名の重複。notice になるのは、トークンと同じ値（色や数値）なのにつないでいないもの（Dark support ON では色は上の error になり、notice は出ない）、Section の中の一番狭い以外のフレームに From width が無いこと
 4. Export を押す。error が残っていると Export は止まり、一覧が error の行だけに絞られる。error が 0 なら zip がダウンロードされる。Dark support ON なら Light と Dark の両方の画像が入り、終わると（失敗しても）Light に戻る
 5. zip には次が入る
    - `prompt.md`: CC への作業指示
