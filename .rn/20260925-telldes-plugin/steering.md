@@ -106,16 +106,16 @@ Design: docs/design.md
 
 ### #3: README と設計書の作り直し
 
-**Purpose**: README と設計書それぞれの目的（誰が、何を知るために読むか）を言葉にし、その目的から2つの文書をゼロから書き直す。
+**Purpose**: README と設計書それぞれの目的を言葉にし、その目的から作ったテンプレ（`.rn/templates/`）の型で、2つの文書をゼロから書き直す。
 
 **Prerequisites**: #1
 
 **Steps**:
 
-- [ ] 2つの文書の目的を言葉にし、各文書の冒頭に置く。README は「デザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまで迷わず進める」、設計書は「Telldes を直す人が、変更が目的に合うかを判断できるよう、README と実装から読めない意図と決定を残す」
-- [ ] README を目的から書き直す: 何をするものか → インストール → Figma での作り方（正しく渡るために要ること） → プラグインの画面と操作 → zip の中身と CC への渡し方 → 開発。理由は書かず設計書を指す。Review の error は設計書の原則（出力が壊れるものだけ）から導いたものだけを書く
-- [ ] 設計書を目的から書き直す: 目的・前提・決めたこと（理由と代償）だけ。直した経緯は書かない。未決だった Web ページの組み分けは、Figma の Section で囲む方式（Section 名が Web ページ名。1枚だけの Web ページはフレームのまま）に決めて理由を書く。Telldes 独自の約束を一覧にし、それぞれ公式のやり方で表せない理由を添える
-- [ ] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする。`src/ui/placeholders.ts` のタスク番号を付け替え後の番号に合わせる
+- [x] 2つの文書の目的を言葉にし、テンプレにする。README は「デザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまで迷わず進める」、設計書は「直す人が、なぜこの形かを理解し、大事なものを壊さずに変えられる」。節ごとの目的と書き方はテンプレのコメントに置く
+- [ ] README をテンプレの型で書き直す: ベネフィットの一文 → Who it is for（ユーザーストーリー） → Getting started → Usage（ストーリーごとのシナリオ。できないことは効く手順に「If …, then …」） → Develop → License
+- [ ] 設計書をテンプレの型で書き直す: Goals（ストーリーごと） → Non-goals → Approach（全体を形づくる選択と理由。未検証は Assumes） → Structure（フローチャートと部品の持ち物）。経緯は書かない。決定: Web ページの組は Section で囲む、Auto Layout 未適用・デフォルト名・同名は error にしない、トークンは Color・Number と書体につないだ String、一番狭いフレームは From width 空、Dark には Light と同名の変数
+- [ ] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -124,10 +124,10 @@ Design: docs/design.md
 
 **Completion criteria**:
 
-- 各文書の冒頭に、その文書の目的（読む人と、答える問い）が書かれ、本文がその目的の範囲に収まっている。README に設計の理由が無く、設計書に使い方の手順が無い
-- README だけを読んで、初めての人がインストールから Export・CC へ渡すまでの手順を追える。書かれた画面・操作・出力が、steering の Acceptance criteria と実装済みの画面の言葉と一致し、まだ作っていない部分は設計で決まっていることだけを書いている
-- 設計書の各決定に理由があり、目的か前提から導けている。直した回数などの経緯が残っていない。Web ページの組み分けの決定と、独自の約束の一覧が書かれている
-- 2つの文書に互いに矛盾する記述が無く、古い記述（3つのタブ、Notes タブ、無い steering へのリンク、フレーム名での対応付け、zip の `steering.md`、Auto Layout 未適用を error にする）が無い
+- 2つの文書が `.rn/templates/` の型（節の順と、各節のコメントにある Purpose / How）に沿っている。表と太字が無い
+- README だけを読んで、初めての人がリポジトリの入手からプラグインを開き、Figma ファイルを用意し、Export して CC へ渡すまでを追える。書かれた画面・操作・出力が、steering の Acceptance criteria と実装済みの画面の言葉と一致し、まだ作っていない部分は設計で決まっていることだけを書いている
+- 設計書の Goals が README のストーリーと1対1で、Approach の各選択に理由があり、Structure の矢印が Usage の手順と同じ名前。直した経緯が残っていない
+- 2つの文書に互いに矛盾する記述が無く、古い記述（3つのタブ、Notes タブ、無い steering へのリンク、フレーム名での対応付け、zip の `steering.md`、Auto Layout 未適用を error にする、Same page as）が無い
 
 ### #4: 画面の承認
 
