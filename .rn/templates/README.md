@@ -1,21 +1,11 @@
-<!--
-Rules
-
-- For users. Answer their questions in the order they ask them.
-- What it does, never why. Reasons go to the design doc.
-- No history, no changelog. Only the current state.
-- Diagrams, tables and numbered steps over prose. Never more than three lines of prose in a row.
-- Headings are plain English words.
-- Refined, not exhaustive. Write only where the reader would hesitate.
-- Few references. Copy names, commands and values from the real thing.
--->
-
 # {Name}
 
+<!-- "What is this?" One sentence. Who it is for is implied by it. -->
 {What it is, in one sentence}
 
 ## Getting started
 
+<!-- "How do I start?" Only what gets the user to a working state. No options, no explanations. -->
 ```
 {install}
 {set up}
@@ -23,18 +13,17 @@ Rules
 
 ## Usage
 
+<!-- "How do I use it?" One scenario per thing the user wants to achieve, as numbered steps of what they do and see. Put limits inside the step where they bite ("If …, then …"). Never a feature list. -->
+
 ### {Scenario 1: what the user wants to achieve}
 
 1. {You do … and see …}
 2. {You do … and see …}
-3. {If …, then … happens}
-
-### {Scenario 2}
-
-1. …
+3. {If …, then …}
 
 ## Develop
 
+<!-- "How do I build and test it?" Commands only. Why it is built this way goes to the design doc, not here. -->
 ```
 {build}
 {test}
