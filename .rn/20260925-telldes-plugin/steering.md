@@ -14,7 +14,7 @@ Design: docs/design.md
 - 作った見本とユーザーの LP のそれぞれで Setup → デザイン → Review → note → Export した zip を CC に渡すと、CC が作ったページのスクリーンショットが、Export に入ったカンプの画像と、色・大きさ・間隔・文字・並びで一致する（ダーク対応 ON の見本では Light と Dark の両方）
 - Setup: 押すと Light・Dark・Base の3つのコレクションに、README の推奨一式（変数・Text Style・Effect Style）が、使える欄の絞り込みと CSS 変数名つきでそろう。2回押しても増えない。Setup を使わずに作ったファイルも読めて正しく出る
 - Review: 直さないと出力が壊れるものだけを error にし、error が残る間は Export できない。機械的に分かる指定し忘れは止めずに知らせる。同じ原因は1行にまとまる。見る範囲は Export が書き出す範囲と同じ。プラグインを開いたときと Export の前に自動で走り、error の件数が常に見える。項目を押すと該当レイヤーが選ばれる
-- note: レイヤーごとに書いて保存でき、プロパティパネルから開ける。書いた note は Export の出力に載り、画面の外のレイヤーの note は「含まれなかったもの」に記録される
+- note: レイヤーごとに書いて保存でき、プロパティパネルから開ける。書いた note は Export の出力に載り、渡らないレイヤーの note は「含まれなかったもの」に記録される
 - Export: Export settings（From width・Content width・Dark support・Page title・Rules for every page）を受け、zip に `prompt.md`・`tokens.json`・フレームごとの `spec.json`・画像・アセット・`README.md` が入る。落としたものは `README.md` に必ず書かれる
 - Light / Dark: `Light | Dark` の1つの切り替えで、ページ全体の変数のつながりが付け替わり、今どちらかが常に見える。Export が途中で失敗しても Light に戻る。Dark のまま残ったファイルを開くと、戻すよう促される
 - プラグインの画面は OOUI で組まれている: トークン・フレーム・レイヤーが並び、error・notice・note はその持ち主の行に出る。Frames の一覧には渡らないものも並ぶ。上部には Light / Dark、Review（ボタンと error・知らせの件数）、Export があり、Setup はトークンの一覧にあって、足りないものがあるときはトークンのタブに印が出る。プラグインの画面の文言は英語にそろっている
@@ -86,11 +86,11 @@ Design: docs/design.md
 **Steps**:
 
 - [x] OOUI の手順で画面を設計する: オブジェクト（ファイル・トークン・画面・レイヤー）とその属性・関係を取り出し、Setup から Light / Dark までのすべての機能を、どのオブジェクトの属性・操作になるかに割り当てる → 一覧と詳細のビューを決める → レイアウトを決める
-- [x] トークン・画面・レイヤーの一覧と詳細を、#1 で読んだ実物のデータで出す
+- [x] トークン・フレーム・レイヤーの一覧と詳細を、#1 で読んだ実物のデータで出す
 - [x] まだ作っていない機能の結果（Setup で作るもの、違反と知らせ、note、Export 設定、渡らないもの、テーマ）は仮の値で載せ、操作は押せるが Figma に書き込まない。仮の値はこのあとの各機能で本物に差し替える
 - [ ] ユーザーに Figma で触ってもらい、分かりにくいところを直す
   - 1回目の感想（2026-09-25）への直し: 画面の文言を英語にそろえる（README・設計書は日本語のまま）、見た目を Figma 本体に合わせ説明と仮の印を減らす、Export を上部へ移す、上部の error の件数を押すと error のある行だけに絞る。2回目: Light / Dark をファイル名の隣へ（ラベル無し）、上部の右は件数・⟳・Export だけにし Setup はトークンの一覧へ。3回目: ⟳ を「Review」と名前の付いたボタンにし、足りないトークンがあるとき Tokens タブに印を出す
-  - #3 の決定に合わせる: 幅違いのフレームの組み分けを「Same page as」の欄から、Figma の Section で囲む方式に変える（Section 名が Web ページ名）
+  - #3 の決定に合わせる: 幅違いのフレームの組み分けを「Same page as」の欄から、Figma の Section で囲む方式に変える（Section 名が Web ページ名。Web ページの Name 欄は消える）。Dark support の既定を OFF にする
 - [x] self-check (OK/NG per completion criterion, record in checks/2.md)
 - [x] QA expert review (subagent)
 - [x] Craft expert review (subagent, per the task's medium)
@@ -102,7 +102,7 @@ Design: docs/design.md
 - Figma の中で、Setup・Review・note・Export（設定を含む）・Light / Dark のすべての操作を画面で試せ、それぞれの結果がどこに出るかが見える
 - 画面は機能ごとの区画（Review の欄、note の欄など）を持たず、オブジェクトの一覧と詳細でできている。違反・知らせ・note は持ち主の行と詳細に出る
 - 操作しても Figma のファイルが変わらない。仮の値は仮と分かる形でコードにまとまっていて、各機能のタスクで差し替える場所が決まっている
-- 実物のデータのトークン・画面・レイヤーが一覧に並び、レイヤーを選ぶと Figma でもそのレイヤーが選ばれる
+- 実物のデータのトークン・フレーム・レイヤーが一覧に並び、レイヤーを選ぶと Figma でもそのレイヤーが選ばれる
 
 ### #3: README と設計書の作り直し
 
@@ -114,7 +114,7 @@ Design: docs/design.md
 
 - [x] 2つの文書の目的を言葉にし、テンプレにする。README は「デザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまで迷わず進める」、設計書は「直す人が、なぜこの形かを理解し、大事なものを壊さずに変えられる」。節ごとの目的と書き方はテンプレのコメントに置く
 - [ ] README をテンプレの型で書き直す: ベネフィットの一文 → Who it is for（ユーザーストーリー） → Getting started → Usage（ストーリーごとのシナリオ。できないことは効く手順に「If …, then …」） → Develop → License
-- [ ] 設計書をテンプレの型で書き直す: Goals（ストーリーごと） → Non-goals → Approach（全体を形づくる選択と理由。未検証は Assumes） → Structure（フローチャートと部品の持ち物）。経緯は書かない。決定: Web ページの組は Section で囲む、Auto Layout 未適用・デフォルト名・同名は error にしない、トークンは Color・Number と書体につないだ String、一番狭いフレームは From width 空、Dark には Light と同名の変数
+- [ ] 設計書をテンプレの型で書き直す: Goals（ストーリーごと） → Non-goals → Approach（全体を形づくる選択と理由。未検証は Assumes） → Structure（フローチャートと部品の持ち物）。経緯は書かない。決定: Web ページの組は Section で囲む、Auto Layout 未適用・デフォルト名・同名は error にしない、トークンは Color・Number と Scope が Font family / Font style の String、一番狭いフレームは From width 空、Dark には Light と同名の変数
 - [ ] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 - [ ] QA expert review (subagent)
@@ -175,10 +175,10 @@ Design: docs/design.md
 
 **Steps**:
 
-- [ ] 作った見本（ライトのみ、ダーク対応 ON）を一時ボタンで作る。違反・知らせ・書き出せないものをわざと入れ、その一覧を残す
+- [ ] 作った見本（ライトのみ、Dark support ON）を一時ボタンで作る。違反・知らせ・書き出せないものをわざと入れ、その一覧を残す
 - [ ] 書き出す範囲の判定（Figma のページ直下と、ページ直下の Section 直下の表示中のフレーム。設計書）と、Review の判断（error・知らせ・同じ原因を1行に）を作る
 - [ ] エラーのあるコンポーネントセット（とそのインスタンス）が1つあっても読み取り全体を失敗させず、読めなかった欄を「読めなかった」とデータに残す。見本にも1つ入れて実機で確かめる
-- [ ] トークン・画面・レイヤーの行に違反と知らせを付けて出し、押すとレイヤーを選ぶ
+- [ ] トークン・フレーム・レイヤーの行に error と notice を付けて出し、押すとレイヤーを選ぶ
 - [ ] 開いたときに自動で走らせ、上部の Review に error の件数を出す
 - [ ] 違反を入れたファイルで実機で確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/6.md)
@@ -190,11 +190,11 @@ Design: docs/design.md
 **Completion criteria**:
 
 - わざと入れた「出力が壊れる違反」がすべて error として、その持ち主の行に出る。直すと消える
-- ライトだけのファイルで、どのトークンとも違う値は何も報告されない。トークンと同じ値なのにつないでいないものは notice。Dark support ON のファイルでだけ、Light の変数につないでいない色と、Light と同じ名前の変数が Dark に無い色が error になる
+- ライトだけのファイルで、どのトークンとも違う値は何も報告されない。トークンと同じ値なのにつないでいないもの（色・数値）は Dark support に依らず notice。Dark support ON のファイルでだけ、Light か Base の変数につないでいない色と、Light と同じ名前の変数が Dark に無い色が error になる（ON では色の notice は error に置き換わる）。Dark コレクション自体が無いときは、色ごとには出さずファイルの error 1つ
 - 同じ原因の違反（同じ色の30か所など）が1行にまとまる
-- 書き出さない範囲（画面の外・別ページ）にある違反は出ない
+- 書き出さない範囲（渡らないレイヤー・別の Figma のページ）にある error は出ない
 - 開いた直後から error の件数が上部に出て、項目を押すとそのレイヤーが選ばれる
-- 違反と知らせは持ち主の行と詳細にだけ出て、Review だけの一覧は無い
+- error と notice は持ち主の行と詳細にだけ出て、Review だけの一覧は無い
 - 読み取りは1回で、判断の部分は Figma の API を呼んでいない
 
 ### #7: note
@@ -223,14 +223,14 @@ Design: docs/design.md
 
 ### #8: Export 設定と spec / tokens の書き出し
 
-**Purpose**: Export 設定を受け、画面の一覧から zip を書き出し、`tokens.json`・画面ごとの `spec.json`・落としたものを記録した `README.md` を入れる。
+**Purpose**: Export settings を受け、上部の Export で zip を書き出し、`tokens.json`・フレームごとの `spec.json`・落としたものを記録した `README.md` を入れる。
 
 **Prerequisites**: #7
 
 **Steps**:
 
-- [ ] Export 設定（切り替える幅・コンテンツ幅・ダーク対応・題名・共通ルール）を、#2 で割り当てたオブジェクトの属性として作り、保存する
-- [ ] 読み取りデータから `spec.json`・`tokens.json`・`README.md` を作る判断を作る（設計書の出力の4つの約束を守る。`tokens.json` には Color・Number と書体につないだ String の変数を出す）
+- [ ] Export settings（From width・Content width・Dark support・Page title・Rules for every page）を、#2 で割り当てたオブジェクトの属性として作り、保存する
+- [ ] 読み取りデータから `spec.json`・`tokens.json`・`README.md` を作る判断を作る（設計書の出力の4つの約束を守る。`tokens.json` には Color・Number と Scope が Font family / Font style の String の変数を出す）
 - [ ] 上部の Export で Review を走らせ、error ゼロのときだけ zip を書き出す。Dark support の既定は OFF（設計書）
 - [ ] Web ページ名（Section 名・フレーム名）が重複しているとき Review で error にする。一番狭いフレームは From width を空のままにし、Section の中の一番狭い以外のフレームに From width が無ければ notice にする（設計書）
 - [ ] 実機で書き出し、中身を読んで確かめる
@@ -245,8 +245,8 @@ Design: docs/design.md
 - 見本のフレームの、色・大きさ・間隔・文字・並び・サイジング・note が `spec.json` に値として出て、変数につないだものはトークン名で出る
 - 同じ種類のものは同じ形、同じ事実は1か所、指定されていないことは出ていない
 - 書き出せなかったもの（Color Style、文字の中身に使う String と Boolean の変数、渡らないレイヤーの note など）が `README.md` にすべて書かれている
-- error があると Export が押せない
-- Export 設定がファイルに保存され、開き直しても残る
+- error があると Export は zip を書き出さない
+- Export settings がファイルに保存され、開き直しても残る
 
 ### #9: Export の画像・アセット・prompt
 
@@ -258,7 +258,7 @@ Design: docs/design.md
 
 - [ ] Figma に画像を書き出させる窓口を作る（スクリーンショット・ラスター・ベクター・CSS で描けないもの）。ファイル名はレイヤー名だけから作らず、レイヤーの id で区別する（設計書）
 - [ ] `prompt.md` を作る（渡すものの読み方、実装の判断は利用者に確かめること）
-- [ ] 実機で書き出し、zip を CC に渡して読み方が伝わるかを1画面で試す
+- [ ] 実機で書き出し、zip を CC に渡して読み方が伝わるかを1フレームで試す
 - [ ] self-check (OK/NG per completion criterion, record in checks/9.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -266,14 +266,14 @@ Design: docs/design.md
 
 **Completion criteria**:
 
-- 画面ごとに画像がそろい、画像を含むノードは写真が PNG、アイコン・ロゴが SVG として入り、`spec.json` から参照できる
+- フレームごとに画像がそろい、画像を含むノードは写真が PNG、アイコン・ロゴが SVG として入り、`spec.json` から参照できる
 - CSS で同じに描けないものは Figma が描いた画像で入り、それもできないものは `README.md` に書かれている
-- `prompt.md` だけを手がかりに、CC が zip の読み方を迷わず1画面を組める
+- `prompt.md` だけを手がかりに、CC が zip の読み方を迷わず1フレームを組める
 - 画像の書き出しに失敗したとき、黙って欠けた zip を出さない
 
 ### #10: Light / Dark
 
-**Purpose**: `Light | Dark` の切り替えで変数のつながりを付け替え、ダーク対応 ON のとき Export に両方のテーマを入れる。
+**Purpose**: `Light | Dark` の切り替えで変数のつながりを付け替え、Dark support ON のとき Export に両方のテーマを入れる。
 
 **Prerequisites**: #9
 
@@ -281,7 +281,7 @@ Design: docs/design.md
 
 - [ ] ページ全体のつながりを Light と Dark の間で付け替える判断と書き込みを作る。今のテーマはプラグインの印としてファイルに保存する。Light と同じ名前の変数が Dark に無い色は Review で error（設計書）
 - [ ] 上部の `Light | Dark` で状態を見せ、切り替える
-- [ ] ダーク対応 ON の Export で Dark の画像も書き出し、終わったら（失敗しても）Light に戻す
+- [ ] Dark support ON の Export で Dark の画像も書き出し、終わったら（失敗しても）Light に戻す
 - [ ] Dark のまま開いたとき戻すよう促す
 - [ ] 実機で切り替え・Export・途中で失敗させる・Dark のまま閉じて開くを確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/10.md)
@@ -294,7 +294,7 @@ Design: docs/design.md
 
 - 切り替えると、Light につないだすべてのレイヤーが Dark の同名の変数につながり、戻すと元どおりになる（取りこぼしも、つながりの消失も無い）
 - 今のテーマが上部に常に出ている
-- ダーク対応 ON の zip に両テーマの画像が入り、Export 後のファイルは Light
+- Dark support ON の zip に両テーマの画像が入り、Export 後のファイルは Light
 - Export を途中で失敗させても Light に戻り、Dark で残ったファイルを開くと戻すよう促される
 
 ### #11: テスト
@@ -328,7 +328,7 @@ Design: docs/design.md
 
 **Steps**:
 
-- [ ] README の手順どおりに実機で操作し、画面・ボタン・Export 設定・zip の中身の記述を実物と突き合わせて直す
+- [ ] README の手順どおりに実機で操作し、画面・ボタン・Export settings・zip の中身の記述を実物と突き合わせて直す
 - [ ] README と設計書の言葉を画面の言葉にそろえる
 - [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
 - [ ] QA expert review (subagent)
