@@ -1,8 +1,4 @@
-<!--
-1. A first-time user starts with this alone. What, not why.
-2. Table or diagram over prose. Delete anything obvious.
-3. Copy names and commands from the real thing.
--->
+<!-- For a first-time user. Each section answers one question they have. Delete any line that does not. -->
 
 # {Name}
 
@@ -15,17 +11,19 @@
 {run}
 ```
 
+## Prepare
+
+{What the user must set up before using it, and how. Table or tree}
+
 ## Use
 
 | Step | You do | You get |
 |---|---|---|
 | {step} | {action, as the user sees it} | {result} |
 
-{If it writes files, a tree of them here}
+## Limits
 
-## Won't do
-
-- {limit, and what happens then}
+- {What it cannot do, and what happens then}
 
 ## Dev
 
