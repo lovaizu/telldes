@@ -383,8 +383,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**:
-- **Last completed**:
-- **Next**:
-- **Notes**:
+- **Status**: paused
+- **Date**: 2026-09-26
+- **Last completed**: #3 README と設計書の作り直し
+- **Next**: #2 画面の試作（残り: 画面を設計書に合わせる。Same page as と Web ページの Name 欄をやめて Section で組む、Dark support の既定を OFF、TASK の番号は済み。そのあとユーザーに Figma で触ってもらい、checks/2.md の QA・専門家の欄を埋めて #2 を完了し、#4 の承認へ）
+- **Notes**: ブランチ `telldes-plugin`、PR https://github.com/lovaizu/telldes/pull/2 。文書のテンプレは `.rn/templates/`。#3 で決めた規則（error 4つ、notice は Dark support に依らず、String は Scope で判定、既定 OFF、テーマの印、Base の色を許す）は設計書と steering の各タスクに反映済み
