@@ -1,57 +1,57 @@
 <!--
-Rules（表示されない。消さなくてよい）
+Rules (hidden; no need to delete)
 
-- 読む人は直す人。変更が目的に合うかを、これだけで判断できる
-- README と実装から読めることは書かない。使い方は README、仕組みはコード、履歴は git
-- Principles は P1, P2… と番号を付け、Decision の Why はその番号で指す
-- 決定は Decision / Why / Trade-off の3行に固定。理由の無い決定は書かない
-- Trade-off は「諦めたこと → 補い」の形。補いが無ければ「無し」
-- Decisions は目的に近い順（大きい決定 → 細かい決定）
-- 見出しは英単語。1決定 = 1見出し
-- 図・表で見せる。文は3行まで続けない。部品が4つ以上のときだけ図、それ以下は表だけ
-- 未検証の事実は Assumptions に「未検証」と書く。推測を事実に見せない
-- 参照は最小。他文書の節を指さず、その場で1行で言い切る
-- 網羅しない。迷いそうな決定だけ残す
-- 目安 150 行。超えたら削る
+- The reader is a maintainer. This alone lets them judge whether a change still fits the purpose.
+- Never repeat what the README or the code already says. Usage lives in the README, mechanics in the code, history in git.
+- Number the principles (P1, P2, ...) and point to them from each decision's Why.
+- Every decision has exactly three lines: Decision / Why / Trade-off. A decision without a reason is not written.
+- Trade-off reads "what was given up -> how it is compensated". Write "none" when nothing was given up.
+- Order decisions from the largest (closest to the purpose) to the smallest.
+- Headings are English words. One decision = one heading.
+- Show with tables and diagrams. Never more than three lines of prose in a row. Draw a diagram only when four or more parts interact; otherwise a table is enough.
+- Unverified facts go under Assumptions, marked "unverified". Never present a guess as a fact.
+- Minimal references. Do not point to sections of other documents; state the point here in one line.
+- Do not be exhaustive. Keep only the decisions a maintainer might otherwise undo.
+- About 150 lines. Cut when longer.
 -->
 
 # {Name} design
 
 ## Purpose
 
-{一文: 何を解くか。無いと何が困るか}
+{One line: what problem it solves, and what goes wrong without it}
 
 ## Assumptions
 
-- {前提として置くこと}
-- 未検証: {確かめていないこと。外れたら何が変わるか}
+- {What is taken as true}
+- Unverified: {what has not been checked, and what changes if it is wrong}
 
 ## Principles
 
-- P1: {判断の軸}
-- P2: {判断の軸}
-- P3: {判断の軸}
+- P1: {a rule for judging decisions}
+- P2: {a rule for judging decisions}
+- P3: {a rule for judging decisions}
 
 ## Structure
 
-| 部品 | 責務 |
+| Part | Responsibility |
 |---|---|
-| {部品} | {何をし、何をしないか} |
+| {part} | {what it does, and what it does not} |
 
 ```mermaid
 flowchart LR
-  A["{部品}"] --> B["{部品}"] --> C["{部品}"]
+  A["{part}"] --> B["{part}"] --> C["{part}"]
 ```
 
 ## Decisions
 
-### {決定の名前}
+### {Decision name}
 
-- Decision: {何に決めたか}
-- Why: {P1} {一言}
-- Trade-off: {諦めたこと} → {補い}
+- Decision: {what was decided}
+- Why: {P1} {one line}
+- Trade-off: {what was given up} -> {how it is compensated}
 
-### {決定の名前}
+### {Decision name}
 
 - Decision:
 - Why:
@@ -59,12 +59,12 @@ flowchart LR
 
 ## Conventions
 
-{利用者に覚えてもらう独自の約束。無ければこの節を消す}
+{Rules the user must learn that the platform cannot express. Delete this section when there are none}
 
-| 約束 | 標準のやり方で表せない理由 |
+| Convention | Why the standard way cannot express it |
 |---|---|
-| {約束} | {理由} |
+| {convention} | {reason} |
 
 ## Out of scope
 
-- {扱わないもの}
+- {What this does not cover}
