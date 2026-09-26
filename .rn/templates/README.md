@@ -5,8 +5,8 @@
 
 ## Who it is for
 
-<!-- "Is this for me, and what will I be able to do?" One row per role. Each row is the promise that one Usage scenario below keeps, and that one Goal in the design doc measures. -->
-- {Role}: {what you can do, as the role would say it}
+<!-- "Is this for me, and what will I be able to do?" One user story per role. Each story is the promise that one Usage scenario below keeps, and that one Goal in the design doc measures. -->
+- As a {role}, I can {outcome}, so {benefit}.
 
 ## Getting started
 
