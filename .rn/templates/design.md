@@ -2,8 +2,8 @@
 
 ## Goals
 
-<!-- "What problem does this solve?" What goes wrong without it. A developer uses this to judge whether a change still serves the purpose. -->
-- {the problem, and what goes wrong without this}
+<!-- "What problem does this solve, and how do we know it is solved?" One goal per promise in the README's "Who it is for": the problem behind it, and the condition that counts as achieved. A developer uses this to judge whether a change still serves the purpose. -->
+- {the problem behind one promise} → {what counts as achieved}
 
 ## Non-goals
 

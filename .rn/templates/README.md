@@ -3,6 +3,13 @@
 <!-- "What do I get?" One sentence: the benefit for the user, not what the tool is. If the category is not obvious from it, add one line saying what it is. -->
 {What the user gets, in one sentence}
 
+## Who it is for
+
+<!-- "Is this for me, and what will I be able to do?" One row per role. Each row is the promise that one Usage scenario below keeps, and that one Goal in the design doc measures. -->
+| Role | What you can do |
+|---|---|
+| {role} | {outcome, as the role would say it} |
+
 ## Getting started
 
 <!-- "How do I start?" Only what gets the user to a working state. No options, no explanations. -->
@@ -13,9 +20,9 @@
 
 ## Usage
 
-<!-- "How do I use it?" One scenario per thing the user wants to achieve, as numbered steps of what they do and see. Put limits inside the step where they bite ("If …, then …"). Never a feature list. -->
+<!-- "How do I use it?" One scenario per row of "Who it is for", as numbered steps of what that role does and sees. Put limits inside the step where they bite ("If …, then …"). Never a feature list. -->
 
-### {Scenario 1: what the user wants to achieve}
+### {Scenario 1: role and what they want to achieve}
 
 1. {You do … and see …}
 2. {You do … and see …}
