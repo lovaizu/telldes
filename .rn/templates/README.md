@@ -1,39 +1,33 @@
 <!--
-Rules
-
-1. A first-time user starts with this alone.
-2. What, not why. Reasons go to the design doc, history to git.
-3. Each section answers one question. Delete a section whose answer is obvious.
-4. Table or tree over prose. Never more than three lines of prose in a row.
-5. Shorter wins. Copy names, commands and values from the real thing.
+1. A first-time user starts with this alone. What, not why.
+2. Table or diagram over prose. Delete anything obvious.
+3. Copy names and commands from the real thing.
 -->
 
 # {Name}
 
-{What it does, in one line}
-{Who it is for}
+{What it does, for whom, in one line}
 
-## Quick start
+## Start
 
 ```
 {install}
 {run}
 ```
 
-## Usage
+## Use
 
 | Step | You do | You get |
 |---|---|---|
-| {step} | {action, with the name the user sees} | {result} |
+| {step} | {action, as the user sees it} | {result} |
 
-{Add an option table under a step only when the user would hesitate over a value}
-{If it writes files, show them as a tree here. Otherwise nothing}
+{If it writes files, a tree of them here}
 
-## Limits
+## Won't do
 
-- {What it cannot do, and what happens then}
+- {limit, and what happens then}
 
-## Development
+## Dev
 
 ```
 {build}
