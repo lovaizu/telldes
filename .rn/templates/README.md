@@ -6,9 +6,7 @@
 ## Who it is for
 
 <!-- "Is this for me, and what will I be able to do?" One row per role. Each row is the promise that one Usage scenario below keeps, and that one Goal in the design doc measures. -->
-| Role | What you can do |
-|---|---|
-| {role} | {outcome, as the role would say it} |
+- {Role}: {what you can do, as the role would say it}
 
 ## Getting started
 
