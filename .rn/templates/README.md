@@ -27,12 +27,7 @@ Rules
 | {step} | {action, with the name the user sees} | {result} |
 
 {Add an option table under a step only when the user would hesitate over a value}
-
-## Output
-
-```
-{What comes out, as a tree}
-```
+{If it writes files, show them as a tree here. Otherwise nothing}
 
 ## Limits
 
