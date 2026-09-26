@@ -378,8 +378,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**: {YYYY-MM-DD}
-- **Last completed**: {task id and name}
-- **Next**: {task id and name}
-- **Notes**: {blockers, decisions pending, context the next session needs}
+- **Status**: paused
+- **Date**: 2026-09-26
+- **Last completed**: #3 の step 1〜2（`.rn/doc-review.md` を書き、テンプレを捨てた）
+- **Next**: #3 の聞き取り → `.rn/doc-review.md` を磨く → 3つの文書を型なしで一から書く → レビュー1回
+- **Notes**: 聞き取りの質問9つを `rebuild-rn-46`（ccpm の rn-rebuild）へ送ったが、相手側が API エラーで答えを返せていない。送り直すか、ユーザーに相手のセッションで答えさせてもらう。README・設計書・ガイドの今の中身は捨てたテンプレに沿って書いた下書きで、一から書き直す。PR https://github.com/lovaizu/telldes/pull/2
