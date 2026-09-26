@@ -113,14 +113,14 @@ Design: docs/design.md
 **Steps**:
 
 - [x] 2つの文書の目的を言葉にし、テンプレにする。README は「デザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまで迷わず進める」、設計書は「直す人が、なぜこの形かを理解し、大事なものを壊さずに変えられる」。節ごとの目的と書き方はテンプレのコメントに置く
-- [ ] README をテンプレの型で書き直す: ベネフィットの一文 → Who it is for（ユーザーストーリー） → Getting started → Usage（ストーリーごとのシナリオ。できないことは効く手順に「If …, then …」） → Develop → License
-- [ ] 設計書をテンプレの型で書き直す: Goals（ストーリーごと） → Non-goals → Approach（全体を形づくる選択と理由。未検証は Assumes） → Structure（フローチャートと部品の持ち物）。経緯は書かない。決定: Web ページの組は Section で囲む、Auto Layout 未適用・デフォルト名・同名は error にしない、トークンは Color・Number と Scope が Font family / Font style の String、一番狭いフレームは From width 空、Dark には Light と同名の変数
-- [ ] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする
-- [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
-- [ ] QA expert review (subagent)
-- [ ] Craft expert review (subagent, per the task's medium)
-- [ ] Verification expert review (subagent, per the task's medium)
-- [ ] Design expert review (subagent)
+- [x] README をテンプレの型で書き直す: ベネフィットの一文 → Who it is for（ユーザーストーリー） → Getting started → Usage（ストーリーごとのシナリオ。できないことは効く手順に「If …, then …」） → Develop → License
+- [x] 設計書をテンプレの型で書き直す: Goals（ストーリーごと） → Non-goals → Approach（全体を形づくる選択と理由。未検証は Assumes） → Structure（フローチャートと部品の持ち物）。経緯は書かない。決定: Web ページの組は Section で囲む、Auto Layout 未適用・デフォルト名・同名は error にしない、トークンは Color・Number と Scope が Font family / Font style の String、一番狭いフレームは From width 空、Dark には Light と同名の変数
+- [x] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする
+- [x] self-check (OK/NG per completion criterion, record in checks/3.md)
+- [x] QA expert review (subagent)
+- [x] Craft expert review (subagent, per the task's medium)
+- [x] Verification expert review (subagent, per the task's medium)
+- [x] Design expert review (subagent)
 
 **Completion criteria**:
 
