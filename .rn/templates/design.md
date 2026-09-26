@@ -1,41 +1,35 @@
-<!--
-1. For the maintainer: why it is this way, never how to use it or how the code works.
-2. A decision is recorded only if someone could reasonably have chosen otherwise.
-3. Diagram over prose. Unchecked facts say "unverified".
--->
+<!-- For the maintainer. Each section answers one question they have when changing this. Delete any line the README or the code already answers. -->
 
 # {Name} design
 
 ## Why
 
-{The problem, and what goes wrong without this. One line}
-{Not: what it deliberately does not do. One line}
+- Goal: {the problem, and what goes wrong without this}
+- Not: {what it deliberately does not do}
+- Unverified: {facts assumed but not checked}
 
-## Structure
+## Principles
 
-```mermaid
-flowchart LR
-  A["{part}"] --> B["{part}"] --> C["{part}"]
-```
-
-## Flow
-
-```mermaid
-sequenceDiagram
-  {actor} ->> {part}: {step}
-  {part} -->> {actor}: {result}
-```
+- P1: {the rule that decides between two reasonable options}
+- P2: {…}
 
 ## Decisions
 
 | Decision | Why | Cost |
 |---|---|---|
-| {what was chosen} | {the reason, one line} | {what was given up, or none} |
+| {what was chosen} | {P1, one line} | {what was given up, or none} |
 
 ## Conventions
 
-{Only if users must learn rules the platform cannot express. Otherwise delete}
-
-| Rule | Why the standard way cannot express it |
+| Rule users must learn | Why the standard way cannot express it |
 |---|---|
 | {rule} | {reason} |
+
+## Structure
+
+{Only when the code does not show it}
+
+```mermaid
+flowchart LR
+  A["{part}"] --> B["{part}"]
+```
