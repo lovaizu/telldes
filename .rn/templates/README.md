@@ -1,7 +1,7 @@
 # {Name}
 
-<!-- "What is this?" One sentence. Who it is for is implied by it. -->
-{What it is, in one sentence}
+<!-- "What do I get?" One sentence: the benefit for the user, not what the tool is. If the category is not obvious from it, add one line saying what it is. -->
+{What the user gets, in one sentence}
 
 ## Getting started
 
