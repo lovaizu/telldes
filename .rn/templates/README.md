@@ -1,59 +1,59 @@
 <!--
-Rules（表示されない。消さなくてよい）
+Rules (hidden; no need to delete)
 
-- 読む人は初めての利用者。これだけ読んで使い始められる
-- 冒頭3行で「何・誰向け・どう始める」
-- 1見出し = 読み手の1つの問い。見出しは英単語
-- 図・表・箇条書きで見せる。文は3行まで続けない
-- 「何をするか」だけ。理由・経緯・履歴は書かない（理由は設計書、履歴は git）
-- 最新の姿だけ。名前・コマンド・値は実物から写す
-- 網羅しない。迷う所だけ書く。参照は設計書へのリンク1つ
-- 図はテキスト（Mermaid・ツリー・表）。画像は使わない。部品が4つ以上のときだけ図
-- Usage は画面のボタンと同じ名前で、使う順に並べる
-- Output は「出るもの」、Limits は「できないこと」。同じことを両方に書かない
-- 目安 100 行。超えたら削る
+- The reader is a first-time user. This alone lets them start.
+- First three lines answer: what it is, who it is for, how to start.
+- One heading = one question the reader has. Headings are English words.
+- Show with diagrams, tables and lists. Never more than three lines of prose in a row.
+- Say what it does, never why. Reasons live in the design doc, history in git.
+- Describe only the current state. Copy names, commands and values from the real thing.
+- Do not be exhaustive. Write only where the reader would hesitate. One link, to the design doc.
+- Diagrams are text (Mermaid, tree, table), never images. Draw a diagram only when four or more parts interact.
+- Usage follows the order the user works in, with the names the user actually sees (command, screen, API, option).
+- Output is what comes out. Limits is what it cannot do. Never both for the same fact.
+- About 100 lines. Cut when longer.
 -->
 
 # {Name}
 
-{何をするか}
-{誰向けか}
+{What it does, in one line}
+{Who it is for}
 
 ## Quick start
 
 ```
-{入れる}
-{動かす}
+{install}
+{run}
 ```
 
 ## How it works
 
 ```
-{流れを1本の図で。手順の名前は画面のボタンと同じ}
+{One flow. Step names are the ones the user sees}
 ```
 
 ## Usage
 
-### {ボタン 1}
+### {Step or feature 1}
 
-{何をすると、何が起きるか。2〜3行}
+{What the user does and what happens. Two or three lines}
 
-### {ボタン 2}
+### {Step or feature 2}
 
-| 欄 | 入れるもの |
+| Option | What to give |
 |---|---|
-| {欄} | {何を入れるか} |
+| {option} | {value and meaning} |
 
 ## Output
 
 ```
-{出るものをツリーで}
+{What comes out, as a tree}
 ```
 
 ## Limits
 
-- {できないこと}
-- {できないときの挙動}
+- {What it cannot do}
+- {What happens then}
 
 ## Development
 
@@ -62,4 +62,4 @@ Rules（表示されない。消さなくてよい）
 {test}
 ```
 
-設計の意図: [`docs/design.md`](docs/design.md)
+Design decisions: [`docs/design.md`](docs/design.md)
