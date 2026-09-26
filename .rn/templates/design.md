@@ -1,70 +1,55 @@
 <!--
-Rules (hidden; no need to delete)
+Rules
 
-- The reader is a maintainer. This alone lets them judge whether a change still fits the purpose.
-- Never repeat what the README or the code already says. Usage lives in the README, mechanics in the code, history in git.
-- Number the principles (P1, P2, ...) and point to them from each decision's Why.
-- Every decision has exactly three lines: Decision / Why / Trade-off. A decision without a reason is not written.
-- Trade-off reads "what was given up -> how it is compensated". Write "none" when nothing was given up.
-- Order decisions from the largest (closest to the purpose) to the smallest.
-- Headings are English words. One decision = one heading.
-- Show with tables and diagrams. Never more than three lines of prose in a row. Draw a diagram only when four or more parts interact; otherwise a table is enough.
-- Unverified facts go under Assumptions, marked "unverified". Never present a guess as a fact.
-- Minimal references. Do not point to sections of other documents; state the point here in one line.
-- Do not be exhaustive. Keep only the decisions a maintainer might otherwise undo.
-- About 150 lines. Cut when longer.
+1. A maintainer judges a change with this alone. Never repeat the README or the code.
+2. Record a decision only when someone could reasonably have decided otherwise.
+   Three lines: Decision / Why / Trade-off. No reason, no entry.
+3. Why points to a principle (P1, P2, ...). No principle, no decision.
+4. A fact you have not checked goes under Assumptions, marked unverified.
+5. Shorter wins. Delete a section whose content is obvious or lives elsewhere.
 -->
 
 # {Name} design
 
 ## Purpose
 
-{One line: what problem it solves, and what goes wrong without it}
+{One line: the problem it solves, and what goes wrong without it}
+
+## Non-goals
+
+- {What it deliberately does not do}
 
 ## Assumptions
 
-- {What is taken as true}
-- Unverified: {what has not been checked, and what changes if it is wrong}
+- {Taken as true}
+- Unverified: {not checked; what changes if wrong}
 
 ## Principles
 
-- P1: {a rule for judging decisions}
-- P2: {a rule for judging decisions}
-- P3: {a rule for judging decisions}
-
-## Structure
-
-| Part | Responsibility |
-|---|---|
-| {part} | {what it does, and what it does not} |
-
-```mermaid
-flowchart LR
-  A["{part}"] --> B["{part}"] --> C["{part}"]
-```
+- P1: {a rule that decides between two reasonable options}
+- P2: {…}
 
 ## Decisions
 
 ### {Decision name}
 
-- Decision: {what was decided}
+- Decision: {what was chosen}
 - Why: {P1} {one line}
-- Trade-off: {what was given up} -> {how it is compensated}
-
-### {Decision name}
-
-- Decision:
-- Why:
-- Trade-off:
+- Trade-off: {what was given up} -> {how it is compensated, or "none"}
 
 ## Conventions
 
-{Rules the user must learn that the platform cannot express. Delete this section when there are none}
+{Only if users must learn rules the platform cannot express. Otherwise delete}
 
 | Convention | Why the standard way cannot express it |
 |---|---|
 | {convention} | {reason} |
 
-## Out of scope
+## Structure
 
-- {What this does not cover}
+{Only when four or more parts interact and the code does not show it. Otherwise delete}
+
+```mermaid
+flowchart LR
+  A["{part}"] --> B["{part}"]
+```
