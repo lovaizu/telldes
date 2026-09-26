@@ -19,11 +19,6 @@ Rules（表示されない。消さなくてよい）
 {何をするか}
 {誰向けか}
 
-```mermaid
-flowchart LR
-  A["入力"] --> B["{Name}"] --> C["出力"]
-```
-
 ## Quick start
 
 ```
