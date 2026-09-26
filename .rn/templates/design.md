@@ -21,7 +21,7 @@ How: write what is left out, with the reason in a few words.
 -->
 - {what is left out}: {why}
 
-## Solution
+## Approach
 
 <!--
 Purpose: the developer understands the approach, and makes changes that fit it instead of fighting it.
