@@ -1,35 +1,42 @@
-<!-- For the maintainer. Each section answers one question they have when changing this. Delete any line the README or the code already answers. -->
+<!-- For developers. Answer why it is this way. Delete any line the README or the code already answers. -->
 
 # {Name} design
 
-## Why
+## Goals
 
-- Goal: {the problem, and what goes wrong without this}
-- Not: {what it deliberately does not do}
-- Unverified: {facts assumed but not checked}
+- {the problem, and what goes wrong without this}
 
-## Principles
+## Non-goals
 
-- P1: {the rule that decides between two reasonable options}
-- P2: {…}
+- {what it deliberately does not do}
 
-## Decisions
+## Solution
 
-| Decision | Why | Cost |
-|---|---|---|
-| {what was chosen} | {P1, one line} | {what was given up, or none} |
+{The core idea, in a few lines. Why it solves the problem}
 
-## Conventions
-
-| Rule users must learn | Why the standard way cannot express it |
-|---|---|
-| {rule} | {reason} |
+Assumes: {facts relied on but not verified, or none}
 
 ## Structure
 
-{Only when the code does not show it}
-
 ```mermaid
 flowchart LR
-  A["{part}"] --> B["{part}"]
+  A["{actor or part}"] --> B["{part}"] --> C["{part}"]
 ```
+
+| Part | Responsibility |
+|---|---|
+| {part} | {what it does, and what it must not do} |
+
+## Flow
+
+```mermaid
+sequenceDiagram
+  {actor} ->> {part}: {step}
+  {part} -->> {actor}: {result}
+```
+
+## Alternatives
+
+| Alternative | Why not |
+|---|---|
+| {option considered} | {what it would cost or break} |

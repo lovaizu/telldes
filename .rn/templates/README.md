@@ -1,35 +1,35 @@
-<!-- For a first-time user. Each section answers one question they have. Delete any line that does not. -->
+<!-- For users. Answer their questions in the order they ask them. Delete any line that does not. -->
 
 # {Name}
 
-{What it does, for whom, in one line}
+{What it is, in one sentence}
 
-## Start
+## Getting started
 
 ```
 {install}
-{run}
+{set up}
 ```
 
-## Prepare
+## Usage
 
-{What the user must set up before using it, and how. Table or tree}
+### {Scenario 1: what the user wants to achieve}
 
-## Use
+1. {You do … and see …}
+2. {You do … and see …}
+3. {If …, then … happens}
 
-| Step | You do | You get |
-|---|---|---|
-| {step} | {action, as the user sees it} | {result} |
+### {Scenario 2}
 
-## Limits
+1. …
 
-- {What it cannot do, and what happens then}
-
-## Dev
+## Develop
 
 ```
 {build}
 {test}
 ```
 
-Why it is built this way: [`docs/design.md`](docs/design.md)
+## License
+
+{license}
