@@ -12,7 +12,7 @@ Design: docs/design.md
 目的に合っているか
 
 - 作った見本とユーザーの LP のそれぞれで Setup → デザイン → Review → note → Export した zip を CC に渡すと、CC が作ったページのスクリーンショットが、Export に入ったカンプの画像と、色・大きさ・間隔・文字・並びで一致する（ダーク対応 ON の見本では Light と Dark の両方）
-- Setup: 押すと Light・Dark・Base の3つのコレクションに、README の推奨一式（変数・Text Style・Effect Style）が、使える欄の絞り込みと CSS 変数名つきでそろう。2回押しても増えない。Setup を使わずに作ったファイルも読めて正しく出る
+- Setup: 押すと Light・Dark・Base の3つのコレクションに、ガイドの推奨一式（変数・Text Style・Effect Style）が、使える欄の絞り込みと CSS 変数名つきでそろう。2回押しても増えない。Setup を使わずに作ったファイルも読めて正しく出る
 - Review: 直さないと出力が壊れるものだけを error にし、error が残る間は Export できない。機械的に分かる指定し忘れは止めずに知らせる。同じ原因は1行にまとまる。見る範囲は Export が書き出す範囲と同じ。プラグインを開いたときと Export の前に自動で走り、error の件数が常に見える。項目を押すと該当レイヤーが選ばれる
 - note: レイヤーごとに書いて保存でき、プロパティパネルから開ける。書いた note は Export の出力に載り、渡らないレイヤーの note は「含まれなかったもの」に記録される
 - Export: Export settings（From width・Content width・Dark support・Page title・Rules for every page）を受け、zip に `prompt.md`・`tokens.json`・フレームごとの `spec.json`・画像・アセット・`README.md` が入る。落としたものは `README.md` に必ず書かれる
@@ -24,7 +24,7 @@ Design: docs/design.md
 - Figma 無償版の Drafts で動き、有料の機能を使わない
 - 判断（出力の中身・Review・付け替えの判断）は Figma に触らない部分にあり、Figma なしで動く。Review と Export は一度読んだ同じデータから作られる
 - テストは、見本ファイルから読み取った入力を判断の部分に与え、結果を正解と丸ごと比べる。正解は `prompt.md` と見本にわざと入れたものの一覧に照らして作られている
-- README が新しい画面と流れのとおりに書かれ、設計書と食い違わない
+- README と設計書は、画面や実装を作り直しても変わらない土台だけを書き（`.rn/doc-review.md`）、ガイドは新しい画面と流れのとおりに書かれ、3つが食い違わない
 - 検証用の一時コード・一時ファイルがリポジトリに残っていない
 
 # Assumptions
@@ -104,30 +104,26 @@ Design: docs/design.md
 - 操作しても Figma のファイルが変わらない。仮の値は仮と分かる形でコードにまとまっていて、各機能のタスクで差し替える場所が決まっている
 - 実物のデータのトークン・フレーム・レイヤーが一覧に並び、レイヤーを選ぶと Figma でもそのレイヤーが選ばれる
 
-### #3: README と設計書の作り直し
+### #3: README・設計書・ガイドの作り直し
 
-**Purpose**: README と設計書それぞれの目的を言葉にし、その目的から作ったテンプレ（`.rn/templates/`）の型で、2つの文書をゼロから書き直す。
+**Purpose**: 3つの文書の役目と、書く・書かないの判定とレビューの観点を `.rn/doc-review.md` に言葉にし、それだけを拠りどころに（見出しの型は持たずに）3つの文書を書き直す。
 
 **Prerequisites**: #1
 
 **Steps**:
 
-- [x] 2つの文書の目的を言葉にし、テンプレにする。README は「デザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまで迷わず進める」、設計書は「直す人が、なぜこの形かを理解し、大事なものを壊さずに変えられる」。節ごとの目的と書き方はテンプレのコメントに置く
-- [x] README をテンプレの型で書き直す: ベネフィットの一文 → Who it is for（ユーザーストーリー） → Getting started → Usage（ストーリーごとのシナリオ。できないことは効く手順に「If …, then …」） → Develop → License
-- [x] 設計書をテンプレの型で書き直す: Goals（ストーリーごと） → Non-goals → Approach（全体を形づくる選択と理由。未検証は Assumes） → Structure（フローチャートと部品の持ち物）。経緯は書かない。決定: Web ページの組は Section で囲む、Auto Layout 未適用・デフォルト名・同名は error にしない、トークンは Color・Number と Scope が Font family / Font style の String、一番狭いフレームは From width 空、Dark には Light と同名の変数
-- [x] 2つの文書・steering の Acceptance criteria・実装済みの画面の言葉（Frames / Tokens、Review、Export、Light | Dark、Setup、Page title、From width、Content width、Dark support、Rules for every page）が食い違わないようにする
-- [x] self-check (OK/NG per completion criterion, record in checks/3.md)
-- [x] QA expert review (subagent)
-- [x] Craft expert review (subagent, per the task's medium)
-- [x] Verification expert review (subagent, per the task's medium)
-- [x] Design expert review (subagent)
+- [x] 3つの文書の役目・判定・観点・回し方を `.rn/doc-review.md` に書く（README は UX の土台、設計書は仕組みの土台、ガイドは今手を動かすための手順）
+- [x] テンプレ（`.rn/templates/`）を捨てる。枠を埋めるように書くと、要らない中身まで入るため
+- [ ] 別のセッションが型なしで1回で書いた設計書（ccpm の rn-rebuild ブランチ `rn/docs/design.md`）の書き手に、何を考え、どう判断したかを聞き取り、`.rn/doc-review.md` を磨く
+- [ ] README・設計書・ガイドを、役目と観点だけから見出しを組み立て、ゼロから書く
+- [ ] `.rn/doc-review.md` の回し方どおりにレビューを1回回して直し、結果をユーザーに見せる
+- [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 
 **Completion criteria**:
 
-- 2つの文書が `.rn/templates/` の型（節の順と、各節のコメントにある Purpose / How）に沿っている。表と太字が無い
-- README だけを読んで、初めての人がリポジトリの入手からプラグインを開き、Figma ファイルを用意し、Export して CC へ渡すまでを追える。書かれた画面・操作・出力が、steering の Acceptance criteria と実装済みの画面の言葉と一致し、まだ作っていない部分は設計で決まっていることだけを書いている
-- 設計書の Goals が README のストーリーと1対1で、Approach の各選択に理由があり、Structure の矢印が Usage の手順と同じ名前。直した経緯が残っていない
-- 2つの文書に互いに矛盾する記述が無く、古い記述（3つのタブ、Notes タブ、無い steering へのリンク、フレーム名での対応付け、zip の `steering.md`、Auto Layout 未適用を error にする、Same page as）が無い
+- README と設計書のすべての文が、`.rn/doc-review.md` の判定を通る（変えたら Telldes の形が変わり、画面や実装を作り直しても変わらない）
+- 経緯を知らない読み手が、文書ごとの観点で目的を果たせる（README で使うかを決めてガイドへ進める、設計書である変更が土台に合うかを言える、ガイドで zip を作れる）
+- 3つの文書に食い違いが無く、ガイドの画面の言葉が実装済みの画面と一致する
 
 ### #4: 画面の承認
 
@@ -320,16 +316,16 @@ Design: docs/design.md
 - 正解は今の出力を写したものではなく、見本にわざと入れたものが1つずつ正解に現れている
 - 判断の部分をわざと1か所壊すと、テストが落ちる
 
-### #12: README の突き合わせ
+### #12: ガイドの突き合わせ
 
-**Purpose**: #3 で書いた README を、できあがった画面と zip に突き合わせ、食い違いを直す。
+**Purpose**: #3 で書いたガイドを、できあがった画面と zip に突き合わせ、食い違いを直す。
 
 **Prerequisites**: #11
 
 **Steps**:
 
-- [ ] README の手順どおりに実機で操作し、画面・ボタン・Export settings・zip の中身の記述を実物と突き合わせて直す
-- [ ] README と設計書の言葉を画面の言葉にそろえる
+- [ ] ガイドの手順どおりに実機で操作し、画面・ボタン・Export settings・zip の中身の記述を実物と突き合わせて直す
+- [ ] README・設計書が、できあがったものと食い違わないかを確かめる（土台なので、食い違えば実装か土台のどちらを直すかをユーザーに聞く）
 - [ ] self-check (OK/NG per completion criterion, record in checks/12.md)
 - [ ] QA expert review (subagent)
 - [ ] Craft expert review (subagent, per the task's medium)
@@ -337,9 +333,8 @@ Design: docs/design.md
 
 **Completion criteria**:
 
-- README の手順どおりに、初めての人がインストールから Export まで進められる
-- README に書かれた画面・ボタン・出力が、実物と一致する。設計書と食い違う記述が無い
-- 設計の理由は README に書かず、設計書を指している
+- ガイドの手順どおりに、初めての人が Figma のファイルの用意から Export まで進められる
+- ガイドに書かれた画面・ボタン・出力が、実物と一致する。README・設計書と食い違う記述が無い
 
 ### #13: 通し試験
 
