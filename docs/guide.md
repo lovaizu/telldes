@@ -1,6 +1,6 @@
 # Figma のデザインを、CC に渡す zip にする
 
-Figma のファイルを用意してから、Claude Code（以下 CC）に渡す zip ができるまでの手順。用意するものは、Figma デスクトップアプリ（無償版でよい）と、Telldes を開ける状態（[README](../README.md) の「はじめる」）。
+Figma のファイルを用意してから、Claude Code（以下 CC）に渡す zip ができるまでの手順。用意するものは、Figma（無償版でよい）と、Telldes を開ける状態（[README](../README.md) の「はじめる」）。
 
 プラグインの画面には、Frames と Tokens の2つのタブがある。Frames には Web ページとそのフレーム・レイヤー、Tokens にはトークン（CC が CSS の変数にする色・数値・書体・文字・影）が並ぶ。一覧の行を押すと、その行の詳細が開く。ファイル全体の設定は、上部のファイル名を押すと開く。
 
