@@ -11,9 +11,10 @@ Rules
 
 # {Name} design
 
-## Purpose
+## Goals
 
-{One line: the problem it solves, and what goes wrong without it}
+- {The problem it solves, and what goes wrong without it}
+- {What "done" looks like}
 
 ## Non-goals
 
