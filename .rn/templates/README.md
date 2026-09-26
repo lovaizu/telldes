@@ -1,17 +1,11 @@
 <!--
-Rules (hidden; no need to delete)
+Rules
 
-- The reader is a first-time user. This alone lets them start.
-- First three lines answer: what it is, who it is for, how to start.
-- One heading = one question the reader has. Headings are English words.
-- Show with diagrams, tables and lists. Never more than three lines of prose in a row.
-- Say what it does, never why. Reasons live in the design doc, history in git.
-- Describe only the current state. Copy names, commands and values from the real thing.
-- Do not be exhaustive. Write only where the reader would hesitate. One link, to the design doc.
-- Diagrams are text (Mermaid, tree, table), never images. Draw a diagram only when four or more parts interact.
-- Usage follows the order the user works in, with the names the user actually sees (command, screen, API, option).
-- Output is what comes out. Limits is what it cannot do. Never both for the same fact.
-- About 100 lines. Cut when longer.
+1. A first-time user starts with this alone.
+2. What, not why. Reasons go to the design doc, history to git.
+3. Each section answers one question. Delete a section whose answer is obvious.
+4. Table or tree over prose. Never more than three lines of prose in a row.
+5. Shorter wins. Copy names, commands and values from the real thing.
 -->
 
 # {Name}
@@ -26,23 +20,13 @@ Rules (hidden; no need to delete)
 {run}
 ```
 
-## How it works
-
-```
-{One flow. Step names are the ones the user sees}
-```
-
 ## Usage
 
-### {Step or feature 1}
+| Step | You do | You get |
+|---|---|---|
+| {step} | {action, with the name the user sees} | {result} |
 
-{What the user does and what happens. Two or three lines}
-
-### {Step or feature 2}
-
-| Option | What to give |
-|---|---|
-| {option} | {value and meaning} |
+{Add an option table under a step only when the user would hesitate over a value}
 
 ## Output
 
@@ -52,8 +36,7 @@ Rules (hidden; no need to delete)
 
 ## Limits
 
-- {What it cannot do}
-- {What happens then}
+- {What it cannot do, and what happens then}
 
 ## Development
 
@@ -62,4 +45,4 @@ Rules (hidden; no need to delete)
 {test}
 ```
 
-Design decisions: [`docs/design.md`](docs/design.md)
+Why it is built this way: [`docs/design.md`](docs/design.md)
