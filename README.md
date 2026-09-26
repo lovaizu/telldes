@@ -6,7 +6,7 @@ Figma で作った LP / HP のデザインを、Claude Code（以下 CC）がカ
 
 この README は、Telldes を初めて使うデザイナーが、これだけを読んで、Figma のデザインを CC に渡せる zip にするまでを迷わず進められるように書いてある。なぜこの形なのかは [`docs/design.md`](docs/design.md) にある。
 
-流れは次のとおり。Setup で推奨の変数・スタイル一式を作り、Figma でデザインし、Review で渡すと壊れるところを直し、note で Figma に描けないことを書き、Export で zip を書き出す。
+流れは次のとおり。
 
 ```
 Setup → デザイン → Review → note → Export → zip を CC に渡す
@@ -14,37 +14,22 @@ Setup → デザイン → Review → note → Export → zip を CC に渡す
 
 ## インストール
 
+bun（JavaScript の実行環境。https://bun.sh から入れる）を入れてから、次を実行する。
+
 ```
 bun install
 bun run build
 ```
 
-Figma → Plugins → Development → Import plugin from manifest… で、このリポジトリの `manifest.json` を選ぶ。無償版（Starter）の Drafts で動く。今は開発版として読み込む（Community への公開は未実施）。
+Figma デスクトップアプリ → Plugins → Development → Import plugin from manifest… で、このリポジトリの `manifest.json` を選ぶ（manifest からの読み込みはデスクトップ版だけ）。無償版（Starter）の Drafts で動く。今は開発版として読み込む（Community への公開は未実施）。
 
 ## Figma での作り方
 
-### 渡す画面
-
-1つの Figma のページに、渡す画面だけを置く。そのページの直下にある表示中のフレームが、すべて画面として渡る。部品置き場や下書きは別の Figma のページに置く。
-
-渡らないもの:
-
-- 非表示のレイヤー
-- ページ直下のフレーム以外（裸の Component / Component Set、Rectangle など）
-
-渡らないものは、プラグインの Frames の一覧に「Not exported」として並び、zip の `README.md` にも書かれる。
-
-### Web ページと幅
-
-zip の書き出しの単位を「Web ページ」と呼ぶ（HP なら top・about など。zip のフォルダ1つ）。1つの Web ページを幅ごとに別のフレームで描く（例: 1440 と 375）。幅違いのフレームは Figma の Section で囲む。Section 名が Web ページ名（zip のフォルダ名）になる。1枚だけの Web ページは Section で囲まずフレームのままでよく、フレーム名がフォルダ名になる。
-
-どの幅からそのフレームを使うか（From width）と、コンテンツ幅（Content width）は、プラグインでそのフレームの Export 設定（書き出しの設定欄。「プラグインの画面」の節）に入れる。
-
 ### トークン
 
-Figma の Variables（COLOR・FLOAT）、Text Style、Effect Style がトークンとして `tokens.json` に出る。使うかは自由で、使わなくても値がそのまま出て、正しさは変わらない。Color Style と STRING / BOOLEAN の Variables はトークンにならず、使った所は zip の `README.md` に「含まれなかったもの」として書かれる。
+Figma の変数のうち色（Color）・数値（Number）と、書体につないだ文字列（String）、それに Text Style と Effect Style が、トークンとして zip の `tokens.json` に出る。使うかは自由で、使わなくても値がそのまま出て、正しさは変わらない。文字の中身につないだ String と Boolean はトークンにならず、値は `spec.json`（zip の中の、フレームの中身の記述）にそのまま載る。Color Style もトークンにならない。どちらも、使った所は zip の `README.md` に「含まれなかったもの」として書かれる。
 
-変数のコレクションは Light・Dark・Base の3つに分ける（Light・Dark はテーマで変わる色、Base はテーマで変わらない値）。Setup を押すと、この3つのコレクションと Text Style・Effect Style に、次の推奨一式のうち足りないものだけが、使える欄の絞り込みと CSS 変数名つきで作られる。2回押しても増えず、手で作った同名のものは上書きされない。名前は共通の語彙で、値はデザインごとに変えてよい。
+変数のコレクションは Light・Dark・Base の3つに分ける（Light・Dark はテーマで変わる色、Base はテーマで変わらない値）。プラグインの Setup ボタンを押すと、この3つのコレクションと Text Style・Effect Style に、次の推奨一式のうち足りないものだけが、使える場所の絞り込み（Scope）と CSS の変数名（Code syntax）つきで作られる。2回押しても増えず、手で作った同名のものは上書きされない。名前は共通の語彙で、値はデザインごとに変えてよい。
 
 ```
 色（Light・Dark 各14）  bg / surface / border / fg/default / fg/muted
@@ -57,9 +42,27 @@ Text Style              display / heading-lg / heading-md / heading-sm / lead / 
 Effect Style            shadow-sm / shadow-md
 ```
 
+### 渡すフレーム
+
+1つの Figma のページに、渡すフレームだけを置く。ページの直下、またはページ直下の Section の直下にある、表示中のフレームが渡る。部品置き場や下書きは別の Figma のページに置く。
+
+渡らないもの:
+
+- 非表示のレイヤー
+- フレーム以外（裸の Component / Component Set、Rectangle など）
+- Section の中の Section と、その中身
+
+渡らないものは、Frames の一覧（プラグインの画面の Frames タブ）に Not exported として並び、zip の `README.md` にも書かれる。
+
+### Web ページと幅
+
+zip の書き出しの単位を「Web ページ」と呼ぶ（HP なら top・about など。zip のフォルダ1つ）。幅ごとに見た目を変えるときは、1つの Web ページを幅ごとに別のフレームで描き（例: 1440 と 375）、Figma の Section で囲む。Section で囲んだフレームは、枚数に関わらず Section 名が Web ページ名（zip のフォルダ名）になる。囲まないフレームはフレーム名が Web ページ名になる。1枚だけの Web ページは囲まなくてよい。
+
+どの幅からそのフレームを使うか（From width）と、コンテンツ幅（Content width）は、そのフレームの Export 設定（プラグインにある書き出しの設定欄。「プラグインの画面」の節）に入れる。一番狭いフレームは From width を空のままにする（幅 0 から使われる）。1枚だけの Web ページに From width は要らない。Content width は空なら全幅。
+
 ### ダーク対応
 
-ダーク対応するときは、ファイルの Export 設定で Dark support を ON にする。ON のあいだは色をすべて Light の変数につなぐ。つないでいない色は Dark に付け替わらず、Review で error（直さないと Export できない違反）になる。上部の Light | Dark でキャンバスの見た目を切り替えて確かめる。OFF なら、変数につないでいなくても何も言われない。
+ダーク対応するときは、ファイルの Export 設定で Dark support を ON にする。ON のあいだは色をすべて Light の変数につなぐ。つないでいない色は Review（プラグインの検査。「プラグインの画面」の節）で error（直さないと Export できない違反）になる。上部の Light | Dark でキャンバスの見た目を切り替えて確かめる。OFF なら error にならず、トークンと同じ値なのにつないでいない色だけが notice（知らせるだけ）になる。
 
 ### 作り方のコツ
 
@@ -68,7 +71,7 @@ error にはならないが、渡り方が変わる。
 - Auto Layout で組むと、伸び縮み（Hug / Fill / Fixed、min / max）がそのまま伝わる。Auto Layout の無いフレームの子は、座標のまま渡る
 - 背景はフレームの fill にする。子レイヤーにすると、そのまま子として渡る
 - 繰り返す要素は Component にする
-- レイヤー名は CC がそのまま読む。役割が分かる名前（header / nav / heading / cta など）が伝わりやすい。Figma のデフォルト名（Frame 1 など）や、同じ親の中の同名もそのまま渡る（zip の中では番号が付いて区別される）
+- レイヤー名は CC がそのまま読む。役割が分かる名前（header / nav / heading / cta など）が伝わりやすい。Figma のデフォルト名（Frame 1 など）や、同じ親の中の同名もそのまま渡る
 
 ### note
 
@@ -98,16 +101,16 @@ error になるもの:
 
 - Dark support ON で、変数につないでいない色
 - Dark support ON で、Dark コレクションが無い
-- Web ページ名（Section 名・フレーム名）が空か重複している（zip のフォルダがぶつかる）
+- Web ページ名（Section 名・フレーム名）が重複している
 
 notice になるもの:
 
 - トークンと同じ値なのに、つないでいない
-- Section で組んだフレームに From width が無い
+- Section の中の、一番狭い以外のフレームに From width が無い
 
 ### note
 
-レイヤーの詳細で書いて Save。note のある行に ✎ が付く。Figma のプロパティパネルからも開ける。画面の外（渡らない所）のレイヤーの note は渡らず、zip の `README.md` に書かれる。
+レイヤーの詳細で書いて Save。note のある行に ✎ が付く。Figma のプロパティパネルからも開ける。渡らないレイヤーの note は渡らず、zip の `README.md` に書かれる。
 
 ### Export 設定
 
@@ -125,16 +128,16 @@ notice になるもの:
 
 ### Export
 
-error が 0 のときだけ押せる。zip がダウンロードされる。
+error があると Export は止まり、一覧が error の行だけに絞られる。error が 0 なら zip がダウンロードされる。
 
 ## zip の中身と CC への渡し方
 
 - `prompt.md`: CC への作業指示
 - `tokens.json`: トークン
 - `README.md`: 入っているものと、含まれなかったもの
-- Web ページごとのフォルダ: 幅ごとのフレームの `spec.json`、画面全体とその中のまとまりごとの画像、画像アセット（写真は PNG、アイコン・ロゴは SVG）、CSS で描けないものの画像
+- Web ページごとのフォルダ: 幅ごとのフレームの `spec.json`、フレーム全体とその中のまとまりごとの画像、画像アセット（写真は PNG、アイコン・ロゴは SVG）、CSS で描けないものの画像
 
-zip は展開せず、そのまま CC に渡す。読み方は `prompt.md` に入っている。
+zip をコードを作るフォルダに置き、CC に「この zip の `prompt.md` のとおりにページを作って」と伝える。展開してもよい。読み方は `prompt.md` に入っている。
 
 ## 開発
 
@@ -142,5 +145,3 @@ zip は展開せず、そのまま CC に渡す。読み方は `prompt.md` に�
 bun run build       # 型検査とビルド（dist/ui.html と dist/code.js）
 bun run typecheck   # 型検査だけ
 ```
-
-設計の意図と決めたことは [`docs/design.md`](docs/design.md)。
