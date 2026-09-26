@@ -1,27 +1,24 @@
 # {Name}
 
 <!--
-Answers: "What do I get?"
-Write: the outcome for the user, in one sentence.
-Do not write: what the tool is, how it works. If the sentence leaves the reader unsure what kind of thing this is, add one line naming it.
+Purpose: the reader decides in one glance whether this is worth their time.
+How: write the outcome for the user in one sentence. Add one line naming what it is only if the sentence leaves that unclear.
 -->
 {What the user gets, in one sentence}
 
 ## Who it is for
 
 <!--
-Answers: "Is this for me, and what will I be able to do?"
-Write: one user story per role. Each story is a promise. Every promise has one Usage scenario below that shows how it is kept.
-Do not write: features, or roles you are not sure exist.
+Purpose: the reader finds their role and the promise made to them. Each promise is kept by one Usage scenario and measured by one Goal in the design doc.
+How: write one user story per role.
 -->
 - As a {role}, I can {outcome}, so {benefit}.
 
 ## Getting started
 
 <!--
-Answers: "How do I get to a working state?"
-Write: the commands and steps, in order, that end with the tool running.
-Do not write: options, alternatives, or why. If a step needs a choice, the default is the step.
+Purpose: the reader reaches a working state without deciding anything.
+How: write the commands and steps in order, ending with the tool running. Where a choice exists, write the default.
 -->
 ```
 {install}
@@ -31,9 +28,8 @@ Do not write: options, alternatives, or why. If a step needs a choice, the defau
 ## Usage
 
 <!--
-Answers: "How do I use it?"
-Write: one scenario per user story above, named by what the role wants to achieve. Numbered steps, each saying what the role does and what they then see. Where the tool refuses or drops something, say it in the step where it happens: "If …, then …".
-Do not write: a feature list, settings out of context, or reasons.
+Purpose: the reader sees themselves using it, from intent to result.
+How: write one scenario per user story, named by what the role wants to achieve. Number the steps; each says what the role does and what they then see. Where the tool refuses or drops something, say so in that step as "If …, then …".
 -->
 ### {Scenario: what the role wants to achieve}
 
@@ -44,9 +40,8 @@ Do not write: a feature list, settings out of context, or reasons.
 ## Develop
 
 <!--
-Answers: "How do I build and test it?"
-Write: the commands.
-Do not write: how it is built or why. That is the design doc.
+Purpose: a contributor builds and tests it.
+How: write the commands.
 -->
 ```
 {build}
