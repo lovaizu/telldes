@@ -383,8 +383,8 @@ Design: docs/design.md
 session is suspended — the signal /rn:up and /rn:dn search for — and resets to `not suspended` here,
 so only a genuinely suspended session reads `paused`.)
 
-- **Status**: not suspended
-- **Date**:
-- **Last completed**:
-- **Next**:
-- **Notes**:
+- **Status**: paused
+- **Date**: 2026-09-26
+- **Last completed**: #3 README と設計書の作り直し（ただし劣化しており、やり直す見込み）
+- **Next**: ユーザーから README・設計書の劣化への FB を受け、#3 のやり直し方を決めて直す。そのあと #2 の残り
+- **Notes**: ブランチ `telldes-plugin`、PR https://github.com/lovaizu/telldes/pull/2 。劣化の要因として挙がったもの: 設計書 Approach の「決定1行＋理由の子箇条」分割（9dce695）、設計書への細則の流入、README 手順の長文化と表の消失、grep 中心の完了条件。前の版は 6977b3f。ScheduleWakeup は使わず、レビューは1周で結果をユーザーに見せてから直す
