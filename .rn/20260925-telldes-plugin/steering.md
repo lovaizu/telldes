@@ -15,9 +15,9 @@ Design: docs/design.md
 - Setup: 押すと Light・Dark・Base の3つのコレクションに、README の推奨一式（変数・Text Style・Effect Style）が、使える欄の絞り込みと CSS 変数名つきでそろう。2回押しても増えない。Setup を使わずに作ったファイルも読めて正しく出る
 - Review: 直さないと出力が壊れるものだけを error にし、error が残る間は Export できない。機械的に分かる指定し忘れは止めずに知らせる。同じ原因は1行にまとまる。見る範囲は Export が書き出す範囲と同じ。プラグインを開いたときと Export の前に自動で走り、error の件数が常に見える。項目を押すと該当レイヤーが選ばれる
 - note: レイヤーごとに書いて保存でき、プロパティパネルから開ける。書いた note は Export の出力に載り、画面の外のレイヤーの note は「含まれなかったもの」に記録される
-- Export: Export 設定（切り替える幅・コンテンツ幅・ダーク対応の有無・ページの題名・共通ルール）を受け、zip に `prompt.md`・`tokens.json`・画面ごとの `spec.json`・画像・アセット・`README.md` が入る。落としたものは `README.md` に必ず書かれる
+- Export: Export settings（From width・Content width・Dark support・Page title・Rules for every page）を受け、zip に `prompt.md`・`tokens.json`・フレームごとの `spec.json`・画像・アセット・`README.md` が入る。落としたものは `README.md` に必ず書かれる
 - Light / Dark: `Light | Dark` の1つの切り替えで、ページ全体の変数のつながりが付け替わり、今どちらかが常に見える。Export が途中で失敗しても Light に戻る。Dark のまま残ったファイルを開くと、戻すよう促される
-- 画面は OOUI で組まれている: トークン・画面・レイヤーが並び、違反・知らせ・note はその持ち主の行に出る。画面の一覧には渡らないものも並ぶ。上部には Light / Dark、Review（ボタンと error・知らせの件数）、Export があり、Setup はトークンの一覧にあって、足りないものがあるときはトークンのタブに印が出る。プラグインの画面の文言は英語にそろっている
+- プラグインの画面は OOUI で組まれている: トークン・フレーム・レイヤーが並び、error・notice・note はその持ち主の行に出る。Frames の一覧には渡らないものも並ぶ。上部には Light / Dark、Review（ボタンと error・知らせの件数）、Export があり、Setup はトークンの一覧にあって、足りないものがあるときはトークンのタブに印が出る。プラグインの画面の文言は英語にそろっている
 
 品質
 
@@ -190,7 +190,7 @@ Design: docs/design.md
 **Completion criteria**:
 
 - わざと入れた「出力が壊れる違反」がすべて error として、その持ち主の行に出る。直すと消える
-- ライトだけのファイルで、変数につないでいない値は何も報告されない。ダーク対応 ON のファイルでだけ、変数につないでいない色が error になる
+- ライトだけのファイルで、どのトークンとも違う値は何も報告されない。トークンと同じ値なのにつないでいないものは notice。Dark support ON のファイルでだけ、Light の変数につないでいない色と、Light と同じ名前の変数が Dark に無い色が error になる
 - 同じ原因の違反（同じ色の30か所など）が1行にまとまる
 - 書き出さない範囲（画面の外・別ページ）にある違反は出ない
 - 開いた直後から error の件数が上部に出て、項目を押すとそのレイヤーが選ばれる
@@ -231,7 +231,7 @@ Design: docs/design.md
 
 - [ ] Export 設定（切り替える幅・コンテンツ幅・ダーク対応・題名・共通ルール）を、#2 で割り当てたオブジェクトの属性として作り、保存する
 - [ ] 読み取りデータから `spec.json`・`tokens.json`・`README.md` を作る判断を作る（設計書の出力の4つの約束を守る。`tokens.json` には Color・Number と書体につないだ String の変数を出す）
-- [ ] 画面の一覧に Export を付け、Review を走らせて error ゼロのときだけ zip を書き出す
+- [ ] 上部の Export で Review を走らせ、error ゼロのときだけ zip を書き出す。Dark support の既定は OFF（設計書）
 - [ ] Web ページ名（Section 名・フレーム名）が重複しているとき Review で error にする。一番狭いフレームは From width を空のままにし、Section の中の一番狭い以外のフレームに From width が無ければ notice にする（設計書）
 - [ ] 実機で書き出し、中身を読んで確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
@@ -242,9 +242,9 @@ Design: docs/design.md
 
 **Completion criteria**:
 
-- 見本の画面の、色・大きさ・間隔・文字・並び・サイジング・note が `spec.json` に値として出て、変数につないだものはトークン名で出る
+- 見本のフレームの、色・大きさ・間隔・文字・並び・サイジング・note が `spec.json` に値として出て、変数につないだものはトークン名で出る
 - 同じ種類のものは同じ形、同じ事実は1か所、指定されていないことは出ていない
-- 書き出せなかったもの（Color Style、STRING / BOOLEAN の変数、画面の外の note など）が `README.md` にすべて書かれている
+- 書き出せなかったもの（Color Style、文字の中身に使う String と Boolean の変数、渡らないレイヤーの note など）が `README.md` にすべて書かれている
 - error があると Export が押せない
 - Export 設定がファイルに保存され、開き直しても残る
 
@@ -279,7 +279,7 @@ Design: docs/design.md
 
 **Steps**:
 
-- [ ] ページ全体のつながりを Light と Dark の間で付け替える判断と書き込みを作る
+- [ ] ページ全体のつながりを Light と Dark の間で付け替える判断と書き込みを作る。今のテーマはプラグインの印としてファイルに保存する。Light と同じ名前の変数が Dark に無い色は Review で error（設計書）
 - [ ] 上部の `Light | Dark` で状態を見せ、切り替える
 - [ ] ダーク対応 ON の Export で Dark の画像も書き出し、終わったら（失敗しても）Light に戻す
 - [ ] Dark のまま開いたとき戻すよう促す
