@@ -114,9 +114,9 @@ Design: docs/design.md
 
 - [x] 3つの文書の役目・判定・観点・回し方を `.rn/doc-review.md` に書く（README はユーザーにベネフィットと使い方、設計書は開発者に実現方法を伝える、目指す姿の文書。依存は README → 設計書 → 実装）
 - [x] テンプレ（`.rn/templates/`）を捨てる。枠を埋めるように書くと、要らない中身まで入るため
-- [ ] 別のセッションが型なしで1回で書いた設計書（ccpm の rn-rebuild ブランチ `rn/docs/design.md`）の書き手に、何を考え、どう判断したかを聞き取り、`.rn/doc-review.md` を磨く
-- [ ] README・設計書・ガイドを、役目と観点だけから見出しを組み立て、ゼロから書く
-- [ ] `.rn/doc-review.md` の回し方どおりにレビューを1回回して直し、結果をユーザーに見せる
+- [x] 別のセッションが型なしで1回で書いた設計書（ccpm の rn-rebuild ブランチ `rn/docs/design.md`）から観点を抜き出し、writ の手順で `.rn/doc-review.md` を磨く（書き手への聞き取りは相手側のエラーで返らず、文書から抜き出した）
+- [x] README・設計書・ガイドを、役目と観点だけから見出しを組み立て、ゼロから書く
+- [x] `.rn/doc-review.md` の回し方どおりにレビューを1回回して直し、結果をユーザーに見せる
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 
 **Completion criteria**:
@@ -228,7 +228,7 @@ Design: docs/design.md
 - [ ] Export settings（From width・Content width・Dark support・Page title・Rules for every page）を、#2 で割り当てたオブジェクトの属性として作り、保存する
 - [ ] 読み取りデータから `spec.json`・`tokens.json`・`README.md` を作る判断を作る（設計書の出力の4つの約束を守る。`tokens.json` には Color・Number と Scope が Font family / Font style の String の変数を出す）
 - [ ] 上部の Export で Review を走らせ、error ゼロのときだけ zip を書き出す。Dark support の既定は OFF（設計書）
-- [ ] Web ページ名（Section 名・フレーム名）が重複しているとき Review で error にする。一番狭いフレームは From width を空のままにし、Section の中の一番狭い以外のフレームに From width が無ければ notice にする（設計書）
+- [ ] Web ページ名（Section 名・フレーム名）が重複しているとき、1つの Section に同じ幅のフレームが2つ以上あるとき、Review で error にする。一番狭いフレームは From width を空のままにし、Section の中の一番狭い以外のフレームに From width が無ければ notice にする（設計書）
 - [ ] 実機で書き出し、中身を読んで確かめる
 - [ ] self-check (OK/NG per completion criterion, record in checks/8.md)
 - [ ] QA expert review (subagent)
