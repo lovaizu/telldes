@@ -12,35 +12,22 @@
 
 ## Solution
 
-<!-- "What is the core idea, and why does it work?" A few lines. Facts relied on but not verified go on the "Assumes:" line, so they are re-checked when something breaks. -->
-{The core idea, and why it solves the problem}
-
-Assumes: {unverified facts, or none}
+<!-- "What is the core idea, and why does it work?" A few bullets. Facts relied on but not verified go on the "Assumes" bullet, so they are re-checked when something breaks. -->
+- {the core idea}
+- {why it solves the problem}
+- Assumes: {unverified facts, or none}
 
 ## Structure
 
-<!-- "Who are the parts, and who depends on whom?" A diagram of the parts and a table of what each must and must not do. Only what the code does not show. -->
+<!-- "Who are the parts, who depends on whom, and how does work move?" One flowchart of the parts and the main path through them, then one bullet per part saying what it must and must not do. Only what the code does not show. -->
 ```mermaid
 flowchart LR
-  A["{part}"] --> B["{part}"]
+  A["{part}"] -->|"{step}"| B["{part}"] -->|"{step}"| C["{part}"]
 ```
 
-| Part | Responsibility |
-|---|---|
-| {part} | {what it does, and what it must not do} |
-
-## Flow
-
-<!-- "How does work move through the parts?" One diagram of the main path. Only where the order matters and the code does not show it. -->
-```mermaid
-sequenceDiagram
-  {actor} ->> {part}: {step}
-  {part} -->> {actor}: {result}
-```
+- {part}: {what it does, and what it must not do}
 
 ## Alternatives
 
 <!-- "Why not the other way?" Each option someone would reasonably propose, and what it would cost or break. This stops the same debate from recurring. -->
-| Alternative | Why not |
-|---|---|
-| {option} | {what it would cost or break} |
+- {option}: {what it would cost or break}
