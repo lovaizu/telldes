@@ -1,4 +1,15 @@
-<!-- For developers. Answer why it is this way. Delete any line the README or the code already answers. -->
+<!--
+Rules
+
+- For developers. Answer why it is this way.
+- Never repeat what the README or the code already says.
+- No history, no changelog. Only the current design.
+- Diagrams and tables over prose. Never more than three lines of prose in a row.
+- Headings are plain English words.
+- Refined, not exhaustive. Keep only what a developer would otherwise get wrong.
+- Few references. State the point here in one line instead of pointing elsewhere.
+- Unverified facts say so.
+-->
 
 # {Name} design
 
