@@ -41,8 +41,9 @@ Design: docs/design.md
 
 # Rules
 
+- README・`docs/guide.md`・`docs/design.md` の3つが SSoT。議論も変更も、いつもこの3文書を起点にする。変えるべきことが出たら文書を先に変え、steering と実装を従わせる
 - commit and push every change; one completion marker per task
-- 設計書に無い作り方は、目的（CC がカンプと一致するコードを書ける正確な出力）と設計書の原則から自分で決める。README・実装から読めない理由だけを設計書に書き、報告で伝える。ユーザーに聞くのは目的・意図が不明なときだけ
+- 設計書に無い作り方は、目的（CC がカンプと一致するコードを書ける正確な出力）と設計書の原則から自分で決める。決めと理由を短く設計書に、デザイナーに要ることをガイドに書き、報告で伝える。ユーザーに聞くのは目的・意図が不明なときだけ
 - 機能はボタンと同じ名前（Setup / Review / Export / Light・Dark）で呼ぶ
 - 各機能は、#2 の画面の仮の値を本物に差し替え、読み取り・判断・書き込みまで作り切り、実機で試してから次へ進む。画面の形は #4 で承認されたものを保つ
 - テストは #11 まで書かない
@@ -118,7 +119,8 @@ Design: docs/design.md
 - [x] README・設計書・ガイドを、役目と観点だけから見出しを組み立て、ゼロから書く
 - [x] `.rn/doc-review.md` の回し方どおりにレビューを1回回して直し、結果をユーザーに見せる
 - [x] 使う場面から考え直す: Review は作りながら今の Web ページ、Export は選んだ Web ページをまとめて。読む Figma のページは設定で選ぶ。幅違い・テーマ違いは Telldes で決めたサフィックスでフレームと変数をまとめる（Section・Light / Dark / Base の決め打ち・Drafts の条件をやめる）。README・ガイド・設計書に反映
-- [ ] ユーザーに3つの文書を見てもらい、決まった形に合わせて Acceptance criteria と #2・#5〜#10 の中身を直す
+- [x] ユーザーに3つの文書を見てもらう（2026-09-27 承認。3文書を SSoT とする）
+- [ ] 3文書に合わせて、Goal・Acceptance criteria・Assumptions と #2・#5〜#14 の中身を直す（サフィックス、読む Figma のページと Review / Export の対象の選び方、部品とバリアント、対象を Web ページに広げたこと、Community での配布。Section・Dark support・フレームごとの From width・Drafts をやめたこと）
 - [ ] self-check (OK/NG per completion criterion, record in checks/3.md)
 
 **Completion criteria**:
@@ -381,7 +383,7 @@ session is suspended — the signal /rn:up and /rn:dn search for — and resets 
 so only a genuinely suspended session reads `paused`.)
 
 - **Status**: paused
-- **Date**: 2026-09-26
-- **Last completed**: #3 の step 1〜2（`.rn/doc-review.md` を書き、テンプレを捨てた）
-- **Next**: #3 の聞き取り → `.rn/doc-review.md` を磨く → 3つの文書を型なしで一から書く → レビュー1回
-- **Notes**: 聞き取りの質問9つを `rebuild-rn-46`（ccpm の rn-rebuild）へ送ったが、相手側が API エラーで答えを返せていない。送り直すか、ユーザーに相手のセッションで答えさせてもらう。README・設計書・ガイドの今の中身は捨てたテンプレに沿って書いた下書きで、一から書き直す。PR https://github.com/lovaizu/telldes/pull/2
+- **Date**: 2026-09-27
+- **Last completed**: #3 の3文書（README・ガイド・設計書）の書き直しと、ユーザーの承認
+- **Next**: #3 の残り: 3文書に合わせて steering の Goal・Acceptance criteria・Assumptions とタスクを直し、self-check。そのあと #2 の残り（画面を3文書に合わせる）
+- **Notes**: 3文書が SSoT（Rules の先頭）。観点は `.rn/doc-review.md`。PR https://github.com/lovaizu/telldes/pull/2
