@@ -383,7 +383,7 @@ session is suspended — the signal /rn:up and /rn:dn search for — and resets 
 so only a genuinely suspended session reads `paused`.)
 
 - **Status**: paused
-- **Date**: 2026-09-27
+- **Date**: 2026-10-02
 - **Last completed**: #3 の3文書（README・ガイド・設計書）の書き直しと、ユーザーの承認
 - **Next**: #3 の残り: 3文書に合わせて steering の Goal・Acceptance criteria・Assumptions とタスクを直し、self-check。そのあと #2 の残り（画面を3文書に合わせる）
 - **Notes**: 3文書が SSoT（Rules の先頭）。観点は `.rn/doc-review.md`。PR https://github.com/lovaizu/telldes/pull/2
