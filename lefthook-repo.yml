@@ -2,10 +2,13 @@ pre-commit:
   jobs:
     # The README and the documents of docs/ are in Japanese. Each other file
     # that holds prose, such as the comments of the code, is in English.
+    # .rn/ holds the notes that rn of lovaizu/ccpm keeps on the work, which
+    # the checks leave out.
     - name: english
       exclude:
         - "README.md"
         - "docs/*.md"
+        - ".rn/**"
     - name: japanese
       glob:
         - "README.md"
