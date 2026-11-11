@@ -37,7 +37,7 @@ export function TokenList() {
           {ws.handedTokenCount} to export
           <Show when={droppedCount()}> · {droppedCount()} not exported</Show>
         </h3>
-        {/* Loud only while it would add something: it is pressed once when the file is new, then rarely again. */}
+        {/* Loud only while it would add something: the designer presses it once when the file is new, then rarely again. */}
         <span class="setup">
           <Show when={ws.missingTokenCount}>
             <span class="hint">{counted(ws.missingTokenCount, "token")} missing</span>

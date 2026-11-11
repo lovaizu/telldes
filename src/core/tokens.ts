@@ -4,7 +4,7 @@ import type { TokenData } from "../shared/data";
 
 export type TokenKind = "variable" | "textStyle" | "effectStyle" | "paintStyle";
 
-/** Why a variable or style does not become a token (README: トークン化). */
+/** Why a variable or style doesn't become a token (README: トークン化). */
 export type TokenDrop = "color-style" | "not-color-or-number";
 
 export interface TokenRef {

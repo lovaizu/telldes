@@ -64,7 +64,7 @@ export function size(layer: LayerData): string {
   return layer.width === undefined ? "" : `${round(layer.width)} × ${round(layer.height ?? 0)}`;
 }
 
-/** "1 error", "3 errors". */
+/** The count and the noun, plural unless the count is 1: 1 error, 3 errors. */
 export function counted(n: number, noun: string): string {
   return `${n} ${noun}${n === 1 ? "" : "s"}`;
 }

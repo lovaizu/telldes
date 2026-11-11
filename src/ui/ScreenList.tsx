@@ -1,7 +1,7 @@
 // The Web pages that Export hands over, each with its screens (one per width)
-// and their layers, and what does not get handed over. The list is the manifest
-// of the zip. A Web page of one frame is shown as that frame's row alone: a Web
-// page row above a frame of the same name would say nothing.
+// and their layers, and what Export doesn't hand over. The list is the manifest
+// of the zip. It shows a Web page of one frame as that frame's row alone: a Web
+// page row whose only child is a frame of the same name would add nothing.
 import { For, Show } from "solid-js";
 import type { LayerEntry, WebPage } from "../core/screens";
 import { counted, dropReasonText, size } from "./format";

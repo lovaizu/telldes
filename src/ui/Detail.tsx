@@ -1,5 +1,5 @@
 // The detail of the object opened in a list: its attributes, what Review says
-// about it, and what can be done to it.
+// about it, and what the designer can do to it.
 import type { JSX } from "@solidjs/web";
 import { createSignal, For, Match, Show, Switch } from "solid-js";
 import type { LayerEntry } from "../core/screens";
@@ -30,7 +30,7 @@ export function Detail() {
           {(value) => <ValueDetail value={value} />}
         </Match>
         <Match when={ws.webPages().find((w) => w.id === as("webPage")?.id)} keyed>
-          {/* A Web page left with one frame is shown as that frame, as in the list. */}
+          {/* The detail shows a Web page left with one frame as that frame, as the list does. */}
           {(webPage) =>
             webPage.screenIds.length > 1 ? <WebPageDetail id={webPage.id} /> : <LayerDetail entry={ws.index.get(webPage.screenIds[0]!)!} />
           }
@@ -289,7 +289,7 @@ function LayerDetail(props: { entry: LayerEntry }) {
         <Show when={size(layer())}>
           <Fact label="Size">{size(layer())}</Fact>
         </Show>
-        {/* A Web page of this frame alone is not shown apart from the frame, so there is nothing to link to. */}
+        {/* The screen doesn't show a Web page of this frame alone apart from the frame, so there's nothing to link to. */}
         <Show when={isScreen() && ws.webPageOf(layer().id)?.screenIds.length !== 1 && ws.webPageOf(layer().id)}>
           {(webPage) => (
             <Fact label="Web page">
@@ -379,7 +379,7 @@ function ScreenSettings(props: { screenId: string }) {
   const ws = useWorkspace();
   const settings = () => ws.state.settings.screens[props.screenId];
   const webPage = () => ws.webPageOf(props.screenId);
-  /** A Web page of this frame alone has its settings here, since it is shown as this frame. */
+  /** A Web page of this frame alone has its settings here, since the screen shows it as this frame. */
   const alone = () => (webPage()?.screenIds.length ?? 0) < 2;
   const others = () => ws.webPages().filter((w) => w.screenIds.length > 1 || w.id !== webPage()?.id);
   const optionName = (w: { id: string; screenIds: string[] }) =>
@@ -440,7 +440,7 @@ function TitleField(props: { webPageId: string }) {
   );
 }
 
-/** Built per layer (the detail is keyed), so a draft never carries over to another layer. */
+/** Built for each layer, as the detail is keyed by layer, so a draft never carries over to another layer. */
 function NoteEditor(props: { layerId: string }) {
   const ws = useWorkspace();
   const [draft, setDraft] = createSignal(ws.state.notes[props.layerId] ?? "");

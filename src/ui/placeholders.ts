@@ -1,5 +1,5 @@
 // Stand-ins for results that later tasks build for real. Everything here is
-// fake, kept only so the screen can be tried before the features exist; each
+// fake, kept only so that people can try the screen before the features exist; each
 // section names the task that replaces it. Nothing here writes to Figma. The
 // UI says once that results are placeholders, and each value from here names
 // its task on hover.
@@ -85,9 +85,9 @@ export interface WebPageSettings {
 }
 
 export interface ScreenSettings {
-  /** The Web page this screen is one width of (a WebPage id). */
+  /** The Web page that this screen is one width of, by its WebPage id. */
   webPageId: string;
-  /** The viewport width from which this screen's layout is used. */
+  /** The viewport width from which the page uses this screen's layout. */
   fromWidth: string;
   contentWidth: string;
 }
@@ -143,7 +143,7 @@ export const initialTheme: Theme = "light";
 
 /**
  * Fake Review. It looks at real layers and tokens so the findings land on
- * real rows and follow the one-owner rule, but the rules are not the real ones.
+ * real rows and follow the one-owner rule, but the rules aren't the real ones.
  */
 export function review(file: FileData, index: Map<string, LayerEntry>, webPages: WebPage[], settings: Settings): Finding[] {
   const findings: Finding[] = [];
@@ -163,7 +163,7 @@ export function review(file: FileData, index: Map<string, LayerEntry>, webPages:
   for (const color of unboundColors(index)) {
     const token = tokenOf.get(color.hex);
     if (token) {
-      // Equal to a token: the one decision is "connect these to the token", so the token owns it.
+      // Equal to a token: the one decision is to connect these colors to the token, so the token owns it.
       findings.push({
         severity: darkSupport ? "error" : "notice",
         owner: { kind: "token", id: token.id },

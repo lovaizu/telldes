@@ -45,7 +45,7 @@ import type {
   VariableValue,
 } from "@figma/plugin-typings/plugin-api-standalone";
 
-/** Stands in for `figma.mixed`, which is a Symbol and cannot cross postMessage. */
+/** Stands in for `figma.mixed`, which is a Symbol and can't cross postMessage. */
 export const MIXED = "MIXED";
 export type Mixed = typeof MIXED;
 
@@ -72,7 +72,7 @@ export interface TokenData {
   variables: VariableData[];
   textStyles: TextStyleData[];
   effectStyles: EffectStyleData[];
-  /** Color Styles are not exported; read so they can be reported as dropped. */
+  /** Color Styles aren't exported; the plugin reads them only to report them as dropped. */
   paintStyles: PaintStyleData[];
 }
 
@@ -143,21 +143,23 @@ export interface BoundVariables {
 
 /**
  * One node and its subtree. Groups of optional fields exist only when the node
- * has the matching Plugin API mixin, so absence means "the node has no such
- * property", never "unset".
+ * has the matching Plugin API mixin, so a missing field means that the node
+ * has no such property, never that the property is unset.
  */
 export interface LayerData {
   id: string;
   name: string;
-  /** Plugin API `NodeType`, e.g. FRAME, TEXT, INSTANCE. */
+  /** Plugin API `NodeType`, such as `FRAME`, `TEXT` or `INSTANCE`. */
   type: string;
   visible: boolean;
-  /** Keys and values stored by this plugin with `setPluginData` (e.g. the note). */
+  /** Keys and values that this plugin stores with `setPluginData`, such as the note. */
   pluginData: Record<string, string>;
   boundVariables: BoundVariables;
 
   // DimensionAndPositionMixin / LayoutMixin / ConstraintMixin
-  // x, y and relativeTransform are relative to the nearest frame-like ancestor (frame, component, instance, section or page); groups and boolean operations in between are skipped.
+  // x, y and relativeTransform are relative to the nearest frame-like ancestor: a
+  // frame, component, instance, section or page. Groups and boolean operations
+  // in between don't count.
   x?: number;
   y?: number;
   width?: number;

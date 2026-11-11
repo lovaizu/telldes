@@ -1,6 +1,6 @@
 // Messages between the UI and the Figma side. The UI sends a request with an
 // `id`; the Figma side answers every request once, with the same `id`, in one
-// envelope shape. Each request type is listed once in `Calls`.
+// envelope shape. `Calls` lists each request type once.
 import type { FileData } from "./data";
 
 /** Request type → what the request carries besides `id` and `type`, and what it answers. */

@@ -50,7 +50,7 @@ function Layout() {
       <TopBar />
       <nav class="pane-list" aria-label="Lists">
         <div class="tabs" role="tablist">
-          {/* Both counts are of what is handed over; what is not is listed, and counted, inside each tab. */}
+          {/* Both counts cover only what Export hands over; each tab lists and counts what it doesn't. */}
           <button role="tab" aria-selected={ariaBool(ws.state.tab === "screens")} onClick={() => ws.setTab("screens")} title="Frames to export">
             Frames {ws.screens.length}
             <TabMarks kinds={["screen", "layer"]} />
@@ -58,7 +58,7 @@ function Layout() {
           <button role="tab" aria-selected={ariaBool(ws.state.tab === "tokens")} onClick={() => ws.setTab("tokens")} title="Tokens to export">
             Tokens {ws.handedTokenCount}
             <TabMarks kinds={["token", "value"]} />
-            {/* Setup sits inside this tab, so the tab says so without being opened. */}
+            {/* Setup sits inside this tab, so the tab shows that Setup has tokens to add even when it isn't open. */}
             <Show when={ws.missingTokenCount}>
               <span class="mark setup-due" title={`Setup has ${counted(ws.missingTokenCount, "token")} to add`}>
                 +{ws.missingTokenCount}
@@ -104,7 +104,7 @@ function Layout() {
   );
 }
 
-/** The one place the screen says it is a prototype; which task replaces what is on hover. */
+/** The one place where the screen says that it's a prototype; the hover text says which task replaces what. */
 const PROTOTYPE_TITLE = [
   "Nothing is written to the Figma file. Tasks that replace the placeholders:",
   ...Object.values(TASK).map((task) => `#${task.number} ${task.feature}`),

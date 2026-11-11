@@ -1,5 +1,5 @@
 // The screen's state and the operations on it, shared through context. Results
-// of features that are not built yet come from placeholders.ts and stay in
+// of features that aren't built yet come from placeholders.ts and stay in
 // memory: nothing here writes to the Figma file. The one call to Figma is
 // selecting a layer, which changes only the selection and the viewport.
 import { createContext, createMemo, createStore, flush, useContext } from "solid-js";
@@ -32,7 +32,7 @@ export interface Status {
 interface State {
   tab: Tab;
   selected: Selection;
-  /** Row key → whether its children are shown in the list. Layers use their id, Web pages `webPageKey`. */
+  /** Row key → whether the list shows its children. Layers use their id, Web pages `webPageKey`. */
   expanded: Record<string, boolean>;
   status: Status | null;
   theme: placeholder.Theme;
@@ -47,7 +47,7 @@ interface State {
 /** The expanded-state key of a Web page row, apart from the screen whose id it shares. */
 export const webPageKey = (id: string) => `webPage:${id}`;
 
-/** The list tab each owner kind is shown in; the file is on the top bar, in no tab. */
+/** The list tab that shows each owner kind; the file is on the top bar, in no tab. */
 const TAB_OF_OWNER: Record<FindingOwner["kind"], Tab | null> = {
   file: null,
   token: "tokens",
@@ -92,7 +92,7 @@ export function createWorkspace(file: FileData) {
     return map;
   });
 
-  /** The rows above a layer's finding (its ancestors by id, its Web page by `webPageKey`). */
+  /** The rows that hold the row of a finding's layer or screen: its ancestors by id, and its Web page by `webPageKey`. */
   const rowsAbove = (finding: Finding): string[] => {
     if (finding.owner.kind !== "layer" && finding.owner.kind !== "screen") return [];
     const owner = index.get(finding.owner.id);
@@ -115,7 +115,7 @@ export function createWorkspace(file: FileData) {
 
   const say = (status: Status | null) => setState((s) => void (s.status = status));
 
-  /** Runs Review on the current settings and returns its findings (the store shows them only after a flush). */
+  /** Runs Review on the current settings and returns its findings, as the store shows them only after a flush. */
   const review = () => {
     const findings = placeholder.review(file, index, webPages(), state.settings);
     setState((s) => {
@@ -129,8 +129,8 @@ export function createWorkspace(file: FileData) {
 
   /**
    * Show only the rows that carry findings of the severity, or every row again with null.
-   * The rows leading to each match are opened, so no match stays hidden in a collapsed row;
-   * if the current tab has no match, the tab that has one is shown.
+   * It opens the rows leading to each match, so no match stays hidden in a collapsed row;
+   * if the current tab has no match, it shows the tab that has one.
    */
   const setFilter = (severity: Severity | null) => {
     const matched = severity ? state.findings.filter((f) => f.severity === severity) : [];
@@ -149,7 +149,7 @@ export function createWorkspace(file: FileData) {
    */
   const changeSettings = (change: (settings: placeholder.Settings) => void) => {
     setState((s) => void change(s.settings));
-    flush(); // Writes are seen only after a flush; Review must read the new settings.
+    flush(); // Reads see writes only after a flush, and Review must read the new settings.
     const errors = count(review(), "error");
     const shown = state.status;
     if (shown && (shown.task === "review" || shown.task === "export")) {
@@ -181,7 +181,7 @@ export function createWorkspace(file: FileData) {
     screens,
     dropped,
     groups,
-    /** How many tokens Setup would add; the file is read once, so this does not change. */
+    /** How many tokens Setup would add; the plugin reads the file once, so this doesn't change. */
     missingTokenCount: placeholder.setupPlan(file).length,
     handedTokenCount: groups.reduce((n, g) => n + g.tokens.filter((t) => !t.dropped).length, 0),
     state,
@@ -192,7 +192,11 @@ export function createWorkspace(file: FileData) {
     findingsOf: (owner: FindingOwner) => byOwner().get(ownerKey(owner)) ?? [],
     hasFindingsBelow: (key: string, severity?: Severity) =>
       severity ? findingsBelow()[severity].has(key) : findingsBelow().error.has(key) || findingsBelow().notice.has(key),
-    /** Whether the filter keeps the row of the owner (or, with `below`, the row above other owners). */
+    /**
+     * Whether the filter keeps the row of the owner. Given the key `below` of a
+     * row, the filter also keeps that row when a row under it has a finding of
+     * the severity that the filter shows.
+     */
     passesFilter(owner: FindingOwner | null, below?: string) {
       const severity = state.filter;
       if (!severity) return true;
@@ -255,7 +259,7 @@ export function createWorkspace(file: FileData) {
       say({ text: `Switched to ${name}. The variables on this Figma page would switch to their ${name} values.`, task: "theme" });
     },
     runExport() {
-      // Export runs Review first, so it never hands over what Review has not seen.
+      // Export runs Review first, so it never hands over what Review hasn't seen.
       const errors = count(review(), "error");
       if (errors > 0) {
         // Show where they are right away, instead of telling the designer where to look.
@@ -289,7 +293,7 @@ export function createWorkspace(file: FileData) {
     },
     /**
      * Put the frame into the Web page `webPageId`, or with null into one of its own.
-     * A Web page is known by the id of its first frame, so when that frame leaves,
+     * The id of a Web page is the id of its first frame, so when that frame leaves,
      * the frames it leaves behind stay together under the next one's id.
      */
     setSamePageAs(screenId: string, webPageId: string | null) {

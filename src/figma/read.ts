@@ -1,5 +1,5 @@
 // Read gateway: turns the open file into plain data. It copies what Figma holds
-// and decides nothing; every judgment is made from the returned data elsewhere.
+// and decides nothing; other code makes every judgment from the data it returns.
 import {
   MIXED,
   type AutoLayoutData,
@@ -91,7 +91,8 @@ async function readLayer(node: SceneNode, parent: SceneNode | null): Promise<Lay
     const cause = error instanceof Error ? error.message : String(error);
     throw new Error(`Layer "${node.name}" (${node.type}, id ${node.id}): ${cause}`);
   }
-  // Outside the try, so a failing child is named once, by itself.
+  // Outside the try, so that the error of a failing child names that child once,
+  // not again for each ancestor.
   if ("children" in node) {
     layer.children = await Promise.all(node.children.map((child) => readLayer(child, node)));
   }
@@ -194,7 +195,7 @@ async function readOwnFields(node: SceneNode, parent: SceneNode | null): Promise
     layer.componentProperties = node.componentProperties;
   }
   if (node.type === "COMPONENT") layer.variantProperties = node.variantProperties;
-  // Figma throws when a variant (a component inside a set) is asked for definitions; the set holds them.
+  // Figma throws when code asks a variant, a component inside a set, for its definitions; the set holds them.
   if (node.type === "COMPONENT_SET" || (node.type === "COMPONENT" && node.parent?.type !== "COMPONENT_SET")) {
     layer.componentPropertyDefinitions = node.componentPropertyDefinitions;
   }

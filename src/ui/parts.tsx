@@ -5,7 +5,7 @@ import type { Finding } from "../core/findings";
 import { TASK, type TaskKey } from "./placeholders";
 import { useWorkspace } from "./workspace";
 
-/** ARIA states want the strings "true" / "false", not a boolean. */
+/** ARIA states take the string "true" or "false" and not a boolean. */
 export const ariaBool = (value: boolean) => (value ? "true" : "false");
 
 /** Hover text naming the task that replaces a placeholder. */
@@ -17,7 +17,7 @@ export function placeholderTitle(key: TaskKey): string {
 /**
  * Wraps a placeholder value. The screen says once, in the status line, that
  * results are placeholders; here only the hover text names the task, so the
- * marks do not crowd the screen.
+ * marks don't crowd the screen.
  */
 export function Tentative(props: { task: TaskKey; children: JSX.Element }) {
   return (

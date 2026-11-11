@@ -1,5 +1,5 @@
 /*
- * Figma injects --figma-color-* when showUI is called with themeColors, so the
+ * Figma injects --figma-color-* when the plugin calls showUI with themeColors, so the
  * plugin follows Figma's light or dark theme. Sizes follow Figma's own panels
  * (11px Inter, 24px controls and rows), so it reads as part of Figma.
  * The fallbacks are Figma's light values, for opening ui.html outside Figma.
@@ -274,7 +274,7 @@ button.review {
   color: var(--figma-color-text-danger, #dc3412);
 }
 
-/* The one sign that results are placeholders; which task replaces what is on hover. */
+/* The one sign that results are placeholders; the hover text says which task replaces what. */
 .prototype {
   flex: none;
   color: var(--figma-color-text-tertiary, rgb(0 0 0 / 0.3));
@@ -322,7 +322,7 @@ button.review {
   padding: 0 8px 12px;
 }
 
-/* Setup wraps under the count when the hint does not fit beside it. */
+/* Setup wraps under the count when the hint doesn't fit beside it. */
 .list-head {
   display: flex;
   flex-wrap: wrap;

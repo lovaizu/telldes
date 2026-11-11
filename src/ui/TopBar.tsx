@@ -29,7 +29,7 @@ export function TopBar() {
           <button aria-pressed={ariaBool(ws.state.theme === "light")} onClick={() => ws.setTheme("light")}>
             Light
           </button>
-          {/* aria-disabled, not disabled: the button stays hoverable and clickable, so the reason can be shown. */}
+          {/* Off by its ARIA attribute alone, not by the HTML attribute that turns a button off: it still takes hover and clicks, so its title can show the reason. */}
           <button
             aria-pressed={ariaBool(ws.state.theme === "dark")}
             aria-disabled={ariaBool(!ws.state.settings.file.darkSupport)}
@@ -45,7 +45,7 @@ export function TopBar() {
         </div>
       </div>
       <span class="spacer" />
-      {/* Named, not an icon: designers did not find ⟳. It runs by itself too; pressing it is for after fixing something in Figma. */}
+      {/* Named, not an icon: designers didn't find ⟳. Review also runs by itself; the button is for after fixing something in Figma. */}
       <button
         class="review"
         title="Review runs on open, on settings change and before Export. Click to run it again."

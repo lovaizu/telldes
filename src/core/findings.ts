@@ -2,20 +2,20 @@
 // the designer makes to resolve it (docs/design.md: OOUI).
 
 export type FindingOwner =
-  /** Settings of the whole file, e.g. dark support on without a Dark collection. */
+  /** Settings of the whole file, such as dark support turned on without a Dark collection. */
   | { kind: "file" }
   | { kind: "token"; id: string }
   /**
-   * A raw value that matches no token, e.g. one color in 30 places: one
+   * A raw value that matches no token, such as one color used in 30 places: one
    * decision, one row in the token list. A value equal to a token belongs to
-   * that token instead, since the decision there is "connect it to the token".
+   * that token instead, since the decision there is to connect it to the token.
    */
   | { kind: "value"; value: string }
   | { kind: "screen"; id: string }
   | { kind: "layer"; id: string };
 
 export interface Finding {
-  /** error stops Export; notice only tells. */
+  /** An error stops Export; a notice shows without stopping it. */
   severity: "error" | "notice";
   owner: FindingOwner;
   message: string;
