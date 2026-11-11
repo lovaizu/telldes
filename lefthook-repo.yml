@@ -10,3 +10,10 @@ pre-commit:
       glob:
         - "README.md"
         - "docs/*.md"
+
+# The Issues and pull requests of this repository are in English, so the
+# Claude Code hook checks their texts with the job english alone.
+claude-code:
+  jobs:
+    - name: claude-code
+      args: english
