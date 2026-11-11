@@ -1,0 +1,5 @@
+pre-commit:
+  jobs:
+    # Each file of this repository holds English alone.
+    - name: japanese
+      skip: true
