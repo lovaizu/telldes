@@ -1,5 +1,12 @@
 pre-commit:
   jobs:
-    # Each file of this repository holds English alone.
+    # The README and the documents of docs/ are in Japanese. Each other file
+    # that holds prose, such as the comments of the code, is in English.
+    - name: english
+      exclude:
+        - "README.md"
+        - "docs/*.md"
     - name: japanese
-      skip: true
+      glob:
+        - "README.md"
+        - "docs/*.md"
