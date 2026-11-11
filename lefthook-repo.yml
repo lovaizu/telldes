@@ -1,0 +1,10 @@
+pre-commit:
+  jobs:
+    - name: english
+      # LICENSE holds the standard MIT License text, which this repository
+      # doesn't write.
+      exclude:
+        - LICENSE
+    # Each file of this repository holds English alone.
+    - name: japanese
+      skip: true
